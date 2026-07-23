@@ -23,8 +23,8 @@ public final class StubChildCaseDescriptor {
                 .workers(Worker.builder()
                         .name(name + "-stub-worker")
                         .capabilityName(capabilityName)
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                input -> WorkerResult.of(Map.of("status", "stub"))))
+                        .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                (input, scope) -> WorkerResult.of(Map.of("status", "stub"))))
                         .build())
                 .build();
     }

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ScalingEventCaseDescriptorTest {
 
@@ -78,9 +78,9 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 6,
                 "reason", "cpu_threshold_exceeded");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        Map<String, Object> decision = (Map<String, Object>) result.output().get("scalingDecision");
+        Map<String, Object> decision = (Map<String, Object>) ((Map<String, Object>) result.output()).get("scalingDecision");
         assertThat(decision).isNotNull();
         assertThat(decision.get("action")).isEqualTo("scale-up");
         assertThat(decision.get("validatedTarget")).isEqualTo(6);
@@ -98,9 +98,9 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 3,
                 "reason", "low_utilization");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        Map<String, Object> decision = (Map<String, Object>) result.output().get("scalingDecision");
+        Map<String, Object> decision = (Map<String, Object>) ((Map<String, Object>) result.output()).get("scalingDecision");
         assertThat(decision).isNotNull();
         assertThat(decision.get("action")).isEqualTo("scale-down");
         assertThat(decision.get("validatedTarget")).isEqualTo(3);
@@ -116,10 +116,10 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 3,
                 "reason", "periodic_check");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        assertThat(result.output()).containsEntry("scalingStatus", "no-change-needed");
-        assertThat(result.output()).doesNotContainKey("scalingDecision");
+        assertThat(((Map<?, ?>) result.output()).get("scalingStatus")).isEqualTo("no-change-needed");
+        assertThat(((Map<?, ?>) result.output()).containsKey("scalingDecision")).isFalse();
     }
 
     @Test
@@ -132,7 +132,7 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 0,
                 "reason", "test");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
         assertThat(result.outcome()).isInstanceOf(WorkerOutcome.Failed.class);
     }
@@ -147,7 +147,7 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", -1,
                 "reason", "test");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
         assertThat(result.outcome()).isInstanceOf(WorkerOutcome.Failed.class);
     }
@@ -162,7 +162,7 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 6,
                 "reason", "test");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
         assertThat(result.outcome()).isInstanceOf(WorkerOutcome.Failed.class);
     }
@@ -176,14 +176,14 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 6,
                 "reason", "test");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
         assertThat(result.outcome()).isInstanceOf(WorkerOutcome.Failed.class);
     }
 
     @Test
     void evaluateNullInputReturnsFailed() {
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(null);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(null);
         assertThat(result.outcome()).isInstanceOf(WorkerOutcome.Failed.class);
     }
 
@@ -199,9 +199,11 @@ class ScalingEventCaseDescriptorTest {
         input.put("maxReplicas", 10);
         input.put("minReplicas", 1);
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        Map<String, Object> decision = (Map<String, Object>) result.output().get("scalingDecision");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> output3 = (Map<String, Object>) result.output();
+        Map<String, Object> decision = (Map<String, Object>) output3.get("scalingDecision");
         assertThat(decision.get("validatedTarget")).isEqualTo(10);
     }
 
@@ -217,9 +219,11 @@ class ScalingEventCaseDescriptorTest {
         input.put("minReplicas", 3);
         input.put("maxReplicas", 20);
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        Map<String, Object> decision = (Map<String, Object>) result.output().get("scalingDecision");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> output2 = (Map<String, Object>) result.output();
+        Map<String, Object> decision = (Map<String, Object>) output2.get("scalingDecision");
         assertThat(decision.get("validatedTarget")).isEqualTo(3);
     }
 
@@ -234,9 +238,9 @@ class ScalingEventCaseDescriptorTest {
         input.put("maxReplicas", 5);
         input.put("minReplicas", 1);
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        assertThat(result.output()).containsEntry("scalingStatus", "no-change-needed");
+        assertThat(((Map<?, ?>) result.output()).get("scalingStatus")).isEqualTo("no-change-needed");
     }
 
     @Test
@@ -261,9 +265,11 @@ class ScalingEventCaseDescriptorTest {
                 "targetReplicas", 6,
                 "reason", "test");
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        Map<String, Object> decision = (Map<String, Object>) result.output().get("scalingDecision");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> output = (Map<String, Object>) result.output();
+        Map<String, Object> decision = (Map<String, Object>) output.get("scalingDecision");
         assertThat(decision.get("validatedTarget")).isEqualTo(6);
     }
 
@@ -278,9 +284,10 @@ class ScalingEventCaseDescriptorTest {
         input.put("cooldownSeconds", 60);
         input.put("lastScalingTimestamp", java.time.Instant.now().minus(java.time.Duration.ofSeconds(120)).toString());
 
-        WorkerResult result = ScalingEventCaseDescriptor.evaluateScaling(input);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.evaluateScaling(input);
 
-        assertThat(result.output()).containsKey("scalingDecision");
+        assertThat(result.output()).isInstanceOf(Map.class);
+        assertThat(((Map<?, ?>) result.output()).containsKey("scalingDecision")).isTrue();
     }
 
     @Test
@@ -306,9 +313,10 @@ class ScalingEventCaseDescriptorTest {
                 "currentReplicas", 3);
         var input = Map.<String, Object>of("scalingDecision", decision);
 
-        WorkerResult result = ScalingEventCaseDescriptor.executeScaling(input, mockService);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.executeScaling(input, mockService);
 
-        Map<String, Object> executed = (Map<String, Object>) result.output().get("scalingExecuted");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> executed = (Map<String, Object>) ((Map<String, Object>) result.output()).get("scalingExecuted");
         assertThat(executed).isNotNull();
         assertThat(executed.get("serviceId")).isEqualTo("order-processor");
         assertThat(executed.get("previousReplicas")).isEqualTo(3);
@@ -326,24 +334,29 @@ class ScalingEventCaseDescriptorTest {
                         new com.fasterxml.jackson.databind.ObjectMapper()
                                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
 
-        UUID caseId = UUID.randomUUID();
-        io.casehub.api.model.WorkerExecutionContext.set(
-                new io.casehub.api.model.WorkerContext("test", caseId,
-                        java.util.List.of(), java.util.List.of(), null, Map.of()));
-        try {
-            var input = Map.<String, Object>of(
-                    "scalingExecuted", Map.of(
-                            "serviceId", "order-processor",
-                            "previousReplicas", 3,
-                            "newReplicas", 6,
-                            "affectedNodeIds", java.util.List.of("cluster-1:order-processor:deployment")));
+        UUID                              caseId = UUID.randomUUID();
+        io.casehub.worker.api.WorkerScope scope  = new TestWorkerScope(caseId);
+        var input = Map.<String, Object>of(
+                "scalingExecuted", Map.of(
+                        "serviceId", "order-processor",
+                        "previousReplicas", 3,
+                        "newReplicas", 6,
+                        "affectedNodeIds", java.util.List.of("cluster-1:order-processor:deployment")));
 
-            WorkerResult result = ScalingEventCaseDescriptor.verifyConvergence(input, tracker);
+        WorkerResult<?> result = ScalingEventCaseDescriptor.verifyConvergence(input, scope, tracker);
 
-            assertThat(result.output()).isEmpty();
-            assertThat(tracker.isTracking(caseId)).isTrue();
-        } finally {
-            io.casehub.api.model.WorkerExecutionContext.clear();
-        }
+        assertThat((Map<?, ?>) result.output()).isEmpty();
+        assertThat(tracker.isTracking(caseId)).isTrue();
+    }
+
+    record TestWorkerScope(UUID caseId) implements io.casehub.worker.api.WorkerScope {
+        @Override
+        public String taskId()                                                                                                    {return "test";}
+
+        @Override
+        public <T, R> io.casehub.worker.api.WorkerResult<R> execute(io.casehub.worker.api.WorkerFunction<T, R> function, T input) {throw new UnsupportedOperationException();}
+
+        @Override
+        public io.casehub.worker.api.WorkerResult<?> execute(String workerName, java.util.Map<String, Object> input)              {throw new UnsupportedOperationException();}
     }
 }

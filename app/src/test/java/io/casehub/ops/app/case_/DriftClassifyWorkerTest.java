@@ -17,10 +17,10 @@ class DriftClassifyWorkerTest {
                 "driftDetails", List.of(Map.of("nodeId", "n1",
                         "fields", List.of(Map.of("fieldName", "replicas", "expectedValue", "3", "actualValue", "2")))));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("benign");
     }
 
@@ -30,10 +30,10 @@ class DriftClassifyWorkerTest {
                 "consecutiveDriftCount", 3,
                 "driftDetails", List.of(Map.of("nodeId", "n1", "fields", List.of())));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("critical");
         assertThat((String) classification.get("reason")).contains("persistent");
     }
@@ -45,10 +45,10 @@ class DriftClassifyWorkerTest {
                 "driftDetails", List.of(Map.of("nodeId", "n1",
                         "fields", List.of(Map.of("fieldName", "image", "expectedValue", "v1", "actualValue", "v2")))));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("critical");
         assertThat((String) classification.get("reason")).contains("security");
     }
@@ -61,10 +61,10 @@ class DriftClassifyWorkerTest {
                         Map.of("nodeId", "n1", "fields", List.of()),
                         Map.of("nodeId", "n2", "fields", List.of())));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("critical");
     }
 
@@ -74,10 +74,10 @@ class DriftClassifyWorkerTest {
                 "consecutiveDriftCount", 1,
                 "driftDetails", List.of());
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("benign");
     }
 
@@ -86,10 +86,10 @@ class DriftClassifyWorkerTest {
         var input = Map.<String, Object>of(
                 "driftDetails", List.of(Map.of("nodeId", "n1", "fields", List.of())));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
         @SuppressWarnings("unchecked")
-        var classification = (Map<String, Object>) result.output().get("driftClassification");
+        var classification = (Map<String, Object>) ((Map<String, Object>) result.output()).get("driftClassification");
         assertThat(classification.get("severity")).isEqualTo("benign");
     }
 
@@ -98,8 +98,8 @@ class DriftClassifyWorkerTest {
         var input = Map.<String, Object>of(
                 "driftClassification", Map.of("severity", "benign"));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.remediateDrift(input, noopTracker());
-        assertThat(result.output().get("remediationStatus")).isEqualTo("auto-remediating");
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.remediateDrift(input, new DriftRemediationCaseDescriptorTest.TestWorkerScope(java.util.UUID.randomUUID()), noopTracker());
+        assertThat(((Map<String, Object>) result.output()).get("remediationStatus")).isEqualTo("auto-remediating");
     }
 
     @Test
@@ -107,16 +107,16 @@ class DriftClassifyWorkerTest {
         var input = Map.<String, Object>of(
                 "driftClassification", Map.of("severity", "critical"));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.remediateDrift(input, noopTracker());
-        assertThat(result.output().get("escalationRequired")).isEqualTo(true);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.remediateDrift(input, new DriftRemediationCaseDescriptorTest.TestWorkerScope(java.util.UUID.randomUUID()), noopTracker());
+        assertThat(((Map<String, Object>) result.output()).get("escalationRequired")).isEqualTo(true);
     }
 
     @Test
     void remediateWorkerNullClassificationDefaultsBenign() {
         var input = Map.<String, Object>of();
 
-        WorkerResult result = DriftRemediationCaseDescriptor.remediateDrift(input, noopTracker());
-        assertThat(result.output().get("remediationStatus")).isEqualTo("auto-remediating");
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.remediateDrift(input, new DriftRemediationCaseDescriptorTest.TestWorkerScope(java.util.UUID.randomUUID()), noopTracker());
+        assertThat(((Map<String, Object>) result.output()).get("remediationStatus")).isEqualTo("auto-remediating");
     }
 
     @Test
@@ -126,10 +126,10 @@ class DriftClassifyWorkerTest {
                         "nodeIds", List.of("n1", "n2"),
                         "reason", "persistent drift"));
 
-        WorkerResult result = DriftRemediationCaseDescriptor.escalateDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.escalateDrift(input);
 
         @SuppressWarnings("unchecked")
-        var escalation = (Map<String, Object>) result.output().get("escalation");
+        var escalation = (Map<String, Object>) ((Map<String, Object>) result.output()).get("escalation");
         assertThat(escalation.get("risk")).isEqualTo("HIGH");
         assertThat((String) escalation.get("summary")).contains("2 node(s)");
     }
@@ -138,10 +138,10 @@ class DriftClassifyWorkerTest {
     void escalateWorkerHandlesMissingClassification() {
         var input = Map.<String, Object>of();
 
-        WorkerResult result = DriftRemediationCaseDescriptor.escalateDrift(input);
+        WorkerResult<?> result = DriftRemediationCaseDescriptor.escalateDrift(input);
 
         @SuppressWarnings("unchecked")
-        var escalation = (Map<String, Object>) result.output().get("escalation");
+        var escalation = (Map<String, Object>) ((Map<String, Object>) result.output()).get("escalation");
         assertThat(escalation).isNotNull();
         assertThat(escalation.get("risk")).isEqualTo("HIGH");
     }

@@ -3,20 +3,19 @@ package io.casehub.ops.app.case_;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
+import io.casehub.ops.app.service.NodeConvergenceTracker;
 import io.casehub.worker.api.Capability;
 import io.casehub.worker.api.Worker;
 import io.casehub.worker.api.WorkerFunction;
 import io.casehub.worker.api.WorkerResult;
-
-import io.casehub.api.model.WorkerExecutionContext;
-import io.casehub.ops.app.service.NodeConvergenceTracker;
+import io.casehub.worker.api.WorkerScope;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.UUID;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public final class DriftRemediationCaseDescriptor {
 
@@ -52,20 +51,20 @@ public final class DriftRemediationCaseDescriptor {
                 Worker.builder()
                       .name("drift-classify-worker")
                       .capabilityName("classify-drift")
-                      .function(new WorkerFunction.Sync<>(Map.class,
-                                                          DriftRemediationCaseDescriptor::classifyDrift))
+                      .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                                          (input, scope) -> classifyDrift(input)))
                       .build(),
                 Worker.builder()
                       .name("drift-remediate-worker")
                       .capabilityName("remediate-drift")
-                      .function(new WorkerFunction.Sync<>(Map.class,
-                                                          input -> remediateDrift(input, tracker)))
+                      .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                                          (input, scope) -> remediateDrift(input, scope, tracker)))
                       .build(),
                 Worker.builder()
                       .name("drift-escalate-worker")
                       .capabilityName("escalate-drift")
-                      .function(new WorkerFunction.Sync<>(Map.class,
-                                                          DriftRemediationCaseDescriptor::escalateDrift))
+                      .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                                          (input, scope) -> escalateDrift(input)))
                       .build());
     }
 
@@ -124,7 +123,7 @@ public final class DriftRemediationCaseDescriptor {
     }
 
     @SuppressWarnings("unchecked")
-    static WorkerResult remediateDrift(Map<String, Object> input, NodeConvergenceTracker tracker) {
+    static WorkerResult remediateDrift(Map<String, Object> input, WorkerScope scope, NodeConvergenceTracker tracker) {
         Map<String, Object> classification =
                 (Map<String, Object>) input.get("driftClassification");
         String severity = classification != null
@@ -138,7 +137,7 @@ public final class DriftRemediationCaseDescriptor {
                                ? (List<String>) classification.getOrDefault("nodeIds", List.of())
                                : List.of();
         if (!nodeIds.isEmpty()) {
-            UUID caseId = WorkerExecutionContext.current().caseId();
+            UUID caseId = scope.caseId();
             tracker.register(caseId, new HashSet<>(nodeIds), "remediationStatus",
                              "converged");
         }
