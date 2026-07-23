@@ -3,13 +3,13 @@ package io.casehub.ops.app.case_;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
-import io.casehub.api.model.WorkerExecutionContext;
 import io.casehub.ops.app.service.ApplicationLifecycleService;
 import io.casehub.ops.app.service.NodeConvergenceTracker;
 import io.casehub.worker.api.Capability;
 import io.casehub.worker.api.Worker;
 import io.casehub.worker.api.WorkerFunction;
 import io.casehub.worker.api.WorkerResult;
+import io.casehub.worker.api.WorkerScope;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -51,20 +51,20 @@ public final class ScalingEventCaseDescriptor {
                 Worker.builder()
                         .name("evaluate-scaling-worker")
                         .capabilityName("evaluate-scaling")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                ScalingEventCaseDescriptor::evaluateScaling))
+                        .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                (input, scope) -> evaluateScaling(input)))
                         .build(),
                 Worker.builder()
                         .name("execute-scaling-worker")
                         .capabilityName("execute-scaling")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                input -> executeScaling(input, lifecycleService)))
+                        .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                (input, scope) -> executeScaling(input, lifecycleService)))
                         .build(),
                 Worker.builder()
                         .name("verify-convergence-worker")
                         .capabilityName("verify-convergence")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                input -> verifyConvergence(input, convergenceTracker)))
+                        .function(new WorkerFunction.Sync<>(Map.class, Map.class,
+                                (input, scope) -> verifyConvergence(input, scope, convergenceTracker)))
                         .build());
     }
 
@@ -169,14 +169,15 @@ public final class ScalingEventCaseDescriptor {
 
     @SuppressWarnings("unchecked")
     static WorkerResult verifyConvergence(Map<String, Object> input,
-                                           NodeConvergenceTracker convergenceTracker) {
-        Map<String, Object> executed = (Map<String, Object>) input.get("scalingExecuted");
-        List<String> affectedNodeIdsList = (List<String>) executed.get("affectedNodeIds");
-        Set<String> affectedNodeIds = new HashSet<>(affectedNodeIdsList);
+                                          WorkerScope scope,
+                                          NodeConvergenceTracker convergenceTracker) {
+        Map<String, Object> executed            = (Map<String, Object>) input.get("scalingExecuted");
+        List<String>        affectedNodeIdsList = (List<String>) executed.get("affectedNodeIds");
+        Set<String>         affectedNodeIds     = new HashSet<>(affectedNodeIdsList);
 
-        UUID caseId = WorkerExecutionContext.current().caseId();
+        UUID caseId = scope.caseId();
         convergenceTracker.register(caseId, affectedNodeIds, "scalingStatus",
-                "converged");
+                                    "converged");
 
         return WorkerResult.of(Map.of());
     }

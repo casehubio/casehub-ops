@@ -1,11 +1,19 @@
 package io.casehub.ops.iot;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.ActualState;
+import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.EscalationAction;
+import io.casehub.desiredstate.api.FaultEvent;
+import io.casehub.desiredstate.api.FaultPolicy;
+import io.casehub.desiredstate.api.FaultType;
+import io.casehub.desiredstate.api.GraphMutation;
+import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.ThresholdFaultPolicy;
 import io.casehub.ops.api.iot.IoTReviewSpec;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
 @ApplicationScoped
 public class IoTFaultPolicy implements FaultPolicy {
@@ -15,36 +23,18 @@ public class IoTFaultPolicy implements FaultPolicy {
     private static final NodeType DEVICE_CONFIG = NodeType.of("device-config");
     private static final NodeType IOT_REVIEW    = NodeType.of("iot-review");
 
-    private final ConcurrentHashMap<NodeId, Integer> faultCounts = new ConcurrentHashMap<>();
+    private final ThresholdFaultPolicy delegate = ThresholdFaultPolicy.builder()
+                                                                      .faultTypes(Set.of(FaultType.PROVISION_FAILED))
+                                                                      .nodeTypes(Set.of(DEVICE_CONFIG))
+                                                                      .ignoreTypes(Set.of(IOT_REVIEW))
+                                                                      .threshold(ESCALATION_THRESHOLD)
+                                                                      .action(EscalationAction.addReviewNode(IOT_REVIEW,
+                                                                                                             (event, current) -> new IoTReviewSpec(event.node(), event.detail())))
+                                                                      .build();
 
     @Override
-    public List<GraphMutation> onFault(String tenancyId, FaultEvent event, DesiredStateGraph current, ActualState actualState) {
-        DesiredNode node = current.nodes().get(event.node());
-        if (node != null && IOT_REVIEW.equals(node.type())) {
-            return List.of();
-        }
-
-        if (event.type() != FaultType.PROVISION_FAILED) {
-            return List.of();
-        }
-
-        if (node == null || !DEVICE_CONFIG.equals(node.type())) {
-            return List.of();
-        }
-
-        int count = faultCounts.merge(event.node(), 1, Integer::sum);
-        if (count < ESCALATION_THRESHOLD) {
-            return List.of();
-        }
-
-        NodeId reviewId = NodeId.of("review-" + event.node().value());
-        if (current.nodes().containsKey(reviewId)) {
-            return List.of();
-        }
-
-        return List.of(new GraphMutation.AddNode(
-                new DesiredNode(reviewId, IOT_REVIEW,
-                                new IoTReviewSpec(event.node(), event.detail()),
-                                HumanGating.ALL)));
+    public List<GraphMutation> onFault(String tenancyId, FaultEvent event,
+                                       DesiredStateGraph current, ActualState actual) {
+        return delegate.onFault(tenancyId, event, current, actual);
     }
 }

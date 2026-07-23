@@ -69,23 +69,17 @@ class DriftRemediationCaseDescriptorTest {
                 new com.fasterxml.jackson.databind.ObjectMapper()
                         .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
 
-        java.util.UUID caseId = java.util.UUID.randomUUID();
-        io.casehub.api.model.WorkerExecutionContext.set(
-                new io.casehub.api.model.WorkerContext("test", caseId,
-                                                       java.util.List.of(), java.util.List.of(), null, java.util.Map.of()));
-        try {
-            var input = java.util.Map.<String, Object>of(
-                    "driftClassification", java.util.Map.of(
-                            "severity", "benign",
-                            "nodeIds", java.util.List.of("node-1", "node-2")));
-            io.casehub.worker.api.WorkerResult result =
-                    DriftRemediationCaseDescriptor.remediateDrift(input, tracker);
+        java.util.UUID                    caseId = java.util.UUID.randomUUID();
+        io.casehub.worker.api.WorkerScope scope  = new TestWorkerScope(caseId);
+        var input = java.util.Map.<String, Object>of(
+                "driftClassification", java.util.Map.of(
+                        "severity", "benign",
+                        "nodeIds", java.util.List.of("node-1", "node-2")));
+        io.casehub.worker.api.WorkerResult result =
+                DriftRemediationCaseDescriptor.remediateDrift(input, scope, tracker);
 
-            assertThat(result.output()).containsEntry("remediationStatus", "auto-remediating");
-            assertThat(tracker.isTracking(caseId)).isTrue();
-        } finally {
-            io.casehub.api.model.WorkerExecutionContext.clear();
-        }
+        assertThat(((java.util.Map<?, ?>) result.output()).get("remediationStatus")).isEqualTo("auto-remediating");
+        assertThat(tracker.isTracking(caseId)).isTrue();
     }
 
     @Test
@@ -100,9 +94,9 @@ class DriftRemediationCaseDescriptorTest {
                         "severity", "critical",
                         "nodeIds", java.util.List.of("node-1")));
         io.casehub.worker.api.WorkerResult result =
-                DriftRemediationCaseDescriptor.remediateDrift(input, tracker);
+                DriftRemediationCaseDescriptor.remediateDrift(input, new TestWorkerScope(java.util.UUID.randomUUID()), tracker);
 
-        assertThat(result.output()).containsEntry("escalationRequired", true);
+        assertThat(((java.util.Map<?, ?>) result.output()).get("escalationRequired")).isEqualTo(true);
     }
 
     private static NodeConvergenceTracker noopTracker() {
@@ -110,5 +104,16 @@ class DriftRemediationCaseDescriptorTest {
                 (NodeConvergenceTracker.ConvergenceSignaler) (caseId, path, value) -> {},
                 new com.fasterxml.jackson.databind.ObjectMapper()
                         .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()));
+    }
+
+    record TestWorkerScope(java.util.UUID caseId) implements io.casehub.worker.api.WorkerScope {
+        @Override
+        public String taskId()                                                                                                    {return "test";}
+
+        @Override
+        public <T, R> io.casehub.worker.api.WorkerResult<R> execute(io.casehub.worker.api.WorkerFunction<T, R> function, T input) {throw new UnsupportedOperationException();}
+
+        @Override
+        public io.casehub.worker.api.WorkerResult<?> execute(String workerName, java.util.Map<String, Object> input)              {throw new UnsupportedOperationException();}
     }
 }
