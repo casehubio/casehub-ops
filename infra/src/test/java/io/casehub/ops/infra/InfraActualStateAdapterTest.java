@@ -20,7 +20,6 @@ import io.casehub.ops.api.infra.state.ResourceOutputs;
 import io.casehub.ops.api.infra.state.ResourceState;
 import io.casehub.ops.api.infra.state.ResourceStatus;
 import io.casehub.ops.api.infra.types.Labels;
-import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -169,34 +168,34 @@ class InfraActualStateAdapterTest {
         }
 
         @Override
-        public Uni<BackendProvisionResult> provision(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().failure(new UnsupportedOperationException("not needed"));
+        public BackendProvisionResult provision(InfraNodeSpec spec, InfraProvisionContext context) {
+            throw new UnsupportedOperationException("not needed");
         }
 
         @Override
-        public Uni<BackendDeprovisionResult> deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().failure(new UnsupportedOperationException("not needed"));
+        public BackendDeprovisionResult deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
+            throw new UnsupportedOperationException("not needed");
         }
 
         @Override
-        public Uni<ResourceState> readState(NodeId nodeId, InfraNodeSpec spec) {
+        public ResourceState readState(NodeId nodeId, InfraNodeSpec spec) {
             receivedSpecs.add(spec);
             if (nodeId.equals(failForNode)) {
-                return Uni.createFrom().failure(new RuntimeException("backend unreachable"));
+                throw new RuntimeException("backend unreachable");
             }
-            return Uni.createFrom().item(new ResourceState(
-                    nodeId, "generic", defaultStatus, NOW, null, ResourceOutputs.empty()));
+            return new ResourceState(
+                    nodeId, "generic", defaultStatus, NOW, null, ResourceOutputs.empty());
         }
 
         @Override
-        public Uni<DriftReport> detectDrift(NodeId nodeId, InfraNodeSpec spec) {
-            return Uni.createFrom().failure(new UnsupportedOperationException("not needed"));
+        public DriftReport detectDrift(NodeId nodeId, InfraNodeSpec spec) {
+            throw new UnsupportedOperationException("not needed");
         }
 
         @Override
-        public Uni<Optional<io.casehub.ops.api.infra.plan.ProvisionPlan>> plan(
+        public Optional<io.casehub.ops.api.infra.plan.ProvisionPlan> plan(
                 InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().failure(new UnsupportedOperationException("not needed"));
+            throw new UnsupportedOperationException("not needed");
         }
     }
 

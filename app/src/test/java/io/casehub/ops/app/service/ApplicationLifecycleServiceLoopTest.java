@@ -59,7 +59,7 @@ class ApplicationLifecycleServiceLoopTest {
 
         reconciliationLoop = new ReconciliationLoop(
                 planner,
-                (plan, tenancyId) -> Uni.createFrom().item(new TransitionResult(Map.of())),
+                (plan, tenancyId) -> new TransitionResult(Map.of()),
                 adapterRouter,
                 faultEngine,
                 () -> Multi.createFrom().empty(),

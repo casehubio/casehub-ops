@@ -37,6 +37,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Dependency convergence: engine-api 1.6.0 vs platform-expression 1.0.0 -->
+            <dependency>
+                <groupId>net.thisptr</groupId>
+                <artifactId>jackson-jq</artifactId>
+                <version>1.6.0</version>
+            </dependency>
+
             <!-- casehub-ops inter-module -->
             <dependency>
                 <groupId>io.casehub</groupId>

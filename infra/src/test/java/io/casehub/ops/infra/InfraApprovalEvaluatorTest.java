@@ -23,7 +23,6 @@ import io.casehub.ops.api.infra.state.ResourceOutputs;
 import io.casehub.ops.api.infra.state.ResourceState;
 import io.casehub.ops.api.infra.state.ResourceStatus;
 import io.casehub.ops.api.infra.types.Labels;
-import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -62,32 +61,32 @@ class InfraApprovalEvaluatorTest {
         }
 
         @Override
-        public Uni<BackendProvisionResult> provision(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().item(new BackendProvisionResult.Provisioned(
+        public BackendProvisionResult provision(InfraNodeSpec spec, InfraProvisionContext context) {
+            return new BackendProvisionResult.Provisioned(
                     new ResourceState(NODE_1, "k8s_namespace", ResourceStatus.HEALTHY,
-                            NOW, null, ResourceOutputs.empty())));
+                                      NOW, null, ResourceOutputs.empty()));
         }
 
         @Override
-        public Uni<BackendDeprovisionResult> deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().item(new BackendDeprovisionResult.Deprovisioned(NODE_1));
+        public BackendDeprovisionResult deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
+            return new BackendDeprovisionResult.Deprovisioned(NODE_1);
         }
 
         @Override
-        public Uni<ResourceState> readState(NodeId nodeId, InfraNodeSpec spec) {
-            return Uni.createFrom().item(new ResourceState(
-                    nodeId, "generic", ResourceStatus.HEALTHY, NOW, null, ResourceOutputs.empty()));
+        public ResourceState readState(NodeId nodeId, InfraNodeSpec spec) {
+            return new ResourceState(
+                    nodeId, "generic", ResourceStatus.HEALTHY, NOW, null, ResourceOutputs.empty());
         }
 
         @Override
-        public Uni<DriftReport> detectDrift(NodeId nodeId, InfraNodeSpec spec) {
-            return Uni.createFrom().item(new DriftReport(
-                    nodeId, false, List.of(), NOW, id));
+        public DriftReport detectDrift(NodeId nodeId, InfraNodeSpec spec) {
+            return new DriftReport(
+                    nodeId, false, List.of(), NOW, id);
         }
 
         @Override
-        public Uni<Optional<ProvisionPlan>> plan(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().item(planResult);
+        public Optional<ProvisionPlan> plan(InfraNodeSpec spec, InfraProvisionContext context) {
+            return planResult;
         }
     }
 

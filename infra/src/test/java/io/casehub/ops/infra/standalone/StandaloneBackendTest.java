@@ -43,7 +43,7 @@ class StandaloneBackendTest {
 
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var result = backend.provision(spec, provisionContext(NODE_1))
-                .await().indefinitely();
+                ;
 
         assertThat(result).isInstanceOf(BackendProvisionResult.Provisioned.class);
         var provisioned = (BackendProvisionResult.Provisioned) result;
@@ -59,11 +59,11 @@ class StandaloneBackendTest {
 
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         // first provision
-        backend.provision(spec, provisionContext(NODE_1)).await().indefinitely();
+        backend.provision(spec, provisionContext(NODE_1));
 
         // then deprovision
         var result = backend.deprovision(spec, deprovisionContext(NODE_1))
-                .await().indefinitely();
+                ;
 
         assertThat(result).isInstanceOf(BackendDeprovisionResult.Deprovisioned.class);
         assertThat(((BackendDeprovisionResult.Deprovisioned) result).nodeId()).isEqualTo(NODE_1);
@@ -75,9 +75,9 @@ class StandaloneBackendTest {
         var backend     = new StandaloneBackend(List.of(provisioner));
 
         var spec = new K8sNamespaceSpec("production", Labels.empty());
-        backend.provision(spec, provisionContext(NODE_1)).await().indefinitely();
+        backend.provision(spec, provisionContext(NODE_1));
 
-        var state = backend.readState(NODE_1, spec).await().indefinitely();
+        var state = backend.readState(NODE_1, spec);
 
         assertThat(state.nodeId()).isEqualTo(NODE_1);
         assertThat(state.status()).isEqualTo(ResourceStatus.HEALTHY);
@@ -90,7 +90,7 @@ class StandaloneBackendTest {
         var backend     = new StandaloneBackend(List.of(provisioner));
 
         var spec  = new K8sNamespaceSpec("staging", Labels.empty());
-        var state = backend.readState(NODE_1, spec).await().indefinitely();
+        var state = backend.readState(NODE_1, spec);
 
         assertThat(state.nodeId()).isEqualTo(NODE_1);
         assertThat(state.status()).isEqualTo(ResourceStatus.UNKNOWN);
@@ -104,7 +104,7 @@ class StandaloneBackendTest {
 
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var result = backend.provision(spec, provisionContext(NODE_1))
-                .await().indefinitely();
+                ;
 
         assertThat(result).isInstanceOf(BackendProvisionResult.Failed.class);
         var failed = (BackendProvisionResult.Failed) result;
@@ -118,9 +118,9 @@ class StandaloneBackendTest {
         var backend     = new StandaloneBackend(List.of(provisioner));
 
         var spec = new K8sNamespaceSpec("production", Labels.empty());
-        backend.provision(spec, provisionContext(NODE_1)).await().indefinitely();
+        backend.provision(spec, provisionContext(NODE_1));
 
-        var drift = backend.detectDrift(NODE_1, spec).await().indefinitely();
+        var drift = backend.detectDrift(NODE_1, spec);
 
         assertThat(drift.nodeId()).isEqualTo(NODE_1);
         assertThat(drift.drifted()).isFalse();

@@ -41,7 +41,7 @@ class SituationScalingEvaluatorTest {
                 .registerModule(new Jdk8Module());
 
         evaluator = new SituationScalingEvaluator(
-                tenancyId -> Uni.createFrom().item(List.copyOf(activeSituations)),
+                tenancyId -> List.copyOf(activeSituations),
                 firedEvents::add,
                 appId -> currentServicesJson,
                 objectMapper);

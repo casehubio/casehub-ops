@@ -1,14 +1,14 @@
 package io.casehub.ops.api.deployment;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.eidos.api.AgentCapability;
 import io.casehub.eidos.api.AgentDescriptor;
 import io.casehub.eidos.api.AgentDisposition;
 import io.casehub.eidos.api.DispositionAxis;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AgentNodeSpec(
@@ -62,8 +62,8 @@ public record AgentNodeSpec(
                 agentId, name, version, provider, modelFamily, modelVersion,
                 weightsFingerprint, domainVocabulary, slotVocabulary,
                 dispositionVocabulary, axisVocabularies, slot, capabilities,
-                disposition, jurisdiction, dataHandlingPolicy, tenancyId, briefing);
-    }
+                disposition, jurisdiction, dataHandlingPolicy, tenancyId, briefing,
+                List.of(), List.of(), List.of());}
 
     public AgentNodeSpec withAgentId(String newId) {
         Objects.requireNonNull(newId, "newId");

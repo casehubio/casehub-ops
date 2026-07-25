@@ -38,7 +38,7 @@ class InMemoryResourceProvisionerTest {
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var task = new ProvisionTask(NODE_1, spec, TaskAction.CREATE, null);
 
-        var outcome = provisioner.execute(task).await().indefinitely();
+        var outcome = provisioner.execute(task);
 
         assertThat(outcome.success()).isTrue();
         assertThat(outcome.resultState()).isNotNull();
@@ -51,12 +51,12 @@ class InMemoryResourceProvisionerTest {
     void updateReturnsNewState() {
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var createTask = new ProvisionTask(NODE_1, spec, TaskAction.CREATE, null);
-        var createOutcome = provisioner.execute(createTask).await().indefinitely();
+        var createOutcome = provisioner.execute(createTask);
 
         var updateSpec = new K8sNamespaceSpec("production-v2", Labels.empty());
         var updateTask = new ProvisionTask(NODE_1, updateSpec, TaskAction.UPDATE, createOutcome.resultState());
 
-        var outcome = provisioner.execute(updateTask).await().indefinitely();
+        var outcome = provisioner.execute(updateTask);
 
         assertThat(outcome.success()).isTrue();
         assertThat(outcome.resultState().nodeId()).isEqualTo(NODE_1);
@@ -67,11 +67,11 @@ class InMemoryResourceProvisionerTest {
     void destroyReturnsSuccessWithNullState() {
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var createTask = new ProvisionTask(NODE_1, spec, TaskAction.CREATE, null);
-        var createOutcome = provisioner.execute(createTask).await().indefinitely();
+        var createOutcome = provisioner.execute(createTask);
 
         var destroyTask = new ProvisionTask(NODE_1, spec, TaskAction.DESTROY, createOutcome.resultState());
 
-        var outcome = provisioner.execute(destroyTask).await().indefinitely();
+        var outcome = provisioner.execute(destroyTask);
 
         assertThat(outcome.success()).isTrue();
         assertThat(outcome.resultState()).isNull();
@@ -82,7 +82,7 @@ class InMemoryResourceProvisionerTest {
         var spec = new K8sNamespaceSpec("production", Labels.empty());
         var task = new ProvisionTask(NODE_1, spec, TaskAction.CREATE, null);
 
-        var outcome = provisioner.execute(task).await().indefinitely();
+        var outcome = provisioner.execute(task);
 
         assertThat(outcome.resultState().resourceType()).isEqualTo("k8s_namespace");
     }

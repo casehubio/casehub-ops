@@ -191,8 +191,7 @@ public class AdaptiveTopologyManager {
             return base;
         }
 
-        List<ActiveSituation> situations = situationSource.activeSituations(tenancyId)
-            .await().indefinitely();
+        List<ActiveSituation> situations = situationSource.activeSituations(tenancyId);
 
         Set<String> activeSituationIds = situations.stream()
             .map(ActiveSituation::situationId)

@@ -4,10 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.ras.api.ActiveSituation;
-import io.casehub.ras.api.SituationChangeEvent;
-import io.casehub.ras.api.SituationSource;
-import io.smallrye.mutiny.Uni;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
@@ -17,6 +13,9 @@ import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.ras.api.ActiveSituation;
+import io.casehub.ras.api.SituationChangeEvent;
+import io.casehub.ras.api.SituationSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -471,8 +470,8 @@ class AdaptiveTopologyManagerTest {
         }
 
         @Override
-        public Uni<List<ActiveSituation>> activeSituations(String tenancyId) {
-            return Uni.createFrom().item(situations.getOrDefault(tenancyId, List.of()));
+        public List<ActiveSituation> activeSituations(String tenancyId) {
+            return situations.getOrDefault(tenancyId, List.of());
         }
     }
 

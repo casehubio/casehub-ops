@@ -29,7 +29,6 @@ import io.casehub.ops.api.infra.task.ProvisionOutcome;
 import io.casehub.ops.api.infra.task.ProvisionTask;
 import io.casehub.ops.api.infra.task.TaskAction;
 import io.casehub.ops.api.infra.types.Labels;
-import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -58,34 +57,34 @@ class InfraBackendContractTest {
         }
 
         @Override
-        public Uni<BackendProvisionResult> provision(InfraNodeSpec spec, InfraProvisionContext context) {
+        public BackendProvisionResult provision(InfraNodeSpec spec, InfraProvisionContext context) {
             var state = new ResourceState(
                     context.nodeId(), spec.resourceType(), ResourceStatus.HEALTHY,
                     Instant.now(), null, ResourceOutputs.empty());
-            return Uni.createFrom().item(new BackendProvisionResult.Provisioned(state));
+            return new BackendProvisionResult.Provisioned(state);
         }
 
         @Override
-        public Uni<BackendDeprovisionResult> deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().item(new BackendDeprovisionResult.Deprovisioned(context.nodeId()));
+        public BackendDeprovisionResult deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
+            return new BackendDeprovisionResult.Deprovisioned(context.nodeId());
         }
 
         @Override
-        public Uni<ResourceState> readState(NodeId nodeId, InfraNodeSpec spec) {
-            return Uni.createFrom().item(new ResourceState(
+        public ResourceState readState(NodeId nodeId, InfraNodeSpec spec) {
+            return new ResourceState(
                     nodeId, "generic_resource", ResourceStatus.HEALTHY,
-                    Instant.now(), null, ResourceOutputs.empty()));
+                    Instant.now(), null, ResourceOutputs.empty());
         }
 
         @Override
-        public Uni<DriftReport> detectDrift(NodeId nodeId, InfraNodeSpec spec) {
-            return Uni.createFrom().item(new DriftReport(
-                    nodeId, false, List.of(), Instant.now(), "stub"));
+        public DriftReport detectDrift(NodeId nodeId, InfraNodeSpec spec) {
+            return new DriftReport(
+                    nodeId, false, List.of(), Instant.now(), "stub");
         }
 
         @Override
-        public Uni<Optional<ProvisionPlan>> plan(InfraNodeSpec spec, InfraProvisionContext context) {
-            return Uni.createFrom().item(Optional.empty());
+        public Optional<ProvisionPlan> plan(InfraNodeSpec spec, InfraProvisionContext context) {
+            return Optional.empty();
         }
     }
 
@@ -97,7 +96,7 @@ class InfraBackendContractTest {
         var spec = new K8sNamespaceSpec("test-ns", Labels.empty());
         var context = planContext();
 
-        BackendProvisionResult result = backend.provision(spec, context).await().indefinitely();
+        BackendProvisionResult result = backend.provision(spec, context);
 
         assertThat(result).isInstanceOf(BackendProvisionResult.Provisioned.class);
         var provisioned = (BackendProvisionResult.Provisioned) result;
@@ -112,7 +111,7 @@ class InfraBackendContractTest {
         var spec = new K8sNamespaceSpec("test-ns", Labels.empty());
         var context = planContext();
 
-        BackendDeprovisionResult result = backend.deprovision(spec, context).await().indefinitely();
+        BackendDeprovisionResult result = backend.deprovision(spec, context);
 
         assertThat(result).isInstanceOf(BackendDeprovisionResult.Deprovisioned.class);
         var deprovisioned = (BackendDeprovisionResult.Deprovisioned) result;
@@ -124,7 +123,7 @@ class InfraBackendContractTest {
         var backend = new StubBackend();
         var spec    = new K8sNamespaceSpec("test-ns", Labels.empty());
 
-        ResourceState state = backend.readState(TEST_NODE_ID, spec).await().indefinitely();
+        ResourceState state = backend.readState(TEST_NODE_ID, spec);
 
         assertThat(state.nodeId()).isEqualTo(TEST_NODE_ID);
         assertThat(state.status()).isEqualTo(ResourceStatus.HEALTHY);
@@ -136,7 +135,7 @@ class InfraBackendContractTest {
         var backend = new StubBackend();
         var spec = new K8sNamespaceSpec("test-ns", Labels.empty());
 
-        DriftReport report = backend.detectDrift(TEST_NODE_ID, spec).await().indefinitely();
+        DriftReport report = backend.detectDrift(TEST_NODE_ID, spec);
 
         assertThat(report.nodeId()).isEqualTo(TEST_NODE_ID);
         assertThat(report.drifted()).isFalse();
@@ -150,7 +149,7 @@ class InfraBackendContractTest {
         var spec = new K8sNamespaceSpec("test-ns", Labels.empty());
         var context = planContext();
 
-        Optional<ProvisionPlan> plan = backend.plan(spec, context).await().indefinitely();
+        Optional<ProvisionPlan> plan = backend.plan(spec, context);
 
         assertThat(plan).isEmpty();
     }
