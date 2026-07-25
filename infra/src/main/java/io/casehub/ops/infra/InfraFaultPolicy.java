@@ -6,28 +6,39 @@ import io.casehub.desiredstate.api.FaultEvent;
 import io.casehub.desiredstate.api.FaultPolicy;
 import io.casehub.desiredstate.api.FaultType;
 import io.casehub.desiredstate.api.GraphMutation;
+import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.ThresholdFaultPolicy;
+import io.casehub.ops.api.infra.InfraReviewSpec;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
+import java.util.Set;
 
-/**
- * Default fault rules for the infrastructure domain.
- *
- * <p>FaultPolicy only answers one question: should we mutate the desired-state graph?
- * Everything else — retry, re-provision, human escalation, WorkItem creation — is a
- * runtime concern handled by the ReconciliationLoop.
- *
- * <p>For the PoC, all fault types return an empty list — no graph mutations. The runtime
- * handles retry, re-provisioning, and escalation. Node removal after retry exhaustion
- * is a ReconciliationLoop concern, not a fault policy decision on first failure.
- * The runtime's {@link FaultType} has no transient/permanent distinction, so the
- * policy cannot safely distinguish retriable failures from permanent ones.
- */
 @ApplicationScoped
 public class InfraFaultPolicy implements FaultPolicy {
 
+    private static final NodeType INFRA_REVIEW = NodeType.of("infra-review");
+
+    private final ThresholdFaultPolicy delegate = ThresholdFaultPolicy.builder()
+                                                                      .faultTypes(Set.of(FaultType.PROVISION_FAILED))
+                                                                      .nodeTypes(Set.of(
+                                                                              NodeType.of("k8s_namespace"),
+                                                                              NodeType.of("k8s_deployment"),
+                                                                              NodeType.of("k8s_service"),
+                                                                              NodeType.of("k8s_ingress"),
+                                                                              NodeType.of("compute_instance"),
+                                                                              NodeType.of("database_cluster"),
+                                                                              NodeType.of("terraform_workspace"),
+                                                                              NodeType.of("ansible_playbook")))
+                                                                      .ignoreTypes(Set.of(INFRA_REVIEW))
+                                                                      .threshold(3)
+                                                                      .action(FaultPolicy.addReviewNode(INFRA_REVIEW,
+                                                                                                        (event, current) -> new InfraReviewSpec(event.node(), event.detail())))
+                                                                      .build();
+
     @Override
-    public List<GraphMutation> onFault(String tenancyId, FaultEvent event, DesiredStateGraph current, ActualState actualState) {
-        return List.of();
+    public List<GraphMutation> onFault(String tenancyId, FaultEvent event,
+                                       DesiredStateGraph current, ActualState actualState) {
+        return delegate.onFault(tenancyId, event, current, actualState);
     }
 }

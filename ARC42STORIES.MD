@@ -520,7 +520,7 @@ Not closed here: TerraformBackend and AnsibleBackend are designed but not implem
 - `infra/.../InfraGoalCompiler.java` — YAML goals → DesiredStateGraph with InfraDesiredNodeSpec nodes
 - `infra/.../InfraNodeProvisioner.java` — unwraps InfraDesiredNodeSpec, resolves backend by backendId, dispatches
 - `infra/.../InfraActualStateAdapter.java` — iterates desired nodes, delegates per-node to InfraBackend.readState(NodeId, InfraNodeSpec)
-- `infra/.../InfraFaultPolicy.java` — default fault rules, graph mutations for permanent failures only
+- `infra/.../InfraFaultPolicy.java` — ThresholdFaultPolicy delegate: after 3 PROVISION_FAILED events, adds infra-review node for human evaluation
 - `infra/.../InfraEventSource.java` — passive hot Multi<StateEvent> with emit()/emitDrift()
 - `infra/.../standalone/StandaloneBackend.java` — CaseHub-native provisioning via ResourceProvisioner SPI
 
@@ -595,6 +595,7 @@ Not closed here: Full case definition loading (#7 — provider config, definitio
 - `deployment/.../handler/TrustPolicyProvisionHandler.java` — stores policies, feeds DeploymentTrustRoutingPolicyProvider
 - `deployment/.../drift/AgentDriftChecker.java` — compares capabilities list for structural changes
 - `deployment/.../drift/ChannelDriftChecker.java` — compares mutable fields only (allowedTypes, rateLimits, allowedWriters)
+- `deployment/.../DeploymentFaultPolicy.java` — ThresholdFaultPolicy delegate: after 3 PROVISION_FAILED events, adds deployment-review node for human evaluation
 - `deployment/.../SpecHashStore.java` — in-memory spec hash for declaration drift detection
 
 #### Key wiring
