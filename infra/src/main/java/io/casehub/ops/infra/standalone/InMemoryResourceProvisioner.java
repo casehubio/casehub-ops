@@ -1,10 +1,5 @@
 package io.casehub.ops.infra.standalone;
 
-import java.time.Instant;
-
-import jakarta.annotation.Priority;
-import jakarta.enterprise.context.ApplicationScoped;
-
 import io.casehub.ops.api.infra.InfraNodeSpec;
 import io.casehub.ops.api.infra.spi.ResourceProvisioner;
 import io.casehub.ops.api.infra.state.ResourceOutputs;
@@ -12,7 +7,10 @@ import io.casehub.ops.api.infra.state.ResourceState;
 import io.casehub.ops.api.infra.state.ResourceStatus;
 import io.casehub.ops.api.infra.task.ProvisionOutcome;
 import io.casehub.ops.api.infra.task.ProvisionTask;
-import io.smallrye.mutiny.Uni;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.time.Instant;
 
 /**
  * Default fallback {@link ResourceProvisioner} at {@code @Priority(0)}.
@@ -36,7 +34,7 @@ public class InMemoryResourceProvisioner implements ResourceProvisioner {
     }
 
     @Override
-    public Uni<ProvisionOutcome> execute(ProvisionTask task) {
+    public ProvisionOutcome execute(ProvisionTask task) {
         return switch (task.action()) {
             case CREATE, UPDATE -> {
                 var state = new ResourceState(
@@ -46,9 +44,9 @@ public class InMemoryResourceProvisioner implements ResourceProvisioner {
                         Instant.now(),
                         null,
                         ResourceOutputs.empty());
-                yield Uni.createFrom().item(new ProvisionOutcome(true, state, "provisioned", null));
+                yield new ProvisionOutcome(true, state, "provisioned", null);
             }
-            case DESTROY -> Uni.createFrom().item(new ProvisionOutcome(true, null, "destroyed", null));
+            case DESTROY -> new ProvisionOutcome(true, null, "destroyed", null);
         };
     }
 }

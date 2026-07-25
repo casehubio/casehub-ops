@@ -79,8 +79,7 @@ public class InfraApprovalEvaluator implements ApprovalEvaluator {
                 thresholds,
                 Instant.now());
 
-        Optional<ProvisionPlan> planOpt = backend.plan(wrapper.resourceSpec(), planCtx)
-                .await().indefinitely();
+        Optional<ProvisionPlan> planOpt = backend.plan(wrapper.resourceSpec(), planCtx);
 
         if (planOpt.isEmpty()) {
             return new ApprovalDecision.AutoApproved();

@@ -220,8 +220,7 @@ public class InfraNodeProvisioner implements NodeProvisioner {
                 DEFAULT_THRESHOLDS,
                 Instant.now());
 
-        BackendProvisionResult backendResult = backend.provision(wrapper.resourceSpec(), infraCtx)
-                .await().indefinitely();
+        BackendProvisionResult backendResult = backend.provision(wrapper.resourceSpec(), infraCtx);
         return mapProvisionResult(backendResult);
     }
 
@@ -236,8 +235,7 @@ public class InfraNodeProvisioner implements NodeProvisioner {
                 DEFAULT_THRESHOLDS,
                 Instant.now());
 
-        BackendDeprovisionResult backendResult = backend.deprovision(wrapper.resourceSpec(), infraCtx)
-                .await().indefinitely();
+        BackendDeprovisionResult backendResult = backend.deprovision(wrapper.resourceSpec(), infraCtx);
         return mapDeprovisionResult(backendResult);
     }
 

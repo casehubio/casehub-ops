@@ -80,7 +80,7 @@ public class InfraActualStateAdapter implements ActualStateAdapter {
         }
 
         try {
-            ResourceState state = backend.readState(node.id(), wrapper.resourceSpec()).await().indefinitely();
+            ResourceState state = backend.readState(node.id(), wrapper.resourceSpec());
             return mapStatus(state.status());
         } catch (Exception e) {
             return NodeStatus.UNKNOWN;

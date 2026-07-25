@@ -15,7 +15,6 @@ import io.casehub.ops.api.infra.state.ResourceStatus;
 import io.casehub.ops.api.infra.task.ProvisionOutcome;
 import io.casehub.ops.api.infra.task.ProvisionTask;
 import io.casehub.ops.api.infra.task.TaskAction;
-import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
@@ -59,58 +58,55 @@ public class StandaloneBackend implements InfraBackend {
     }
 
     @Override
-    public Uni<BackendProvisionResult> provision(InfraNodeSpec spec, InfraProvisionContext context) {
+    public BackendProvisionResult provision(InfraNodeSpec spec, InfraProvisionContext context) {
         var provisioner = findProvisioner(spec);
         if (provisioner == null) {
-            return Uni.createFrom().item(
-                    new BackendProvisionResult.Failed(
-                            "No provisioner handles resource type: " + spec.resourceType(), false));
+            return new BackendProvisionResult.Failed(
+                    "No provisioner handles resource type: " + spec.resourceType(), false);
         }
 
         var currentState = stateStore.get(context.nodeId());
-        var action = currentState != null ? TaskAction.UPDATE : TaskAction.CREATE;
-        var task = new ProvisionTask(context.nodeId(), spec, action, currentState);
+        var action       = currentState != null ? TaskAction.UPDATE : TaskAction.CREATE;
+        var task         = new ProvisionTask(context.nodeId(), spec, action, currentState);
 
-        return provisioner.execute(task)
-                .map(outcome -> mapProvisionOutcome(context.nodeId(), outcome));
+        ProvisionOutcome outcome = provisioner.execute(task);
+        return mapProvisionOutcome(context.nodeId(), outcome);
     }
 
     @Override
-    public Uni<BackendDeprovisionResult> deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
+    public BackendDeprovisionResult deprovision(InfraNodeSpec spec, InfraProvisionContext context) {
         var provisioner = findProvisioner(spec);
         if (provisioner == null) {
-            return Uni.createFrom().item(
-                    new BackendDeprovisionResult.Failed(
-                            "No provisioner handles resource type: " + spec.resourceType(), false));
+            return new BackendDeprovisionResult.Failed(
+                    "No provisioner handles resource type: " + spec.resourceType(), false);
         }
 
         var currentState = stateStore.get(context.nodeId());
-        var task = new ProvisionTask(context.nodeId(), spec, TaskAction.DESTROY, currentState);
+        var task         = new ProvisionTask(context.nodeId(), spec, TaskAction.DESTROY, currentState);
 
-        return provisioner.execute(task)
-                .map(outcome -> mapDeprovisionOutcome(context.nodeId(), outcome));
+        ProvisionOutcome outcome = provisioner.execute(task);
+        return mapDeprovisionOutcome(context.nodeId(), outcome);
     }
 
     @Override
-    public Uni<ResourceState> readState(NodeId nodeId, InfraNodeSpec spec) {
+    public ResourceState readState(NodeId nodeId, InfraNodeSpec spec) {
         var state = stateStore.get(nodeId);
         if (state != null) {
-            return Uni.createFrom().item(state);
+            return state;
         }
-        return Uni.createFrom().item(new ResourceState(
-                nodeId, "unknown", ResourceStatus.UNKNOWN, Instant.now(), null, ResourceOutputs.empty()));
+        return new ResourceState(
+                nodeId, "unknown", ResourceStatus.UNKNOWN, Instant.now(), null, ResourceOutputs.empty());
     }
 
     @Override
-    public Uni<DriftReport> detectDrift(NodeId nodeId, InfraNodeSpec spec) {
-        return Uni.createFrom().item(new DriftReport(
-                nodeId, false, List.of(), Instant.now(), backendId()));
+    public DriftReport detectDrift(NodeId nodeId, InfraNodeSpec spec) {
+        return new DriftReport(
+                nodeId, false, List.of(), Instant.now(), backendId());
     }
 
     @Override
-    public Uni<Optional<ProvisionPlan>> plan(InfraNodeSpec spec, InfraProvisionContext context) {
-        // PoC: plan generation requires diffing desired vs actual state — not yet implemented
-        return Uni.createFrom().item(Optional.empty());
+    public Optional<ProvisionPlan> plan(InfraNodeSpec spec, InfraProvisionContext context) {
+        return Optional.empty();
     }
 
     private ResourceProvisioner findProvisioner(InfraNodeSpec spec) {
