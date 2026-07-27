@@ -58,16 +58,16 @@ class IoTReconciliationIntegrationTest {
             public <T extends DeviceEntity> List<T> findByClass(Class<T> c) { return List.of(); }
             public List<DeviceEntity> findByTenancyId(String t) { return List.of(); }
             public List<DeviceEntity> findAll() { return List.copyOf(devices.values()); }
-            public Uni<Void> refresh() { return Uni.createFrom().voidItem(); }
-            public Uni<Void> refresh(String providerId) { return Uni.createFrom().voidItem(); }
+            public void refresh() { }
+            public void refresh(String providerId) { }
         };
 
         DeviceProvider provider = new DeviceProvider() {
             public String providerId() { return "test"; }
-            public Uni<List<DeviceEntity>> discover() { return Uni.createFrom().item(List.of()); }
-            public Uni<CommandResult> dispatch(DeviceCommand cmd) {
+            public List<DeviceEntity> discover() { return List.of(); }
+            public CommandResult dispatch(DeviceCommand cmd) {
                 dispatched.add(cmd);
-                return Uni.createFrom().item(CommandResult.SENT);
+                return CommandResult.SENT;
             }
             public ProviderStatus status() { return ProviderStatus.CONNECTED; }
         };

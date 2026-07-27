@@ -212,7 +212,7 @@ public class IoTNodeProvisioner implements NodeProvisioner {
                 DeviceCommand cmd = CapabilityCommandMapper.toCommand(
                         spec.deviceId(), entry.getKey(),
                         spec.desiredCapabilities().get(entry.getKey()), ctx);
-                CommandResult result = provider.dispatch(cmd).await().indefinitely();
+                CommandResult result = provider.dispatch(cmd);
                 if (result != CommandResult.SENT) {
                     return new ProvisionResult.Failed(
                             "command " + cmd.action() + " returned " + result);
