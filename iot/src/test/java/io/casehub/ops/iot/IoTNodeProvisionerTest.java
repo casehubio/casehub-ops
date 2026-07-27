@@ -19,7 +19,7 @@ import io.casehub.iot.api.spi.DeviceRegistry;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
 import io.casehub.ops.api.iot.DeviceConfigSpec;
 import io.casehub.ops.api.iot.PhysicalDeviceSpec;
-import io.smallrye.mutiny.Uni;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

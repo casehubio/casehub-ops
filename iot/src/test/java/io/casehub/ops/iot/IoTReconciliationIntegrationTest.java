@@ -19,7 +19,7 @@ import io.casehub.iot.api.SwitchDevice;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.api.spi.DeviceRegistry;
-import io.smallrye.mutiny.Uni;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
