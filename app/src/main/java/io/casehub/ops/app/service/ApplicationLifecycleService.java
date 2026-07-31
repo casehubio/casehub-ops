@@ -51,6 +51,12 @@ public class ApplicationLifecycleService {
     SituationScalingEvaluator              scalingEvaluator;
     @Inject
     DriftSignalBridge                      driftSignalBridge;
+    @Inject
+    io.casehub.api.engine.CaseHubRuntime   caseHubRuntime;
+    @Inject
+    io.casehub.ops.app.lifecycle.ServiceCaseRegistry serviceCaseRegistry;
+    @Inject
+    io.casehub.ops.app.lifecycle.ServiceDetectionBridge serviceDetectionBridge;
 
 
     @Transactional
@@ -103,6 +109,17 @@ public class ApplicationLifecycleService {
             deploymentOutcomeTracker.associateKey(deploymentRecord.id, cluster.id.toString(), key);
         }
 
+        var serviceCaseDefinition = io.casehub.ops.app.lifecycle.ServiceCaseDescriptor.build();
+        UUID serviceCaseId = caseHubRuntime.startCase(serviceCaseDefinition,
+                java.util.Map.of("serviceId", applicationId.toString(), "serviceName", app.name, "tenancyId", tenancyId));
+        app.engineCaseId = serviceCaseId;
+
+        serviceCaseRegistry.register(serviceCaseId, applicationId.toString(), app.name,
+                io.casehub.ops.api.lifecycle.ManagedServiceCategory.APPLICATION,
+                java.util.Map.of("tenancyId", tenancyId, "clusters", clusterIds),
+                (key, value) -> caseHubRuntime.signal(serviceCaseId, key, value),
+                key -> null);
+
         java.util.Map<String, Integer> baseReplicas = new java.util.HashMap<>();
         for (ServiceDefinition sd : services) {
             baseReplicas.put(sd.serviceId(), sd.replicas());
@@ -135,6 +152,11 @@ public class ApplicationLifecycleService {
         scalingEvaluator.deregister(tenancyId, applicationId.toString());
         for (String key : compositeKeys) {
             driftSignalBridge.deregisterApplication(key);
+        }
+
+        if (app.engineCaseId != null) {
+            serviceDetectionBridge.deregisterBindings(app.engineCaseId);
+            serviceCaseRegistry.deregister(app.engineCaseId);
         }
     }
 

@@ -44,7 +44,6 @@ class ApplicationLifecycleServiceLoopTest {
     void setUp() {
         service = new ApplicationLifecycleService();
 
-        // Create a minimal ReconciliationLoop with no-op SPI implementations
         var planner = new TransitionPlanner();
         var faultEngine = new FaultPolicyEngine(List.of());
 
