@@ -124,6 +124,7 @@ Each domain maps its own domain model onto these five SPIs. The runtime handles 
 | L3 Deployment domain | CaseHub agent topology — agents, channels, case types, trust policies |
 | L4 Compliance domain | Continuous compliance posture — evidence-based drift, framework scoring |
 | L5 IoT domain | Physical + logical device provisioning |
+| L6 Service Lifecycle | Nine-dimension operational model for long-lived service cases |
 
 ### Chapter Sequencing Rationale
 
@@ -306,6 +307,7 @@ Three SPIs in `api/approval/`:
 | Journey | Description | Chapters | Status |
 |---|---|---|---|
 | Desired-state ops domains | Implement desired-state management for four operational domains, validating the generic runtime | 4 | ✅ Complete |
+| Service lifecycle management | Model deployed services as long-lived cases with nine operational dimensions | 1+ | 🔲 In progress |
 
 ```mermaid
 flowchart LR
@@ -327,16 +329,18 @@ flowchart LR
 | 2 | Deployment domain | Desired-state ops domains | L1, L3 | Medium, High | ✅ |
 | 3 | Compliance domain | Desired-state ops domains | L1, L4 | Medium, High | ✅ |
 | 4 | IoT domain | Desired-state ops domains | L1, L5 | Low, High | ✅ |
+| 5 | Service lifecycle domain model | Service lifecycle management | L1, L6 | Medium, High | 🔲 |
 
 **Layer × Chapter matrix**
 
-| Layer | C1 | C2 | C3 | C4 |
-|---|---|---|---|---|
-| L1 Shared API | High | Medium | Medium | Low |
-| L2 Infra | High | — | — | — |
-| L3 Deployment | — | High | — | — |
-| L4 Compliance | — | — | High | — |
-| L5 IoT | — | — | — | High |
+| Layer | C1 | C2 | C3 | C4 | C5 |
+|---|---|---|---|---|---|
+| L1 Shared API | High | Medium | Medium | Low | Medium |
+| L2 Infra | High | — | — | — | — |
+| L3 Deployment | — | High | — | — | — |
+| L4 Compliance | — | — | High | — | — |
+| L5 IoT | — | — | — | High | — |
+| L6 Service Lifecycle | — | — | — | — | High |
 
 L1 receives contributions from every chapter. L2–L5 are each single-chapter layers — additive, domain-specific, no cross-layer churn.
 
@@ -794,6 +798,81 @@ Two-node-type model with dependency edge — when a domain entity has both a hum
 4. In ActualStateAdapter: check device existence (ABSENT/PRESENT) for physical nodes, normalize and compare capabilities for config nodes
 5. Build a stateless normalizer that converts both YAML-parsed and API-sourced values to a common representation
 6. Bridge domain events to the EventSource via CDI `@ObservesAsync`
+
+---
+
+### Chapter 5 — Service Lifecycle Domain Model
+
+**Journey:** Service lifecycle management | **Sequence:** 1 of N | **Status:** 🔲
+**Issues:** #30 (parent: #29) | **Design spec:** `specs/issue-29-service-lifecycle/2026-07-30-service-lifecycle-domain-model-design.md`
+
+**What this delivers**
+The system can model a deployed service as a long-lived case with nine operational dimensions: health monitoring, configuration drift, compliance, scaling, change management, security, maintenance, problem management, and decommission. Each dimension has its own status vocabulary with severity derivation for aggregation. `ServiceDetectionBridge` routes ganglion detections to dimensions via `GanglionBinding` declarations. `DimensionStatusService` computes composite status (condition + active response cases). `ServiceCaseRegistry` manages in-memory state with restart reconstruction from engine context.
+
+**Accountability gaps closed**
+- Scattered operational concerns → single service case identity with nine-dimension dashboard view
+- No memory across incidents → dimension sections hold escalation-relevant coordination data (incident count, consecutive failures)
+- One detection = one response → cross-dimension routing (CVE → security + compliance simultaneously)
+
+**Layer Impact**
+
+| Layer | Delta |
+|---|---|
+| L1 Shared API | Medium — lifecycle package: DimensionType, DimensionStatus, Severity, OperationalDimension, ServiceCaseContext, 9 status enums |
+| L6 Service Lifecycle | High — DimensionStatusService, ServiceCaseRegistry, ServiceCaseDescriptor (14 bindings), ServiceDetectionBridge, ApplicationLifecycleService wiring |
+
+---
+
+### §9.4 Layer Entries
+
+### Layer — L6 Service Lifecycle
+
+**Participates in chapters:** C5
+**Architectural patterns:** Nine-dimension operational model, composite status computation, ganglion-dimension subscription routing
+**Design refs:** `specs/issue-29-service-lifecycle/2026-07-30-service-lifecycle-domain-model-design.md`
+**Issues:** #30, #29
+**Navigation:** `git log --grep="#30" --oneline`
+**Status:** 🔲 In progress
+
+#### What it adds
+
+**Before:** Deployed services were managed by scattered tools with no shared identity, no memory, and no coordination.
+**After:** A service IS a long-lived case. Nine operational dimensions describe its ongoing health. Each dimension has its own status vocabulary, blackboard section, and can spawn multiple concurrent child cases.
+
+What this layer adds:
+- **Nine-dimension model** — DimensionType enum, per-dimension status enums (HealthStatus through DecommissionStatus), OperationalDimension as the core type
+- **Composite status computation** — DimensionStatusService implements D5 rules: condition status when no response, response status when active child cases exist, healthy when condition resolves regardless of case state
+- **Detection routing** — ServiceDetectionBridge maps situationType → dimension via GanglionBinding, writes condition status + detection data to dimension sections
+- **Case definition** — ServiceCaseDescriptor builds a CaseDefinition with 14 dimension-tagged bindings using name prefix convention (no engine-api changes)
+- **Deploy integration** — ApplicationLifecycleService creates service cases on deploy, deregisters on decommission
+
+Not closed here: child case implementations (stubs only), RAS ganglion integration (#47), UI screens (#38), partial branch loading (#31).
+
+#### Key files
+
+- `api/.../lifecycle/DimensionType.java` — 9-value enum with context prefixes
+- `api/.../lifecycle/DimensionStatus.java` — interface with severity(), label(), isTerminal()
+- `api/.../lifecycle/OperationalDimension.java` — core type: status + section + activeResponses + subscriptions
+- `api/.../lifecycle/ServiceCaseContext.java` — aggregate: 9 dimensions + metadata + toServiceHealth()
+- `api/.../lifecycle/status/*.java` — 9 status enums implementing DimensionStatus
+- `app/.../lifecycle/DimensionStatusService.java` — D5 composite status computation
+- `app/.../lifecycle/ServiceCaseRegistry.java` — ConcurrentHashMap lifecycle management
+- `app/.../lifecycle/ServiceCaseDescriptor.java` — 14 dimension-tagged bindings
+- `app/.../lifecycle/ServiceDetectionBridge.java` — detection → dimension routing skeleton
+
+#### Architectural decisions
+
+**Why dimensions as first-class types (not child cases, not views):** Child cases over-engineer — nine permanent WAITING cases per service is heavy and misuses the case lifecycle. Views under-engineer — computed status from blackboard + child cases with no encapsulation makes the dimension concept implicit. `OperationalDimension` is purpose-built: lightweight, explicit, maps 1:1 to UI.
+
+**Why binding name prefix convention (not engine-api change):** Dimension tagging uses `"health:incident-response"` naming. ServiceCaseDescriptor maintains a static `DIMENSION_BINDINGS` map. The engine sees flat bindings; the ops layer knows which dimension each belongs to. No engine-api coupling.
+
+#### Pattern introduced
+
+Nine-dimension operational model — a long-lived case with typed operational facets, each with independent status vocabulary and child case tracking.
+
+#### Pattern anchor
+
+`ServiceCaseContext.create()` — initializes all 9 dimensions at default healthy status.
 
 ---
 
