@@ -11,12 +11,10 @@ import io.casehub.desiredstate.runtime.ReconciliationLoop;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.ops.app.model.DeploymentOutcome;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,14 +55,13 @@ class ApplicationLifecycleServiceLoopTest {
             @Override public Set<NodeType> allHandledTypes() { return Set.of(); }
         };
 
-        reconciliationLoop = new ReconciliationLoop(
-                planner,
-                (plan, tenancyId) -> new TransitionResult(Map.of()),
-                adapterRouter,
-                faultEngine,
-                () -> Multi.createFrom().empty(),
-                Duration.ofHours(1),
-                Duration.ofHours(1));
+        reconciliationLoop = ReconciliationLoop.builder(
+                        planner,
+                        (plan, tenancyId) -> new TransitionResult(Map.of()),
+                        adapterRouter,
+                        faultEngine,
+                        () -> Multi.createFrom().empty())
+                .build();
     }
 
     @AfterEach
