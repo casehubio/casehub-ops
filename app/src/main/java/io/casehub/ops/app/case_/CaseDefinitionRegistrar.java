@@ -35,7 +35,7 @@ public class CaseDefinitionRegistrar {
                 DriftRemediationCaseDescriptor.build(convergenceTracker),
                 StubChildCaseDescriptor.build("ops", "cve-response", "1.0"),
                 StubChildCaseDescriptor.build("ops", "service-upgrade", "1.0"),
-                StubChildCaseDescriptor.build("ops", "incident-response", "1.0"),
+                IncidentResponseCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 ScalingEventCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 StubChildCaseDescriptor.build("ops", "compliance-remediation", "1.0"));
 

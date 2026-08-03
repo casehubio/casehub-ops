@@ -25,7 +25,7 @@ class ServiceDefinitionTest {
                 new ResourceRequirements("500m", "1Gi", "250m", "512Mi"),
                 List.of(),
                 Optional.of(new HealthCheckSpec("/q/health", 8080, 5, 10)),
-                List.of(), List.of());
+                List.of(), List.of(), 0);
         assertThat(sd.serviceId()).isEqualTo("inventory-svc");
         assertThat(sd.image()).isEqualTo("quay.io/casehub/inventory:1.0.0");
         assertThat(sd.replicas()).isEqualTo(2);
@@ -40,7 +40,7 @@ class ServiceDefinitionTest {
                 "gateway", "Gateway", "img:1.0", 1,
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), List.of());
+                List.of(), Optional.empty(), List.of(), List.of(), 0);
         assertThat(sd.targetClusters()).isEmpty();
     }
 
@@ -52,7 +52,7 @@ class ServiceDefinitionTest {
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
                 List.of("inventory"),
                 Optional.empty(),
-                List.of("ops-prod"), List.of());
+                List.of("ops-prod"), List.of(), 0);
         assertThat(sd.targetClusters()).containsExactly("ops-prod");
         assertThat(sd.dependsOn()).containsExactly("inventory");
     }
@@ -64,7 +64,7 @@ class ServiceDefinitionTest {
                         null, "name", "img:1.0", 1,
                         List.of(), Map.of(),
                         new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                        List.of(), Optional.empty(), List.of(), List.of()));
+                        List.of(), Optional.empty(), List.of(), List.of(), 0));
     }
 
     @Test
@@ -75,7 +75,7 @@ class ServiceDefinitionTest {
                 "web", "Web", "img:1.0", 2,
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), rules);
+                List.of(), Optional.empty(), List.of(), rules, 0);
         assertThat(sd.scalingRules()).hasSize(1);
         assertThat(sd.scalingRules().get(0).situationId()).isEqualTo("high-load");
     }

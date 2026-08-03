@@ -222,12 +222,12 @@ class SituationScalingEvaluatorTest {
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
                 List.of(), Optional.empty(), List.of(),
-                List.of(new ScalingRule("high-load", 0.5, 2, 10, null)));
+                List.of(new ScalingRule("high-load", 0.5, 2, 10, null)), 0);
         var apiSd = new ServiceDefinition("api", "api", "img:1.0", 3,
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
                 List.of(), Optional.empty(), List.of(),
-                List.of(new ScalingRule("high-load", 0.5, 3, 8, null)));
+                List.of(new ScalingRule("high-load", 0.5, 3, 8, null)), 0);
         try {
             currentServicesJson = objectMapper.writeValueAsString(List.of(webSd, apiSd));
         } catch (Exception e) {
@@ -306,7 +306,7 @@ class SituationScalingEvaluatorTest {
         var sd = new ServiceDefinition(serviceId, serviceId, "img:1.0", replicas,
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), rules);
+                List.of(), Optional.empty(), List.of(), rules, 0);
         try {
             currentServicesJson = objectMapper.writeValueAsString(List.of(sd));
         } catch (Exception e) {

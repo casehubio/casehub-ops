@@ -48,7 +48,7 @@ class CaseDefinitionRegistrarTest {
     }
 
     @Test
-    void registersFourStubDefinitions() {
+    void registersThreeStubDefinitions() {
         var registry = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry, new io.casehub.ops.app.service.NodeConvergenceTracker((caseId, path, value) -> {}, new com.fasterxml.jackson.databind.ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())), null);
 
@@ -59,8 +59,23 @@ class CaseDefinitionRegistrarTest {
                 .map(CaseDefinition::getName)
                 .toList();
         assertThat(stubNames).containsExactlyInAnyOrder(
-                "cve-response", "service-upgrade", "incident-response",
+                "cve-response", "service-upgrade",
                 "compliance-remediation");
+    }
+
+    @Test
+    void registersIncidentResponseWithRealCapabilities() {
+        var registry = new RecordingRegistry();
+        var registrar = new CaseDefinitionRegistrar(registry, new io.casehub.ops.app.service.NodeConvergenceTracker((caseId, path, value) -> {}, new com.fasterxml.jackson.databind.ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())), null);
+
+        registrar.onStartup(null);
+
+        var incidentDef = registry.registered.stream()
+                .filter(d -> "incident-response".equals(d.getName()))
+                .findFirst().orElseThrow();
+        assertThat(incidentDef.getTitle()).doesNotContain("stub");
+        assertThat(incidentDef.getCapabilities()).extracting("name")
+                .contains("assess-incident", "remediate-incident");
     }
 
     private static class RecordingRegistry implements CaseDefinitionRegistry {

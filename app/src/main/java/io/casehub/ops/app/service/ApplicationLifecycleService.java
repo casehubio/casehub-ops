@@ -177,7 +177,7 @@ public class ApplicationLifecycleService {
             if (sd.serviceId().equals(serviceId)) {
                 found = true;
                 updated.add(new ServiceDefinition(sd.serviceId(), sd.name(), sd.image(), newReplicas,
-                                                  sd.ports(), sd.env(), sd.resources(), sd.dependsOn(), sd.healthCheck(), sd.targetClusters(), sd.scalingRules()));
+                                                  sd.ports(), sd.env(), sd.resources(), sd.dependsOn(), sd.healthCheck(), sd.targetClusters(), sd.scalingRules(), sd.restartGeneration()));
             } else {
                 updated.add(sd);
             }
@@ -203,6 +203,117 @@ public class ApplicationLifecycleService {
             affectedNodeIds.add(cluster.id + ":" + serviceId + ":deployment");
         }
 
+        return affectedNodeIds;
+    }
+
+    @Transactional
+    public Set<String> restartService(UUID applicationId, String serviceId, String tenancyId) {
+        var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
+        if (app == null) {throw new IllegalArgumentException("Application not found: " + applicationId);}
+        if (app.status != ApplicationStatus.RUNNING && app.status != ApplicationStatus.DEGRADED) {
+            throw new IllegalStateException("Cannot restart service in status " + app.status
+                                            + " — must be RUNNING or DEGRADED");
+        }
+
+        List<ServiceDefinition> services = parseServices(app.servicesJson);
+        boolean                 found    = false;
+        List<ServiceDefinition> updated  = new java.util.ArrayList<>();
+        for (ServiceDefinition sd : services) {
+            if (sd.serviceId().equals(serviceId)) {
+                found = true;
+                updated.add(new ServiceDefinition(sd.serviceId(), sd.name(), sd.image(), sd.replicas(),
+                                                  sd.ports(), sd.env(), sd.resources(), sd.dependsOn(), sd.healthCheck(),
+                                                  sd.targetClusters(), sd.scalingRules(), sd.restartGeneration() + 1));
+            } else {
+                updated.add(sd);
+            }
+        }
+        if (!found) {throw new IllegalArgumentException("Service not found: " + serviceId);}
+
+        try {
+            app.servicesJson = objectMapper.writeValueAsString(updated);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize updated services", e);
+        }
+
+        List<io.casehub.ops.app.entity.ClusterReferenceEntity> clusters        = clusterService.list(tenancyId);
+        Set<String>                                            affectedNodeIds = new java.util.HashSet<>();
+        for (var cluster : clusters) {
+            var graph = goalCompiler.compileForCluster(updated, cluster.id.toString(),
+                                                       cluster.namespace, graphFactory);
+            String key = tenancyId + ":" + applicationId + ":" + cluster.id;
+            reconciliationLoop.updateDesired(key, graph);
+            affectedNodeIds.add(cluster.id + ":" + serviceId + ":deployment");
+        }
+        return affectedNodeIds;
+    }
+
+    @Transactional
+    public Set<String> rollbackService(UUID applicationId, String serviceId, String tenancyId) {
+        var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
+        if (app == null) {throw new IllegalArgumentException("Application not found: " + applicationId);}
+        if (app.status != ApplicationStatus.RUNNING && app.status != ApplicationStatus.DEGRADED) {
+            throw new IllegalStateException("Cannot rollback service in status " + app.status
+                                            + " — must be RUNNING or DEGRADED");
+        }
+
+        List<ServiceDefinition> currentServices = parseServices(app.servicesJson);
+        ServiceDefinition targetService = currentServices.stream()
+                                                         .filter(sd -> sd.serviceId().equals(serviceId))
+                                                         .findFirst()
+                                                         .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
+
+        String currentImage = targetService.image();
+
+        List<io.casehub.ops.app.entity.DeploymentRecordEntity> records =
+                io.casehub.ops.app.entity.DeploymentRecordEntity.list(
+                        "applicationId = ?1 order by createdAt desc", applicationId);
+
+        String previousImage = null;
+        for (var record : records) {
+            if (record.outcome != DeploymentOutcome.SUCCESS) {continue;}
+            List<ServiceDefinition> recordServices = parseServices(record.topologyJson);
+            for (var sd : recordServices) {
+                if (sd.serviceId().equals(serviceId) && !sd.image().equals(currentImage)) {
+                    previousImage = sd.image();
+                    break;
+                }
+            }
+            if (previousImage != null) {break;}
+        }
+
+        if (previousImage == null) {
+            throw new IllegalStateException(
+                    "No previous successful deployment found for service: " + serviceId);
+        }
+
+        String                  rollbackImage = previousImage;
+        List<ServiceDefinition> updated       = new java.util.ArrayList<>();
+        for (ServiceDefinition sd : currentServices) {
+            if (sd.serviceId().equals(serviceId)) {
+                updated.add(new ServiceDefinition(sd.serviceId(), sd.name(), rollbackImage, sd.replicas(),
+                                                  sd.ports(), sd.env(), sd.resources(), sd.dependsOn(), sd.healthCheck(),
+                                                  sd.targetClusters(), sd.scalingRules(), sd.restartGeneration()));
+            } else {
+                updated.add(sd);
+            }
+        }
+
+        try {
+            app.servicesJson = objectMapper.writeValueAsString(updated);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize updated services", e);
+        }
+
+        List<io.casehub.ops.app.entity.ClusterReferenceEntity> clusters        = clusterService.list(tenancyId);
+        Set<String>                                            affectedNodeIds = new java.util.HashSet<>();
+        for (var cluster : clusters) {
+            var graph = goalCompiler.compileForCluster(updated, cluster.id.toString(),
+                                                       cluster.namespace, graphFactory);
+            String key = tenancyId + ":" + applicationId + ":" + cluster.id;
+            reconciliationLoop.updateDesired(key, graph);
+            affectedNodeIds.add(cluster.id + ":" + serviceId + ":deployment");
+        }
         return affectedNodeIds;
     }
 

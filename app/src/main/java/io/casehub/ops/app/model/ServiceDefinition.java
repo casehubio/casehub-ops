@@ -20,7 +20,8 @@ public record ServiceDefinition(
         List<String> dependsOn,
         Optional<HealthCheckSpec> healthCheck,
         List<String> targetClusters,
-        List<ScalingRule> scalingRules) {
+        List<ScalingRule> scalingRules,
+        int restartGeneration) {
 
     public ServiceDefinition {
         Objects.requireNonNull(serviceId, "serviceId");
@@ -36,7 +37,7 @@ public record ServiceDefinition(
         Objects.requireNonNull(healthCheck, "healthCheck");
         Objects.requireNonNull(targetClusters, "targetClusters");
         targetClusters = List.copyOf(targetClusters);
-        if (scalingRules == null) scalingRules = List.of();
+        if (scalingRules == null) {scalingRules = List.of();}
         scalingRules = List.copyOf(scalingRules);
     }
 }

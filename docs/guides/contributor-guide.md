@@ -374,7 +374,7 @@ All filtered by `managed-by=casehub-ops` label.
 
 `io.casehub.ops.app.case_` package (trailing underscore avoids Java keyword conflict).
 
-**CaseDefinitionRegistrar** -- `@ApplicationScoped`. Registers `ApplicationCaseDescriptor` (parent), `DriftRemediationCaseDescriptor`, and `ScalingEventCaseDescriptor` as child cases. `StubChildCaseDescriptor` used for unimplemented cases (compliance-remediation, incident-response).
+**CaseDefinitionRegistrar** -- `@ApplicationScoped`. Registers `ApplicationCaseDescriptor` (parent), `DriftRemediationCaseDescriptor`, `ScalingEventCaseDescriptor`, and `IncidentResponseCaseDescriptor` as child cases. `StubChildCaseDescriptor` used for unimplemented cases (cve-response, service-upgrade, compliance-remediation).
 
 **DriftRemediationCaseDescriptor** -- static `build(NodeConvergenceTracker)` factory:
 - **classify-drift worker**: evaluates `consecutiveDriftCount`, `driftDetails` (node count, security-sensitive fields: image, serviceAccount, rbac, secrets). Outputs severity: `benign` or `critical`

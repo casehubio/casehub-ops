@@ -162,7 +162,7 @@ class ScalingResourceTest {
         var sd = new ServiceDefinition(serviceId, serviceId, "img:1.0", replicas,
                 List.of(), Map.of(),
                 new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), rules);
+                List.of(), Optional.empty(), List.of(), rules, 0);
         try {
             return objectMapper.writeValueAsString(List.of(sd));
         } catch (Exception e) {
