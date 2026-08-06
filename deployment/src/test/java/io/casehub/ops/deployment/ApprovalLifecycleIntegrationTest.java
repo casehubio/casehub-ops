@@ -1,5 +1,6 @@
 package io.casehub.ops.deployment;
 
+import io.casehub.ops.deployment.handler.DetectionProvisionHandler;
 import io.casehub.desiredstate.api.ApprovalCheckResult;
 import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
@@ -80,6 +81,11 @@ class ApprovalLifecycleIntegrationTest {
                 new CaseTypeProvisionHandler(),
                 new TrustPolicyProvisionHandler(trustProvider),
                 new EndpointProvisionHandler(new StubEndpointRegistry()),
+                new DetectionProvisionHandler(new io.casehub.ras.api.SituationRegistrar() {
+                    @Override public void register(io.casehub.ras.api.SituationRegistration r) {}
+                    @Override public void deregister(String id) {}
+                    @Override public boolean exists(String id) { return false; }
+                }),
                 new SpecHashStore(),
                 evaluator,
                 planStore);

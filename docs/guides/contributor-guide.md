@@ -41,12 +41,13 @@ Each module also provides an `ApprovalEvaluator` for the approval workflow.
 
 `io.casehub.ops.deployment.DeploymentGoalCompiler` -- `@ApplicationScoped`, implements `GoalCompiler<DeploymentGoals>`.
 
-Compiles five entry lists from `DeploymentGoals` into a flat `DesiredStateGraph`:
+Compiles six entry lists from `DeploymentGoals` into a flat `DesiredStateGraph`:
 - `agents()` -> `AgentNodeSpec` nodes
 - `channels()` -> `ChannelNodeSpec` nodes
 - `caseTypes()` -> `CaseTypeNodeSpec` nodes (with `DefinitionPayloadLoader` resolution for file-backed definitions)
 - `trust()` -> `TrustPolicyNodeSpec` nodes
 - `endpoints()` -> `EndpointNodeSpec` nodes
+- `detections()` -> `DetectionNodeSpec` nodes (RAS situation definitions via `SituationRegistrar`)
 
 Each `GoalEntry<S>` carries a `dependsOn` list of node IDs for dependency edges.
 
@@ -54,14 +55,14 @@ Each `GoalEntry<S>` carries a `dependsOn` list of node IDs for dependency edges.
 
 Delegates to `ThresholdFaultPolicy` from casehub-desiredstate:
 - **Monitored fault types**: `PROVISION_FAILED`
-- **Monitored node types**: `agent`, `channel`, `case_type`, `trust_policy`, `endpoint`
+- **Monitored node types**: `agent`, `channel`, `case_type`, `trust_policy`, `endpoint`, `detection`
 - **Ignored types**: `deployment-review` (prevents cascading escalation)
 - **Threshold**: 3 consecutive failures
 - **Action**: adds `deployment-review` node with `DeploymentReviewSpec` (human escalation)
 
 ### Drift Detection Architecture
 
-Five `NodeDriftChecker` implementations, one per node type. The `DeploymentActualStateAdapter` routes to the correct checker by `nodeType()`.
+Six `NodeDriftChecker` implementations, one per node type. The `DeploymentActualStateAdapter` routes to the correct checker by `nodeType()`.
 
 **AgentDriftChecker** -- delegates to `AgentDescriptorComparator.compare(desired, actual)`. Resolves actual via `AgentRegistry.findById()`. Field-by-field comparison with DEBUG logging of each `drift.field()`, `drift.desiredValue()`, `drift.actualValue()`. Returns `ABSENT`/`DRIFTED`/`PRESENT`.
 

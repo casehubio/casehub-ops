@@ -42,7 +42,8 @@ public class DeploymentActualStateAdapter implements ActualStateAdapter {
                 NodeType.of("channel"),
                 NodeType.of("case_type"),
                 NodeType.of("trust_policy"),
-                NodeType.of("endpoint"));
+                NodeType.of("endpoint"),
+                NodeType.of("detection"));
     }
 
     @Override

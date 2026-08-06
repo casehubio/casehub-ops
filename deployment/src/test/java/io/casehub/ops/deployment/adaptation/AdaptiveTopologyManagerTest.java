@@ -161,7 +161,7 @@ class AdaptiveTopologyManagerTest {
         var addAction = new AdaptationActionSpec.AddActionSpec(
             new DeploymentGoals(
                 List.of(new GoalEntry<>(forensicsAgent, List.of())),
-                List.of(), List.of(), List.of(), List.of(), List.of()));
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
         var rule = new AdaptationRuleSpec("add-on-spike", trigger, List.of(addAction));
         var goals = goalsWithAgentAndRules("risk-agent", List.of(rule));
 
@@ -228,7 +228,7 @@ class AdaptiveTopologyManagerTest {
         var addAction = new AdaptationActionSpec.AddActionSpec(
             new DeploymentGoals(
                 List.of(new GoalEntry<>(forensicsAgent, List.of())),
-                List.of(), List.of(), List.of(), List.of(), List.of()));
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
         var rule = new AdaptationRuleSpec("add-on-spike", trigger, List.of(addAction));
         var goals = goalsWithAgentAndRules("risk-agent", List.of(rule));
 
@@ -364,7 +364,7 @@ class AdaptiveTopologyManagerTest {
         var addAction = new AdaptationActionSpec.AddActionSpec(
             new DeploymentGoals(
                 List.of(new GoalEntry<>(forensicsAgent, List.of())),
-                List.of(), List.of(), List.of(), List.of(), List.of()));
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
         var rule = new AdaptationRuleSpec("add-forensics", trigger, List.of(addAction));
         var goals = goalsWithAgentAndRules("triage-agent", List.of(rule));
 
@@ -394,6 +394,7 @@ class AdaptiveTopologyManagerTest {
         var goals = new DeploymentGoals(
             List.of(), List.of(), List.of(),
             List.of(new GoalEntry<>(trustSpec, List.of())),
+            List.of(),
             List.of(),
             List.of(rule));
 
@@ -452,6 +453,7 @@ class AdaptiveTopologyManagerTest {
         return new DeploymentGoals(
             List.of(new GoalEntry<>(agent, List.of())),
             List.of(), List.of(), List.of(), List.of(),
+            List.of(),
             rules);
     }
 

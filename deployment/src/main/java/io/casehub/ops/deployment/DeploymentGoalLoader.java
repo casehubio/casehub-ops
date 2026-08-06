@@ -63,7 +63,7 @@ public class DeploymentGoalLoader {
             endpoints.addAll(f.endpoints());
             adaptations.addAll(f.adaptations());
         }
-        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, adaptations);
+        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, List.of(), adaptations);
     }
 
     private InputStream resolveStream(String path) {

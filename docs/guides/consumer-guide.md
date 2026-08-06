@@ -35,7 +35,7 @@ The `api` module is a pure-Java library with no runtime dependencies. It defines
 
 ### Deployment Node Specs
 
-`DeploymentNodeSpec` -- sealed interface extending `NodeSpec`. Five permits:
+`DeploymentNodeSpec` -- sealed interface extending `NodeSpec`. Six permits:
 
 | Class | Node type | Key fields |
 |-------|-----------|------------|
@@ -44,6 +44,7 @@ The `api` module is a pure-Java library with no runtime dependencies. It defines
 | `CaseTypeNodeSpec` | `case_type` | `namespace`, `name`, `version`, `title`, `summary`, `definitionFile`, `definitionPayload` |
 | `TrustPolicyNodeSpec` | `trust_policy` | trust routing policy configuration |
 | `EndpointNodeSpec` | `endpoint` | REST/service endpoint configuration |
+| `DetectionNodeSpec` | `detection` | `situationId`, `eventTypes`, `correlationWindow`, `chainMode`, `triggerAction`. `toRegistration()` converts to `SituationRegistration` for RAS |
 
 All implement `nodeId()` and `nodeType()`.
 

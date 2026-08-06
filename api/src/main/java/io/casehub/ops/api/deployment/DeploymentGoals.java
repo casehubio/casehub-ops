@@ -10,6 +10,7 @@ public record DeploymentGoals(
         List<GoalEntry<CaseTypeNodeSpec>> caseTypes,
         List<GoalEntry<TrustPolicyNodeSpec>> trust,
         List<GoalEntry<EndpointNodeSpec>> endpoints,
+        List<GoalEntry<DetectionNodeSpec>> detections,
         List<AdaptationRuleSpec> adaptations
 ) {
     public DeploymentGoals {
@@ -18,6 +19,7 @@ public record DeploymentGoals(
         caseTypes = caseTypes != null ? List.copyOf(caseTypes) : List.of();
         trust = trust != null ? List.copyOf(trust) : List.of();
         endpoints = endpoints != null ? List.copyOf(endpoints) : List.of();
+        detections = detections != null ? List.copyOf(detections) : List.of();
         adaptations = adaptations != null ? List.copyOf(adaptations) : List.of();
     }
 }

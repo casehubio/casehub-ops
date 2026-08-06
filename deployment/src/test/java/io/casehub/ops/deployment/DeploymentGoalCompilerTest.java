@@ -1,12 +1,5 @@
 package io.casehub.ops.deployment;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
@@ -20,6 +13,12 @@ import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DeploymentGoalCompilerTest {
 
@@ -37,6 +36,7 @@ class DeploymentGoalCompilerTest {
         var agent = testAgent("agent-1");
         var goals = new DeploymentGoals(
                 List.of(new GoalEntry<>(agent, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -60,6 +60,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(),
                 List.of(new GoalEntry<>(channel, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -91,6 +92,7 @@ class DeploymentGoalCompilerTest {
                 List.of(new GoalEntry<>(caseType, List.of())),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -119,6 +121,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(new GoalEntry<>(trustPolicy, List.of())),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -138,6 +141,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(new GoalEntry<>(agent, List.of("work-queue"))),
                 List.of(new GoalEntry<>(channel, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -180,6 +184,7 @@ class DeploymentGoalCompilerTest {
                 List.of(new GoalEntry<>(caseType, List.of())),
                 List.of(new GoalEntry<>(trustPolicy, List.of())),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -203,6 +208,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -220,6 +226,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(), List.of(),
                 List.of(new GoalEntry<>(caseType, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of());
@@ -246,6 +253,7 @@ class DeploymentGoalCompilerTest {
                 List.of(new GoalEntry<>(caseType, List.of())),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -266,6 +274,7 @@ class DeploymentGoalCompilerTest {
                 List.of(new GoalEntry<>(caseType, List.of())),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -276,12 +285,39 @@ class DeploymentGoalCompilerTest {
         assertThat(resolved.definitionFile()).isNull();
     }
 
+
+    @Test
+    void compilesDetectionNode() {
+        var detection = new io.casehub.ops.api.deployment.DetectionNodeSpec(
+            "app.repeated-failure",
+            java.util.Set.of("desiredstate.node.faulted", "desiredstate.node.recovered"),
+            java.time.Duration.ofMinutes(10),
+            null,
+            new io.casehub.ras.api.ChainMode.Streak("node-fault", 3),
+            new io.casehub.ras.api.TriggerAction.CreateCase(
+                    new io.casehub.ras.api.CaseTriggerConfig("ops", "incident-response", "1.0", java.util.Map.of())),
+            new io.casehub.ras.api.TriggerMode.FireOnce());
+        var goals = new DeploymentGoals(
+                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(new GoalEntry<>(detection, List.of())),
+                List.of());
+
+        DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
+                                           compiler.compile(goals, factory)).graph();
+
+        assertThat(graph.nodes()).hasSize(1);
+        DesiredNode node = graph.nodes().get(NodeId.of("app.repeated-failure"));
+        assertThat(node.id()).isEqualTo(NodeId.of("app.repeated-failure"));
+        assertThat(node.type().value()).isEqualTo("detection");
+        assertThat(node.spec()).isInstanceOf(io.casehub.ops.api.deployment.DetectionNodeSpec.class);
+    }
+
     private AgentNodeSpec testAgent(String id) {
         return new AgentNodeSpec(id, "Test Agent", "worker",
                 "anthropic", "claude", "opus-4", "1.0", null,
                 null, null, null, null,
                 List.of(new AgentCapability("code-review", null, null, null, null, null, null, null, null, null, null)),
-                new AgentDisposition("collaborative", "strict", null, null, null, false),
+                AgentDisposition.builder().delegation(false).build(),
                 null, null, null, List.of());
     }
 

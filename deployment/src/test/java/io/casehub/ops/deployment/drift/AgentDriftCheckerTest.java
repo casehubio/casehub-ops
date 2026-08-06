@@ -85,14 +85,14 @@ class AgentDriftCheckerTest {
     @Test
     void agentDrifted_dispositionMismatch() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
-        var disp1 = new AgentDisposition("collaborative", "principled", "measured", "semi-autonomous", "compromising", false);
+        var disp1 = AgentDisposition.builder().delegation(false).build();
         var descriptor = new AgentDescriptor(
                 "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", Map.of(), "worker",
                 List.of(cap), disp1, "US", "policy", TENANCY_ID, null, List.of(), List.of(), List.of());
         agentRegistry.register(descriptor);
 
-        var disp2 = new AgentDisposition("independent", "principled", "measured", "semi-autonomous", "compromising", false);
+        var disp2 = AgentDisposition.builder().delegation(true).build();
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
                 "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(cap), disp2, "US", "policy", null, List.of());
 
@@ -133,7 +133,7 @@ class AgentDriftCheckerTest {
     @Test
     void agentPresent_allFieldsMatch() {
         var cap = new AgentCapability("cap-a", null, null, 0.85, 2000L, "medium", List.of("text"), List.of("text"), List.of("tag"), Map.of("java", 0.95), Set.of("cobol"));
-        var disp = new AgentDisposition("collaborative", "principled", "measured", "semi-autonomous", "compromising", false);
+        var disp = AgentDisposition.builder().delegation(false).build();
         var descriptor = new AgentDescriptor(
                 "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", Map.of(), "worker",

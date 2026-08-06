@@ -38,6 +38,7 @@ public class DeploymentApprovalEvaluator implements ApprovalEvaluator {
             case ChannelNodeSpec s -> RiskClassification.LOW;
             case CaseTypeNodeSpec s -> RiskClassification.LOW;
             case EndpointNodeSpec s -> RiskClassification.LOW;
+            case DetectionNodeSpec s -> RiskClassification.LOW;
         };
     }
 
@@ -51,6 +52,7 @@ public class DeploymentApprovalEvaluator implements ApprovalEvaluator {
             case ChannelNodeSpec s -> verb + " channel '" + s.name() + "'";
             case CaseTypeNodeSpec s -> verb + " case type '" + s.namespace() + "/" + s.name() + "'";
             case EndpointNodeSpec s -> verb + " endpoint '" + s.path() + "'";
+            case DetectionNodeSpec s -> verb + " detection '" + s.situationId() + "'";
         };
     }
 }

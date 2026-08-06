@@ -9,6 +9,7 @@ import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
+import io.casehub.ops.api.deployment.DetectionNodeSpec;
 import io.casehub.ops.api.deployment.EndpointNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.api.infra.*;
@@ -43,6 +44,7 @@ public final class PlanStoreMapper {
             @JsonSubTypes.Type(value = CaseTypeNodeSpec.class, name = "deployment-case-type"),
             @JsonSubTypes.Type(value = TrustPolicyNodeSpec.class, name = "deployment-trust-policy"),
             @JsonSubTypes.Type(value = EndpointNodeSpec.class, name = "deployment-endpoint"),
+            @JsonSubTypes.Type(value = DetectionNodeSpec.class, name = "deployment-detection"),
     })
     interface NodeSpecMixin {}
 
@@ -68,6 +70,7 @@ public final class PlanStoreMapper {
             @JsonSubTypes.Type(value = CaseTypeNodeSpec.class, name = "case-type"),
             @JsonSubTypes.Type(value = TrustPolicyNodeSpec.class, name = "trust-policy"),
             @JsonSubTypes.Type(value = EndpointNodeSpec.class, name = "endpoint"),
+            @JsonSubTypes.Type(value = DetectionNodeSpec.class, name = "detection"),
     })
     interface DeploymentNodeSpecMixin {}
 

@@ -19,6 +19,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
     private final CaseTypeProvisionHandler caseTypeHandler;
     private final TrustPolicyProvisionHandler trustHandler;
     private final EndpointProvisionHandler endpointHandler;
+    private final DetectionProvisionHandler detectionHandler;
     private final SpecHashStore specHashStore;
     private final ApprovalEvaluator approvalEvaluator;
     private final PlanStore planStore;
@@ -31,6 +32,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             CaseTypeProvisionHandler caseTypeHandler,
             TrustPolicyProvisionHandler trustHandler,
             EndpointProvisionHandler endpointHandler,
+            DetectionProvisionHandler detectionHandler,
             SpecHashStore specHashStore,
             ApprovalEvaluator approvalEvaluator,
             PlanStore planStore) {
@@ -39,6 +41,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
         this.caseTypeHandler = caseTypeHandler;
         this.trustHandler = trustHandler;
         this.endpointHandler = endpointHandler;
+        this.detectionHandler = detectionHandler;
         this.specHashStore = specHashStore;
         this.approvalEvaluator = approvalEvaluator;
         this.planStore = planStore;
@@ -51,7 +54,8 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
                 NodeType.of("channel"),
                 NodeType.of("case_type"),
                 NodeType.of("trust_policy"),
-                NodeType.of("endpoint"));
+                NodeType.of("endpoint"),
+                NodeType.of("detection"));
     }
 
     @Override
@@ -160,6 +164,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case CaseTypeNodeSpec s -> caseTypeHandler.provision(s, context);
             case TrustPolicyNodeSpec s -> trustHandler.provision(s, context);
             case EndpointNodeSpec s -> endpointHandler.provision(s, context);
+            case DetectionNodeSpec s -> detectionHandler.provision(s, context);
         };
         if (result instanceof ProvisionResult.Success) {
             specHashStore.record(node.id(), node.spec());
@@ -174,6 +179,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case CaseTypeNodeSpec s -> caseTypeHandler.deprovision(s, context);
             case TrustPolicyNodeSpec s -> trustHandler.deprovision(s, context);
             case EndpointNodeSpec s -> endpointHandler.deprovision(s, context);
+            case DetectionNodeSpec s -> detectionHandler.deprovision(s, context);
         };
         if (result instanceof DeprovisionResult.Success) {
             specHashStore.remove(node.id());

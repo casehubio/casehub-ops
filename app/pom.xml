@@ -34,11 +34,7 @@
             <groupId>io.casehub</groupId>
             <artifactId>casehub-engine-planning</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.casehub</groupId>
-            <artifactId>casehub-engine-blackboard</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>io.casehub</groupId>
             <artifactId>casehub-engine-persistence-memory</artifactId>

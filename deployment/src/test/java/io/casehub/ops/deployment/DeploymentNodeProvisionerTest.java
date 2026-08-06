@@ -52,6 +52,11 @@ class DeploymentNodeProvisionerTest {
                 caseTypeHandler,
                 trustHandler,
                 new EndpointProvisionHandler(endpointRegistry),
+                new DetectionProvisionHandler(new io.casehub.ras.api.SituationRegistrar() {
+                    @Override public void register(io.casehub.ras.api.SituationRegistration r) {}
+                    @Override public void deregister(String id) {}
+                    @Override public boolean exists(String id) { return false; }
+                }),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),
                 planStore);
