@@ -97,9 +97,39 @@ class DimensionStatusServiceTest {
         assertEquals(ComplianceStatus.NON_COMPLIANT, health.dimensions().get(DimensionType.COMPLIANCE));
     }
 
+    @Test
+    void recomputePersistsStatusToSection() {
+        var store = new HashMap<String, Object>();
+        var dim   = createDimension(DimensionType.HEALTH_MONITORING, HealthStatus.HEALTHY, store);
+
+        dim.section().put("condition", "DOWN");
+        service.recompute(dim);
+
+        assertEquals("DOWN", store.get("health.status"));
+    }
+
+    @Test
+    void recomputeWithResponsePersistsResponseStatus() {
+        var store = new HashMap<String, Object>();
+        var dim   = createDimension(DimensionType.HEALTH_MONITORING, HealthStatus.HEALTHY, store);
+
+        dim.section().put("condition", "DOWN");
+        dim.addResponse(new CaseRef(UUID.randomUUID(), "health:incident-response", Instant.now()));
+        service.recompute(dim);
+
+        assertEquals("REMEDIATING", store.get("health.status"));
+    }
+
+
     private OperationalDimension createDimension(DimensionType type, DimensionStatus initialStatus) {
         var store = new HashMap<String, Object>();
         var section = new DimensionSection(type, store::put, key -> store.get(key));
         return new OperationalDimension(type, initialStatus, section, List.of());
     }
+
+    private OperationalDimension createDimension(DimensionType type, DimensionStatus initialStatus, Map<String, Object> store) {
+        var section = new DimensionSection(type, store::put, store::get);
+        return new OperationalDimension(type, initialStatus, section, List.of());
+    }
+
 }

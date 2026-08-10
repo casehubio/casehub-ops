@@ -1,5 +1,14 @@
 package io.casehub.ops.api.lifecycle;
 
+import io.casehub.ops.api.lifecycle.status.ChangeManagementStatus;
+import io.casehub.ops.api.lifecycle.status.ComplianceStatus;
+import io.casehub.ops.api.lifecycle.status.ConfigurationDriftStatus;
+import io.casehub.ops.api.lifecycle.status.DecommissionStatus;
+import io.casehub.ops.api.lifecycle.status.HealthStatus;
+import io.casehub.ops.api.lifecycle.status.MaintenanceStatus;
+import io.casehub.ops.api.lifecycle.status.ProblemManagementStatus;
+import io.casehub.ops.api.lifecycle.status.ScalingStatus;
+import io.casehub.ops.api.lifecycle.status.SecurityStatus;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,4 +44,38 @@ class DimensionTypeTest {
         assertEquals("problems.", DimensionType.PROBLEM_MANAGEMENT.contextPrefix());
         assertEquals("decommission.", DimensionType.DECOMMISSION.contextPrefix());
     }
+
+    @Test
+    void resolveStatusForEachDimension() {
+        assertEquals(HealthStatus.DOWN, DimensionType.HEALTH_MONITORING.resolveStatus("DOWN"));
+        assertEquals(ConfigurationDriftStatus.DRIFTED, DimensionType.CONFIGURATION_DRIFT.resolveStatus("DRIFTED"));
+        assertEquals(ComplianceStatus.NON_COMPLIANT, DimensionType.COMPLIANCE.resolveStatus("NON_COMPLIANT"));
+        assertEquals(ScalingStatus.SCALING, DimensionType.SCALING.resolveStatus("SCALING"));
+        assertEquals(ChangeManagementStatus.ROLLBACK, DimensionType.CHANGE_MANAGEMENT.resolveStatus("ROLLBACK"));
+        assertEquals(SecurityStatus.BREACH_DETECTED, DimensionType.SECURITY.resolveStatus("BREACH_DETECTED"));
+        assertEquals(MaintenanceStatus.OVERDUE, DimensionType.MAINTENANCE.resolveStatus("OVERDUE"));
+        assertEquals(ProblemManagementStatus.PATTERN_DETECTED, DimensionType.PROBLEM_MANAGEMENT.resolveStatus("PATTERN_DETECTED"));
+        assertEquals(DecommissionStatus.COMPLETED, DimensionType.DECOMMISSION.resolveStatus("COMPLETED"));
+    }
+
+    @Test
+    void resolveStatusThrowsForInvalidName() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> DimensionType.HEALTH_MONITORING.resolveStatus("NONEXISTENT"));
+    }
+
+    @Test
+    void defaultStatusForEachDimension() {
+        assertEquals(HealthStatus.HEALTHY, DimensionType.HEALTH_MONITORING.defaultStatus());
+        assertEquals(ConfigurationDriftStatus.IN_SYNC, DimensionType.CONFIGURATION_DRIFT.defaultStatus());
+        assertEquals(ComplianceStatus.COMPLIANT, DimensionType.COMPLIANCE.defaultStatus());
+        assertEquals(ScalingStatus.OPTIMAL, DimensionType.SCALING.defaultStatus());
+        assertEquals(ChangeManagementStatus.NO_ACTIVITY, DimensionType.CHANGE_MANAGEMENT.defaultStatus());
+        assertEquals(SecurityStatus.CLEAR, DimensionType.SECURITY.defaultStatus());
+        assertEquals(MaintenanceStatus.NO_ACTIVITY, DimensionType.MAINTENANCE.defaultStatus());
+        assertEquals(ProblemManagementStatus.NO_KNOWN_PROBLEMS, DimensionType.PROBLEM_MANAGEMENT.defaultStatus());
+        assertEquals(DecommissionStatus.NOT_PLANNED, DimensionType.DECOMMISSION.defaultStatus());
+    }
+
+
 }

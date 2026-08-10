@@ -21,16 +21,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class DimensionStatusService {
 
     public void recompute(OperationalDimension dimension) {
-        DimensionStatus condition = readCondition(dimension);
-        boolean hasActiveResponses = !dimension.activeResponses().isEmpty();
-        boolean conditionHealthy = condition.severity() == Severity.OK;
+        DimensionStatus condition          = readCondition(dimension);
+        boolean         hasActiveResponses = !dimension.activeResponses().isEmpty();
+        boolean         conditionHealthy   = condition.severity() == Severity.OK;
 
+        DimensionStatus newStatus;
         if (conditionHealthy || !hasActiveResponses) {
-            dimension.updateStatus(condition);
+            newStatus = condition;
         } else {
-            dimension.updateStatus(responseStatus(dimension.type()));
+            newStatus = responseStatus(dimension.type());
         }
-    }
+        dimension.updateStatusAndPersist(newStatus);}
 
     public ServiceHealth recomputeAll(ServiceCaseContext context) {
         for (var dim : context.dimensions().values()) {
@@ -61,17 +62,5 @@ public class DimensionStatusService {
         };
     }
 
-    private DimensionStatus resolveStatus(DimensionType type, String name) {
-        return switch (type) {
-            case HEALTH_MONITORING -> HealthStatus.valueOf(name);
-            case CONFIGURATION_DRIFT -> ConfigurationDriftStatus.valueOf(name);
-            case COMPLIANCE -> ComplianceStatus.valueOf(name);
-            case SCALING -> ScalingStatus.valueOf(name);
-            case CHANGE_MANAGEMENT -> ChangeManagementStatus.valueOf(name);
-            case SECURITY -> SecurityStatus.valueOf(name);
-            case MAINTENANCE -> MaintenanceStatus.valueOf(name);
-            case PROBLEM_MANAGEMENT -> ProblemManagementStatus.valueOf(name);
-            case DECOMMISSION -> DecommissionStatus.valueOf(name);
-        };
-    }
+    private DimensionStatus resolveStatus(DimensionType type, String name) {return type.resolveStatus(name);}
 }

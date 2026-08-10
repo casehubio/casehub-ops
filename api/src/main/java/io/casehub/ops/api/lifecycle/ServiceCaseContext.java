@@ -42,24 +42,28 @@ public class ServiceCaseContext {
         var dims = new EnumMap<DimensionType, OperationalDimension>(DimensionType.class);
         for (DimensionType type : DimensionType.values()) {
             var section = new DimensionSection(type, writer, reader);
-            dims.put(type, new OperationalDimension(type, defaultStatus(type), section, List.of()));
+            dims.put(type, new OperationalDimension(type, type.defaultStatus(), section, List.of()));
         }
-        return new ServiceCaseContext(serviceId, serviceName, category, dims, Instant.now(), metadata);
+        return new ServiceCaseContext(serviceId, serviceName, category, dims, Instant.now(), metadata);}
+
+    public static ServiceCaseContext createForReconstruction(
+            String serviceId, String serviceName,
+            ManagedServiceCategory category, Instant deployedAt,
+            Map<String, Object> metadata,
+            Map<DimensionType, DimensionStatus> persistedStatuses,
+            DimensionSection.ContextWriter writer,
+            DimensionSection.ContextReader reader) {
+        var dims = new EnumMap<DimensionType, OperationalDimension>(DimensionType.class);
+        for (DimensionType type : DimensionType.values()) {
+            var             section = new DimensionSection(type, writer, reader);
+            DimensionStatus status  = persistedStatuses.getOrDefault(type, type.defaultStatus());
+            dims.put(type, new OperationalDimension(type, status, section, List.of(), false));
+        }
+        return new ServiceCaseContext(serviceId, serviceName, category, dims, deployedAt, metadata);
     }
 
-    private static DimensionStatus defaultStatus(DimensionType type) {
-        return switch (type) {
-            case HEALTH_MONITORING -> HealthStatus.HEALTHY;
-            case CONFIGURATION_DRIFT -> ConfigurationDriftStatus.IN_SYNC;
-            case COMPLIANCE -> ComplianceStatus.COMPLIANT;
-            case SCALING -> ScalingStatus.OPTIMAL;
-            case CHANGE_MANAGEMENT -> ChangeManagementStatus.NO_ACTIVITY;
-            case SECURITY -> SecurityStatus.CLEAR;
-            case MAINTENANCE -> MaintenanceStatus.NO_ACTIVITY;
-            case PROBLEM_MANAGEMENT -> ProblemManagementStatus.NO_KNOWN_PROBLEMS;
-            case DECOMMISSION -> DecommissionStatus.NOT_PLANNED;
-        };
-    }
+
+
 
     public String serviceId() { return serviceId; }
     public String serviceName() { return serviceName; }

@@ -1,5 +1,6 @@
 package io.casehub.ops.app.lifecycle;
 
+import io.casehub.ops.api.lifecycle.CaseRef;
 import io.casehub.ops.api.lifecycle.DimensionType;
 import io.casehub.ops.api.lifecycle.GanglionBinding;
 import io.casehub.ops.api.lifecycle.ManagedServiceCategory;
@@ -9,6 +10,7 @@ import io.casehub.ops.api.lifecycle.status.SecurityStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +136,63 @@ class ServiceDetectionBridgeTest {
         var scalingSection = ctx.dimensions().get(DimensionType.SCALING).section();
         assertNotNull(scalingSection.get("metricData", Map.class));
     }
+
+    @Test
+    void detectionOnNonLoadedDimensionLoadsItFirst() {
+        var  localStore = new HashMap<String, Object>();
+        UUID caseId     = UUID.randomUUID();
+
+        localStore.put("service.serviceId", "order-api");
+        localStore.put("service.serviceName", "Order API");
+        localStore.put("service.category", "APPLICATION");
+        localStore.put("service.deployedAt", "2026-08-01T10:00:00Z");
+        localStore.put("health.activeResponseIds", List.of(
+                Map.<String, Object>of("caseId", UUID.randomUUID().toString(),
+                                       "bindingName", "health:incident-response",
+                                       "createdAt", "2026-08-01T10:00:00Z")));
+
+        bridge.registerBindings(caseId, List.of(
+                new GanglionBinding("heartbeat-failure", DimensionType.HEALTH_MONITORING,
+                                    "serviceDown", HealthStatus.DOWN)));
+
+        bridge.onDetection("heartbeat-failure", caseId, localStore::put, localStore::get, Map.of());
+
+        var ctx = registry.getOrReconstruct(caseId, localStore::put, localStore::get);
+        var dim = ctx.dimensions().get(DimensionType.HEALTH_MONITORING);
+        assertTrue(dim.isLoaded());
+        assertEquals(1, dim.activeResponses().size());
+        assertEquals(HealthStatus.REMEDIATING, dim.status());
+    }
+
+    @Test
+    void addResponseAndPersistWritesToSection() {
+        UUID caseId = registerService();
+        var  ref    = new CaseRef(UUID.randomUUID(), "health:incident-response", Instant.now());
+
+        bridge.addResponseAndPersist(caseId, DimensionType.HEALTH_MONITORING, ref);
+
+        var ctx = registry.get(caseId);
+        var dim = ctx.dimensions().get(DimensionType.HEALTH_MONITORING);
+        assertEquals(1, dim.activeResponses().size());
+        assertNotNull(store.get("health.activeResponseIds"));
+    }
+
+    @Test
+    void removeResponseAndPersistWritesToSection() {
+        UUID caseId = registerService();
+        var  ref    = new CaseRef(UUID.randomUUID(), "health:incident-response", Instant.now());
+        bridge.addResponseAndPersist(caseId, DimensionType.HEALTH_MONITORING, ref);
+
+        bridge.removeResponseAndPersist(caseId, DimensionType.HEALTH_MONITORING, ref.caseId());
+
+        var ctx = registry.get(caseId);
+        var dim = ctx.dimensions().get(DimensionType.HEALTH_MONITORING);
+        assertTrue(dim.activeResponses().isEmpty());
+        var persisted = store.get("health.activeResponseIds");
+        assertNotNull(persisted);
+        assertTrue(((List<?>) persisted).isEmpty());
+    }
+
 
     private UUID registerService() {
         UUID caseId = UUID.randomUUID();

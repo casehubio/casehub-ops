@@ -11,6 +11,8 @@ import io.casehub.ops.api.lifecycle.status.ScalingStatus;
 import io.casehub.ops.api.lifecycle.status.SecurityStatus;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -97,4 +99,67 @@ class ServiceCaseContextTest {
 
         assertThrows(UnsupportedOperationException.class, () -> ctx.metadata().put("new", "value"));
     }
+
+    @Test
+    void createForReconstructionUsesPersistedStatuses() {
+        var store    = new HashMap<String, Object>();
+        var statuses = new EnumMap<DimensionType, DimensionStatus>(DimensionType.class);
+        statuses.put(DimensionType.HEALTH_MONITORING, HealthStatus.DOWN);
+        statuses.put(DimensionType.SECURITY, SecurityStatus.VULNERABILITY_DETECTED);
+
+        var ctx = ServiceCaseContext.createForReconstruction(
+                "order-api", "Order API", ManagedServiceCategory.APPLICATION,
+                Instant.parse("2026-08-01T10:00:00Z"), Map.of(),
+                statuses, store::put, store::get);
+
+        assertEquals(HealthStatus.DOWN, ctx.dimensions().get(DimensionType.HEALTH_MONITORING).status());
+        assertEquals(SecurityStatus.VULNERABILITY_DETECTED, ctx.dimensions().get(DimensionType.SECURITY).status());
+        assertEquals(ComplianceStatus.COMPLIANT, ctx.dimensions().get(DimensionType.COMPLIANCE).status());
+    }
+
+    @Test
+    void createForReconstructionDimensionsAreNotLoaded() {
+        var store = new HashMap<String, Object>();
+        var ctx = ServiceCaseContext.createForReconstruction(
+                "order-api", "Order API", ManagedServiceCategory.APPLICATION,
+                Instant.parse("2026-08-01T10:00:00Z"), Map.of(),
+                Map.of(), store::put, store::get);
+
+        for (var dim : ctx.dimensions().values()) {
+            assertFalse(dim.isLoaded());
+        }
+    }
+
+    @Test
+    void createForReconstructionPreservesMetadata() {
+        var store = new HashMap<String, Object>();
+        var ctx = ServiceCaseContext.createForReconstruction(
+                "order-api", "Order API", ManagedServiceCategory.APPLICATION,
+                Instant.parse("2026-08-01T10:00:00Z"), Map.of("cluster", "prod"),
+                Map.of(), store::put, store::get);
+
+        assertEquals("order-api", ctx.serviceId());
+        assertEquals("Order API", ctx.serviceName());
+        assertEquals(ManagedServiceCategory.APPLICATION, ctx.category());
+        assertEquals(Instant.parse("2026-08-01T10:00:00Z"), ctx.deployedAt());
+        assertEquals("prod", ctx.metadata().get("cluster"));
+    }
+
+    @Test
+    void createForReconstructionToServiceHealthUsesPersistedStatuses() {
+        var store    = new HashMap<String, Object>();
+        var statuses = new EnumMap<DimensionType, DimensionStatus>(DimensionType.class);
+        statuses.put(DimensionType.HEALTH_MONITORING, HealthStatus.DOWN);
+
+        var ctx = ServiceCaseContext.createForReconstruction(
+                "order-api", "Order API", ManagedServiceCategory.APPLICATION,
+                Instant.parse("2026-08-01T10:00:00Z"), Map.of(),
+                statuses, store::put, store::get);
+
+        var health = ctx.toServiceHealth();
+        assertEquals(Severity.CRITICAL, health.overallSeverity());
+        assertEquals(HealthStatus.DOWN, health.dimensions().get(DimensionType.HEALTH_MONITORING));
+    }
+
+
 }
