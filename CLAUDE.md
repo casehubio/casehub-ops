@@ -83,7 +83,7 @@ Read `docs/guides/consumer-guide.md` for app-level work. Only read `docs/guides/
 
 | Skill | Writes to |
 |-------|-----------|
-| brainstorming (specs) | `docs/superpowers/specs/` |
+| brainstorming (specs) | `docs/specs/` |
 | adr | `docs/adr/` |
 | handover | workspace `HANDOFF.md` |
 | write-blog | workspace `blog/` |
