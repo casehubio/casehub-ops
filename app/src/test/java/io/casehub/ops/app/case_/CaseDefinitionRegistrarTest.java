@@ -1,17 +1,18 @@
 package io.casehub.ops.app.case_;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.engine.common.internal.model.CaseMetaModel;
 import io.casehub.engine.common.spi.CaseDefinitionRegistry;
 import io.casehub.platform.api.path.Path;
 
+
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CaseDefinitionRegistrarTest {
 
@@ -59,8 +60,7 @@ class CaseDefinitionRegistrarTest {
                 .map(CaseDefinition::getName)
                 .toList();
         assertThat(stubNames).containsExactlyInAnyOrder(
-                "cve-response", "service-upgrade",
-                "compliance-remediation");
+                "cve-response", "service-upgrade");
     }
 
     @Test
@@ -77,6 +77,27 @@ class CaseDefinitionRegistrarTest {
         assertThat(incidentDef.getCapabilities()).extracting("name")
                 .contains("assess-incident", "remediate-incident");
     }
+
+    @Test
+    void registersComplianceRemediationWithRealCapabilities() {
+        var registry = new RecordingRegistry();
+        var registrar = new CaseDefinitionRegistrar(registry,
+                                                    new io.casehub.ops.app.service.NodeConvergenceTracker(
+                                                            (caseId, path, value) -> {},
+                                                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                                                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())),
+                                                    null);
+
+        registrar.onStartup(null);
+
+        var complianceDef = registry.registered.stream()
+                                               .filter(d -> "compliance-remediation".equals(d.getName()))
+                                               .findFirst().orElseThrow();
+        assertThat(complianceDef.getTitle()).doesNotContain("stub");
+        assertThat(complianceDef.getCapabilities()).extracting("name")
+                                                   .contains("assess-compliance", "remediate-compliance");
+    }
+
 
     private static class RecordingRegistry implements CaseDefinitionRegistry {
         final List<CaseDefinition> registered = new ArrayList<>();

@@ -126,3 +126,63 @@
 **Trade-offs:** First "list all services" query after restart triggers the engine scan (bounded by total service case count). Subsequent list queries are served from the populated index. Event-driven discovery handles the common case without any scan.
 **Exploration:** new (surfaced by R1-13)
 **Status:** captured
+
+---
+
+# Decisions — #37 Compliance Remediation Child Case
+
+## D12: Worker chain structure
+
+**Choice:** Four-phase chain: assess → remediate → verify → escalate, matching IncidentResponseCaseDescriptor pattern
+**Alternatives:**
+- Two-phase (assess-and-act → complete) — simpler but less testable, inconsistent with other case types
+- Three-phase (no verify) — skips convergence verification, loses confirmation that fix took effect
+**Rationale:** The four-phase chain is proven in incident-response, each phase is independently testable, and the binding-driven chaining (context change triggers) decouples the phases cleanly.
+**Trade-offs:** More boilerplate than a two-phase design. Justified by consistency and testability.
+**Exploration:** quick
+**Status:** captured
+
+## D13: Auto-fix action mapping
+
+**Choice:** Two control types auto-fixable via ApplicationLifecycleService; remaining four escalate
+**Alternatives:**
+- Escalate-only — all violations require human intervention (too conservative — misses infrastructure-fixable controls)
+- Aggressive auto-fix — attempt fixes for more control types (most controls genuinely require human judgment)
+**Rationale:** LOG_RETENTION and ENCRYPTION_AT_REST are infrastructure configuration that the app controls. ACCESS_REVIEW, INCIDENT_RESPONSE, DATA_PROCESSING, AI_RISK_ASSESSMENT require human judgment or external processes.
+**Trade-offs:** Only 2 of 6 control types get automated remediation. Acceptable — the remaining 4 genuinely cannot be auto-fixed from within the application.
+**Exploration:** quick
+**Status:** captured
+
+## D14: ApplicationLifecycleService config update method
+
+**Choice:** Generic `updateServiceConfig(appId, serviceId, Map<String,String> configUpdates, tenancyId)` — merges config into service definition, recompiles desired state, returns affected node IDs
+**Alternatives:**
+- `applyComplianceFix(appId, serviceId, controlType, tenancyId)` — control-type-aware method (leaks compliance domain knowledge into lifecycle service)
+- Reuse `update(applicationId, updatedApp)` — replaces whole application definition (too broad, no node ID tracking)
+**Rationale:** updateServiceConfig is a genuine infrastructure operation (update a service's config) that isn't coupled to compliance concepts. The assess worker owns the mapping from control type to config keys.
+**Depends on:** D13 (auto-fix action mapping determines which controls call this method)
+**Trade-offs:** The assess worker carries the control-type-to-config-key mapping, which is domain knowledge embedded in the case descriptor rather than externalized as configuration.
+**Exploration:** quick
+**Status:** captured
+
+## D15: Input data contract
+
+**Choice:** Single unified contract with required fields (controlId, controlType, outcome, tenancyId) and optional fields (detail, frameworks, serviceId, applicationId). Both entry points (ApplicationCaseDescriptor and ServiceCaseDescriptor) map into this contract.
+**Alternatives:**
+- Source-aware contract — case checks which entry point triggered it and adapts behavior (adds unnecessary complexity, couples case to caller)
+**Rationale:** The case handles the violation regardless of source. When serviceId is absent, the fix applies to all services or escalates. The case doesn't need to know which binding triggered it.
+**Trade-offs:** Caller must ensure the input contract is satisfied — mapping responsibility shifts to the binding configuration.
+**Exploration:** quick
+**Status:** captured
+
+## D16: Outcome routing and failure handling
+
+**Choice:** FAIL → auto-fix if control type supports it, else escalate. UNAVAILABLE → escalate. STALE → escalate (handled by separate ops:evidence-recollection case). Worker failure handling follows incident-response pattern: remediate worker catches exceptions and writes .complianceEscalationRequired rather than returning WorkerResult.failed().
+**Alternatives:**
+- Treat STALE as auto-fixable (re-collect trigger) — but evidence recollection is already a separate case type wired in ServiceCaseDescriptor
+- Return WorkerResult.failed() on remediation exceptions — leaves case without a completion path
+**Rationale:** FAIL is the only outcome where the app can meaningfully intervene. UNAVAILABLE and STALE are either connectivity issues or handled elsewhere. Exception routing to escalation ensures every case reaches a terminal state.
+**Depends on:** D13 (only FAIL outcomes on auto-fixable control types trigger remediation)
+**Trade-offs:** UNAVAILABLE violations are always escalated even if the underlying issue might be transient. Acceptable — retrying connectivity issues from the application layer is unlikely to help.
+**Exploration:** quick
+**Status:** captured

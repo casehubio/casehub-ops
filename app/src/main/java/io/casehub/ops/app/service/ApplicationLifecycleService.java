@@ -17,7 +17,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -317,6 +319,55 @@ public class ApplicationLifecycleService {
         return affectedNodeIds;
     }
 
+
+    @Transactional
+    public Set<String> updateServiceConfig(UUID applicationId, String serviceId,
+                                           Map<String, String> configUpdates, String tenancyId) {
+        if (configUpdates == null || configUpdates.isEmpty()) {return Set.of();}
+
+        var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
+        if (app == null) {
+            throw new IllegalArgumentException("Application not found: " + applicationId);
+        }
+
+        List<ServiceDefinition> services = parseServices(app.servicesJson);
+        boolean                 found    = false;
+        List<ServiceDefinition> updated  = new java.util.ArrayList<>();
+        for (ServiceDefinition sd : services) {
+            if (sd.serviceId().equals(serviceId)) {
+                found = true;
+                var mergedEnv = new LinkedHashMap<>(sd.env() != null ? sd.env() : Map.<String, String>of());
+                mergedEnv.putAll(configUpdates);
+                updated.add(new ServiceDefinition(sd.serviceId(), sd.name(), sd.image(), sd.replicas(),
+                                                  sd.ports(), mergedEnv, sd.resources(), sd.dependsOn(), sd.healthCheck(),
+                                                  sd.targetClusters(), sd.scalingRules(), sd.restartGeneration()));
+            } else {
+                updated.add(sd);
+            }
+        }
+        if (!found) {
+            throw new IllegalArgumentException("Service not found: " + serviceId);
+        }
+
+        try {
+            app.servicesJson = objectMapper.writeValueAsString(updated);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize updated services", e);
+        }
+
+        List<io.casehub.ops.app.entity.ClusterReferenceEntity> clusters        = clusterService.list(tenancyId);
+        Set<String>                                            affectedNodeIds = new java.util.HashSet<>();
+
+        for (var cluster : clusters) {
+            var graph = goalCompiler.compileForCluster(updated, cluster.id.toString(),
+                                                       cluster.namespace, graphFactory);
+            String key = tenancyId + ":" + applicationId + ":" + cluster.id;
+            reconciliationLoop.updateDesired(key, graph);
+            affectedNodeIds.add(cluster.id + ":" + serviceId + ":deployment");
+        }
+
+        return affectedNodeIds;
+    }
 
     public ApplicationStatus deriveStatus(ApplicationEntity app) {
         if (app.engineCaseId == null) {

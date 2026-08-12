@@ -375,7 +375,7 @@ All filtered by `managed-by=casehub-ops` label.
 
 `io.casehub.ops.app.case_` package (trailing underscore avoids Java keyword conflict).
 
-**CaseDefinitionRegistrar** -- `@ApplicationScoped`. Registers `ApplicationCaseDescriptor` (parent), `DriftRemediationCaseDescriptor`, `ScalingEventCaseDescriptor`, and `IncidentResponseCaseDescriptor` as child cases. `StubChildCaseDescriptor` used for unimplemented cases (cve-response, service-upgrade, compliance-remediation).
+**CaseDefinitionRegistrar** -- `@ApplicationScoped`. Registers `ApplicationCaseDescriptor` (parent), `DriftRemediationCaseDescriptor`, `ScalingEventCaseDescriptor`, `IncidentResponseCaseDescriptor`, and `ComplianceRemediationCaseDescriptor` as child cases. `StubChildCaseDescriptor` used for unimplemented cases (cve-response, service-upgrade).
 
 **DriftRemediationCaseDescriptor** -- static `build(NodeConvergenceTracker)` factory:
 - **classify-drift worker**: evaluates `consecutiveDriftCount`, `driftDetails` (node count, security-sensitive fields: image, serviceAccount, rbac, secrets). Outputs severity: `benign` or `critical`
@@ -391,6 +391,14 @@ All filtered by `managed-by=casehub-ops` label.
 - **Completion**: `.scalingStatus == "converged" || .scalingStatus == "no-change-needed"`
 
 **ScalingPolicy** record: `clamp(targetReplicas)` applies `Math.max(min, Math.min(max, target))`. `isCoolingDown(lastScalingEvent, now)` enforces cooldown. Constructor validates `minReplicas >= 0`, `maxReplicas >= minReplicas`, non-negative cooldown. `UNBOUNDED` constant for unconstrained scaling.
+
+**ComplianceRemediationCaseDescriptor** -- static `build(ApplicationLifecycleService, NodeConvergenceTracker)` factory:
+- **compliance-assess-worker**: classifies violation by outcome × controlType × serviceId. FAIL + auto-fixable type (LOG_RETENTION, ENCRYPTION_AT_REST) + serviceId present → `update-config`. All other combinations → escalate. UNAVAILABLE/STALE outcomes always escalate.
+- **compliance-remediate-worker**: calls `ApplicationLifecycleService.updateServiceConfig()` to merge config into service env. On exception → routes to escalation.
+- **compliance-verify-worker**: registers affected nodes with `NodeConvergenceTracker`
+- **compliance-escalate-worker**: writes `.complianceStatus = "escalated"` with violation summary
+- **Completion**: `.complianceStatus == "resolved" || .complianceStatus == "escalated"`
+- No dependency on the `compliance/` module — works with violation data as received from case bindings
 
 ### Scaling Trigger Mechanism
 

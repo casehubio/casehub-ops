@@ -300,4 +300,75 @@ class ApplicationLifecycleServiceTest {
                 .isThrownBy(() -> lifecycleService.rollbackService(app.id, "nonexistent", "default"))
                 .withMessageContaining("nonexistent");
     }
+
+    @Test
+    @Transactional
+    void updateServiceConfigMergesEnvAndReturnsNodeIds() {
+        String servicesJson = """
+                              [{"serviceId":"web","name":"Web","image":"img:1.0","replicas":2,
+                                "ports":[],"env":{"DB_HOST":"localhost","DB_PORT":"5432"},
+                                "resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                              """;
+        var app = lifecycleService.createDraft("config-test", "Test", servicesJson, "default");
+        app.status = io.casehub.ops.app.model.ApplicationStatus.RUNNING;
+        app.persist();
+
+        java.util.Set<String> affected = lifecycleService.updateServiceConfig(
+                app.id, "web", java.util.Map.of("ENCRYPTION_ENABLED", "true", "DB_PORT", "5433"), "default");
+
+        assertThat(affected).isNotNull();
+        var updated = ApplicationEntity.<ApplicationEntity>findById(app.id);
+        assertThat(updated.servicesJson).contains("\"DB_HOST\":\"localhost\"");
+        assertThat(updated.servicesJson).contains("\"DB_PORT\":\"5433\"");
+        assertThat(updated.servicesJson).contains("\"ENCRYPTION_ENABLED\":\"true\"");
+    }
+
+    @Test
+    @Transactional
+    void updateServiceConfigUnknownServiceThrows() {
+        String servicesJson = """
+                              [{"serviceId":"web","name":"Web","image":"img:1.0","replicas":2,
+                                "ports":[],"env":{},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                              """;
+        var app = lifecycleService.createDraft("config-unknown", "Test", servicesJson, "default");
+        app.status = io.casehub.ops.app.model.ApplicationStatus.RUNNING;
+        app.persist();
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.updateServiceConfig(
+                        app.id, "nonexistent", java.util.Map.of("KEY", "val"), "default"))
+                .withMessageContaining("nonexistent");
+    }
+
+    @Test
+    @Transactional
+    void updateServiceConfigUnknownApplicationThrows() {
+        java.util.UUID bogusId = java.util.UUID.randomUUID();
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.updateServiceConfig(
+                        bogusId, "web", java.util.Map.of("KEY", "val"), "default"))
+                .withMessageContaining(bogusId.toString());
+    }
+
+    @Test
+    @Transactional
+    void updateServiceConfigEmptyUpdatesReturnsEmpty() {
+        String servicesJson = """
+                              [{"serviceId":"web","name":"Web","image":"img:1.0","replicas":2,
+                                "ports":[],"env":{"DB_HOST":"localhost"},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                              """;
+        var app = lifecycleService.createDraft("config-empty", "Test", servicesJson, "default");
+        app.status = io.casehub.ops.app.model.ApplicationStatus.RUNNING;
+        app.persist();
+
+        java.util.Set<String> affected = lifecycleService.updateServiceConfig(
+                app.id, "web", java.util.Map.of(), "default");
+
+        assertThat(affected).isEmpty();
+    }
+
+
 }

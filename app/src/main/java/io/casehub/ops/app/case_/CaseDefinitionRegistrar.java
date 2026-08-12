@@ -16,16 +16,16 @@ public class CaseDefinitionRegistrar {
 
     private static final Logger LOG = Logger.getLogger(CaseDefinitionRegistrar.class.getName());
 
-    private final CaseDefinitionRegistry                            registry;
-    private final io.casehub.ops.app.service.NodeConvergenceTracker convergenceTracker;
+    private final CaseDefinitionRegistry                                 registry;
+    private final io.casehub.ops.app.service.NodeConvergenceTracker      convergenceTracker;
     private final io.casehub.ops.app.service.ApplicationLifecycleService applicationLifecycleService;
 
     @Inject
     public CaseDefinitionRegistrar(CaseDefinitionRegistry registry,
-                                    io.casehub.ops.app.service.NodeConvergenceTracker convergenceTracker,
-                                    io.casehub.ops.app.service.ApplicationLifecycleService applicationLifecycleService) {
-        this.registry = registry;
-        this.convergenceTracker = convergenceTracker;
+                                   io.casehub.ops.app.service.NodeConvergenceTracker convergenceTracker,
+                                   io.casehub.ops.app.service.ApplicationLifecycleService applicationLifecycleService) {
+        this.registry                    = registry;
+        this.convergenceTracker          = convergenceTracker;
         this.applicationLifecycleService = applicationLifecycleService;
     }
 
@@ -37,7 +37,7 @@ public class CaseDefinitionRegistrar {
                 StubChildCaseDescriptor.build("ops", "service-upgrade", "1.0"),
                 IncidentResponseCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 ScalingEventCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
-                StubChildCaseDescriptor.build("ops", "compliance-remediation", "1.0"));
+                ComplianceRemediationCaseDescriptor.build(applicationLifecycleService, convergenceTracker));
 
         for (CaseDefinition def : definitions) {
             registry.registerCaseDefinition(def);
