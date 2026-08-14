@@ -371,4 +371,108 @@ class ApplicationLifecycleServiceTest {
     }
 
 
+    @Test
+    @Transactional
+    void updateServiceImagePatchesJson() {
+        String servicesJson = """
+                              [{"serviceId":"web","name":"Web","image":"myapp/web:1.0","replicas":2,
+                                "ports":[],"env":{},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                              """;
+        var app = lifecycleService.createDraft("image-test", "Test", servicesJson, "default");
+        app.status = ApplicationStatus.RUNNING;
+        app.persist();
+
+        java.util.Set<String> affected = lifecycleService.updateServiceImage(
+                app.id, "web", "myapp/web:2.0", "default");
+
+        var updated = ApplicationEntity.<ApplicationEntity>findById(app.id);
+        assertThat(updated.servicesJson).contains("myapp/web:2.0");
+        assertThat(updated.servicesJson).doesNotContain("myapp/web:1.0");
+        assertThat(affected).isNotNull();
+    }
+
+    @Test
+    @Transactional
+    void updateServiceImageUnknownServiceThrows() {
+        String servicesJson = """
+                              [{"serviceId":"web","name":"Web","image":"img:1.0","replicas":2,
+                                "ports":[],"env":{},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                              """;
+        var app = lifecycleService.createDraft("image-unknown", "Test", servicesJson, "default");
+        app.status = ApplicationStatus.RUNNING;
+        app.persist();
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.updateServiceImage(
+                        app.id, "nonexistent", "img:2.0", "default"))
+                .withMessageContaining("nonexistent");
+    }
+
+    @Test
+    @Transactional
+    void updateServiceImageUnknownApplicationThrows() {
+        java.util.UUID bogusId = java.util.UUID.randomUUID();
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.updateServiceImage(
+                        bogusId, "web", "img:2.0", "default"))
+                .withMessageContaining(bogusId.toString());
+    }
+
+    @Test
+    @Transactional
+    void rollbackToDeploymentRestoresTopology() {
+        String servicesJsonV1 = """
+                                [{"serviceId":"web","name":"Web","image":"myapp/web:1.0","replicas":2,
+                                  "ports":[],"env":{},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                  "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                                """;
+        String servicesJsonV2 = """
+                                [{"serviceId":"web","name":"Web","image":"myapp/web:2.0","replicas":3,
+                                  "ports":[],"env":{},"resources":{"cpuRequest":"100m","memoryRequest":"128Mi","cpuLimit":"500m","memoryLimit":"512Mi"},
+                                  "dependsOn":[],"healthCheck":null,"targetClusters":[]}]
+                                """;
+        var app = lifecycleService.createDraft("rollback-deploy-test", "Test", servicesJsonV2, "default");
+        app.status = ApplicationStatus.RUNNING;
+        app.persist();
+
+        var record = new io.casehub.ops.app.entity.DeploymentRecordEntity();
+        record.applicationId = app.id;
+        record.topologyJson  = servicesJsonV1;
+        record.trigger       = io.casehub.ops.app.model.DeploymentTrigger.INITIAL;
+        record.outcome       = io.casehub.ops.app.model.DeploymentOutcome.SUCCESS;
+        record.persist();
+
+        lifecycleService.rollbackToDeployment(app.id, record.id, "default");
+
+        var updated = ApplicationEntity.<ApplicationEntity>findById(app.id);
+        assertThat(updated.servicesJson).contains("myapp/web:1.0");
+        assertThat(updated.servicesJson).doesNotContain("myapp/web:2.0");
+    }
+
+    @Test
+    @Transactional
+    void rollbackToDeploymentUnknownDeploymentThrows() {
+        var app = lifecycleService.createDraft("rollback-unknown-deploy", "Test", "[]", "default");
+        app.status = ApplicationStatus.RUNNING;
+        app.persist();
+
+        java.util.UUID bogusDeployId = java.util.UUID.randomUUID();
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.rollbackToDeployment(
+                        app.id, bogusDeployId, "default"))
+                .withMessageContaining(bogusDeployId.toString());
+    }
+
+    @Test
+    @Transactional
+    void rollbackToDeploymentUnknownApplicationThrows() {
+        java.util.UUID bogusAppId    = java.util.UUID.randomUUID();
+        java.util.UUID bogusDeployId = java.util.UUID.randomUUID();
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> lifecycleService.rollbackToDeployment(
+                        bogusAppId, bogusDeployId, "default"))
+                .withMessageContaining(bogusAppId.toString());
+    }
 }

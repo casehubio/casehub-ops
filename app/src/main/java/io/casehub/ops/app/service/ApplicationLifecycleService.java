@@ -369,6 +369,72 @@ public class ApplicationLifecycleService {
         return affectedNodeIds;
     }
 
+    public Set<String> updateServiceImage(UUID applicationId, String serviceId,
+                                          String newImage, String tenancyId) {
+        var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
+        if (app == null) {throw new IllegalArgumentException("Application not found: " + applicationId);}
+
+        List<ServiceDefinition> services = parseServices(app.servicesJson);
+        boolean                 found    = false;
+        List<ServiceDefinition> updated  = new java.util.ArrayList<>();
+        for (ServiceDefinition sd : services) {
+            if (sd.serviceId().equals(serviceId)) {
+                found = true;
+                updated.add(new ServiceDefinition(sd.serviceId(), sd.name(), newImage, sd.replicas(),
+                                                  sd.ports(), sd.env(), sd.resources(), sd.dependsOn(), sd.healthCheck(),
+                                                  sd.targetClusters(), sd.scalingRules(), sd.restartGeneration()));
+            } else {
+                updated.add(sd);
+            }
+        }
+        if (!found) {
+            throw new IllegalArgumentException("Service not found: " + serviceId);
+        }
+
+        try {
+            app.servicesJson = objectMapper.writeValueAsString(updated);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize updated services", e);
+        }
+
+        List<io.casehub.ops.app.entity.ClusterReferenceEntity> clusters        = clusterService.list(tenancyId);
+        Set<String>                                            affectedNodeIds = new java.util.HashSet<>();
+
+        for (var cluster : clusters) {
+            var graph = goalCompiler.compileForCluster(updated, cluster.id.toString(),
+                                                       cluster.namespace, graphFactory);
+            String key = tenancyId + ":" + applicationId + ":" + cluster.id;
+            reconciliationLoop.updateDesired(key, graph);
+            affectedNodeIds.add(cluster.id + ":" + serviceId + ":deployment");
+        }
+
+        return affectedNodeIds;
+    }
+
+    public void rollbackToDeployment(UUID applicationId, UUID deploymentId, String tenancyId) {
+        var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
+        if (app == null) {throw new IllegalArgumentException("Application not found: " + applicationId);}
+
+        var deployment = io.casehub.ops.app.entity.DeploymentRecordEntity.<io.casehub.ops.app.entity.DeploymentRecordEntity>findById(deploymentId);
+        if (deployment == null) {throw new IllegalArgumentException("Deployment not found: " + deploymentId);}
+
+        app.servicesJson = deployment.topologyJson;
+
+        List<ServiceDefinition>                                services = parseServices(app.servicesJson);
+        List<io.casehub.ops.app.entity.ClusterReferenceEntity> clusters = clusterService.list(tenancyId);
+
+        for (var cluster : clusters) {
+            var graph = goalCompiler.compileForCluster(services, cluster.id.toString(),
+                                                       cluster.namespace, graphFactory);
+            String key = tenancyId + ":" + applicationId + ":" + cluster.id;
+            reconciliationLoop.updateDesired(key, graph);
+        }
+
+        recordDeployment(app, io.casehub.ops.app.model.DeploymentTrigger.ROLLBACK,
+                         io.casehub.ops.app.model.DeploymentOutcome.SUCCESS);
+    }
+
+
     public ApplicationStatus deriveStatus(ApplicationEntity app) {
         if (app.engineCaseId == null) {
             return ApplicationStatus.DRAFT;
