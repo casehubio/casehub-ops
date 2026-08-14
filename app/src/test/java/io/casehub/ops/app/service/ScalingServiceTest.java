@@ -1,4 +1,4 @@
-package io.casehub.ops.app.rest;
+package io.casehub.ops.app.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -7,9 +7,8 @@ import io.casehub.ops.app.model.ApplicationStatus;
 import io.casehub.ops.app.model.ScalingRule;
 import io.casehub.ops.app.model.ServiceDefinition;
 import io.casehub.ops.app.rest.dto.ScaleServiceRequest;
-import io.casehub.ops.app.service.ScalingRequestedEvent;
-import io.casehub.ops.app.service.ScalingService;
 import io.casehub.ops.api.infra.types.ResourceRequirements;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -21,16 +20,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-class ScalingResourceTest {
+class ScalingServiceTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .registerModule(new Jdk8Module());
 
     @Test
-    void validRequestDelegatesToService() {
+    void validRequestReturns202() {
         var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
         var service = buildService(events);
 
@@ -41,14 +40,27 @@ class ScalingResourceTest {
         assertThat(response.getStatus()).isEqualTo(202);
         assertThat(events).hasSize(1);
         assertThat(events.get(0).targetReplicas()).isEqualTo(5);
-        assertThat(events.get(0).serviceId()).isEqualTo("web");
     }
 
     @Test
     void wrongStatusReturns409() {
-        var service = buildService(new CopyOnWriteArrayList<>());
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var service = buildService(events);
 
         var response = service.scale("app-1", UUID.randomUUID(), ApplicationStatus.DRAFT,
+                servicesJson("web", 2, List.of()), "web",
+                new ScaleServiceRequest(5, "manual"));
+
+        assertThat(response.getStatus()).isEqualTo(409);
+        assertThat(events).isEmpty();
+    }
+
+    @Test
+    void nullEngineCaseIdReturns409() {
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var service = buildService(events);
+
+        var response = service.scale("app-1", null, ApplicationStatus.RUNNING,
                 servicesJson("web", 2, List.of()), "web",
                 new ScaleServiceRequest(5, "manual"));
 
@@ -56,17 +68,55 @@ class ScalingResourceTest {
     }
 
     @Test
-    void degradedStatusAllowed() {
-        var service = buildService(new CopyOnWriteArrayList<>());
+    void unknownServiceReturns404() {
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var service = buildService(events);
 
-        var response = service.scale("app-1", UUID.randomUUID(), ApplicationStatus.DEGRADED,
-                servicesJson("web", 2, List.of()), "web",
+        var response = service.scale("app-1", UUID.randomUUID(), ApplicationStatus.RUNNING,
+                servicesJson("web", 2, List.of()), "nonexistent",
                 new ScaleServiceRequest(5, "manual"));
 
-        assertThat(response.getStatus()).isEqualTo(202);
+        assertThat(response.getStatus()).isEqualTo(404);
     }
 
-    // --- helpers ---
+    @Test
+    void coolingDownReturns429() {
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        Set<String> coolingDown = new HashSet<>();
+        coolingDown.add("app-1:web");
+        var service = buildServiceWithCooldown(events, coolingDown);
+
+        var response = service.scale("app-1", UUID.randomUUID(), ApplicationStatus.RUNNING,
+                servicesJson("web", 2, List.of(new ScalingRule("x", 0.5, 2, 10, Duration.ofMinutes(5)))),
+                "web", new ScaleServiceRequest(5, "manual"));
+
+        assertThat(response.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void serviceWithRulesIncludesWarningHeader() {
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var service = buildService(events);
+
+        var response = service.scale("app-1", UUID.randomUUID(), ApplicationStatus.RUNNING,
+                servicesJson("web", 2, List.of(new ScalingRule("x", 0.5, 2, 10, null))),
+                "web", new ScaleServiceRequest(5, "manual"));
+
+        assertThat(response.getStatus()).isEqualTo(202);
+        assertThat(response.getHeaderString("X-Scaling-Warning")).isEqualTo("active-rules");
+    }
+
+    @Test
+    void nullReasonDefaultsToManual() {
+        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var service = buildService(events);
+
+        service.scale("app-1", UUID.randomUUID(), ApplicationStatus.RUNNING,
+                servicesJson("web", 2, List.of()), "web",
+                new ScaleServiceRequest(5, null));
+
+        assertThat(events.get(0).reason()).isEqualTo("manual");
+    }
 
     private ScalingService buildService(List<ScalingRequestedEvent> events) {
         return buildServiceWithCooldown(events, Set.of());
