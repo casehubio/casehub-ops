@@ -40,21 +40,39 @@ public class DeploymentResource {
 
     @GET
     public Response listDeployments(@PathParam("id") UUID id) {
-        // Phase 1: stubbed
-        return Response.ok(List.of()).build();
+        return Response.ok(io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id)).build();
     }
 
     @GET
     @Path("/current")
     public Response getCurrentDeployment(@PathParam("id") UUID id) {
-        // Phase 1: stubbed
-        return Response.ok().build();
+        var records = io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id);
+        if (records.isEmpty()) return Response.status(Response.Status.NOT_FOUND).build();
+        var latest = records.stream()
+                .max(java.util.Comparator.comparing(r -> r.createdAt))
+                .orElse(null);
+        return Response.ok(latest).build();
     }
 
     @POST
     @Path("/rollback")
-    public Response rollback(@PathParam("id") UUID id) {
-        // Phase 1: stubbed
+    public Response rollback(@PathParam("id") UUID id,
+                             @Context ContainerRequestContext ctx) {
+        String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
+        var app = io.casehub.ops.app.entity.ApplicationEntity.<io.casehub.ops.app.entity.ApplicationEntity>findById(id);
+        if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
+
+        var records = io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id);
+        var lastSuccess = records.stream()
+                .filter(r -> r.outcome == io.casehub.ops.app.model.DeploymentOutcome.SUCCESS)
+                .max(java.util.Comparator.comparing(r -> r.createdAt))
+                .orElse(null);
+        if (lastSuccess == null) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(java.util.Map.of("error", "No successful deployment to rollback to")).build();
+        }
+
+        lifecycleService.rollbackToDeployment(id, lastSuccess.id, tenancyId);
         return Response.accepted().build();
     }
 }

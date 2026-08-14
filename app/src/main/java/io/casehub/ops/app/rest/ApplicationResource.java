@@ -57,8 +57,14 @@ public class ApplicationResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") UUID id, CreateApplicationRequest request) {
-        // Phase 1: stubbed
-        return Response.ok().build();
+        var app = ApplicationEntity.<ApplicationEntity>findById(id);
+        if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
+
+        if (request.name() != null) app.name = request.name();
+        if (request.description() != null) app.description = request.description();
+        if (request.servicesJson() != null) app.servicesJson = request.servicesJson();
+        app.persist();
+        return Response.ok(app).build();
     }
 
     @DELETE
