@@ -42,11 +42,11 @@ class DeploymentFaultPolicyTest {
         policy.onFault("t1", event, graph, EMPTY_ACTUAL);
         var mutations = policy.onFault("t1", event, graph, EMPTY_ACTUAL);
 
-        assertThat(mutations).hasSize(1);
+        assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
         var addNode = (GraphMutation.AddNode) mutations.getFirst();
-        assertThat(addNode.node().id()).isEqualTo(NodeId.of("review-agent-1"));
+        assertThat(addNode.node().id()).isEqualTo(NodeId.of("deployment-review-agent-1"));
         assertThat(addNode.node().type()).isEqualTo(DEPLOYMENT_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
         assertThat(addNode.node().spec()).isInstanceOf(DeploymentReviewSpec.class);
@@ -54,6 +54,11 @@ class DeploymentFaultPolicyTest {
         var spec = (DeploymentReviewSpec) addNode.node().spec();
         assertThat(spec.faultedNode()).isEqualTo(NodeId.of("agent-1"));
         assertThat(spec.reason()).isEqualTo("registry timeout");
+
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
+        var addDep = (GraphMutation.AddDependency) mutations.get(1);
+        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("deployment-review-agent-1"));
+        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("agent-1"));
     }
 
     @Test
@@ -96,7 +101,7 @@ class DeploymentFaultPolicyTest {
             freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL);
             assertThat(freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL))
                     .as("Deployment node type %s should escalate at threshold", deployType)
-                    .hasSize(1);
+                    .hasSize(2);
         }
     }
 

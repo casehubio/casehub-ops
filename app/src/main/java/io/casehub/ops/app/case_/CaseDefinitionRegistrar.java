@@ -40,10 +40,8 @@ public class CaseDefinitionRegistrar {
                 StubChildCaseDescriptor.build("ops", "compliance-remediation", "1.0"));
 
         for (CaseDefinition def : definitions) {
-            registry.registerCaseDefinition(def)
-                    .subscribe().with(
-                            meta -> LOG.fine("Registered case definition: " + def.getNamespace() + ":" + def.getName()),
-                            err -> LOG.warning("Failed to register " + def.getName() + ": " + err.getMessage()));
+            registry.registerCaseDefinition(def);
+            LOG.fine("Registered case definition: " + def.getNamespace() + ":" + def.getName());
         }
         LOG.info("Registered " + definitions.size() + " case definitions");
     }

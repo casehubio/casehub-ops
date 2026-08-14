@@ -13,8 +13,8 @@ import io.casehub.ops.api.infra.K8sIngressSpec;
 import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import io.casehub.ops.api.infra.K8sServiceSpec;
 import io.casehub.ops.app.k8s.KubernetesEventSource;
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemQuery;
+import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.WorkItemQuery;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -78,7 +78,7 @@ public class ApprovalResource {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
         var    item      = workItemService.findById(id).orElse(null);
         if (item == null) {return Response.status(Response.Status.NOT_FOUND).build();}
-        if (!tenancyId.equals(item.tenancyId)) {return Response.status(Response.Status.FORBIDDEN).build();}
+        if (!tenancyId.equals(item.tenancyId())) {return Response.status(Response.Status.FORBIDDEN).build();}
         return Response.ok(toView(item)).build();
     }
 
@@ -90,7 +90,7 @@ public class ApprovalResource {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
         var    item      = workItemService.findById(id).orElse(null);
         if (item == null) {return Response.status(Response.Status.NOT_FOUND).build();}
-        if (!tenancyId.equals(item.tenancyId)) {return Response.status(Response.Status.FORBIDDEN).build();}
+        if (!tenancyId.equals(item.tenancyId())) {return Response.status(Response.Status.FORBIDDEN).build();}
 
         RiskClassification risk       = resolveRisk(item);
         var                authResult = authorizer.authorize(risk, request.actorId(), principal.roles());
@@ -102,8 +102,8 @@ public class ApprovalResource {
 
         workItemService.completeFromSystem(id, request.actorId(), "approve");
 
-        if (item.payload != null) {
-            planStore.retrieve(item.payload).ifPresent(plan ->
+        if (item.payload() != null) {
+            planStore.retrieve(item.payload()).ifPresent(plan ->
                                                                eventSource.emitDrift(plan.nodeId()));
         }
 
@@ -118,7 +118,7 @@ public class ApprovalResource {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
         var    item      = workItemService.findById(id).orElse(null);
         if (item == null) {return Response.status(Response.Status.NOT_FOUND).build();}
-        if (!tenancyId.equals(item.tenancyId)) {return Response.status(Response.Status.FORBIDDEN).build();}
+        if (!tenancyId.equals(item.tenancyId())) {return Response.status(Response.Status.FORBIDDEN).build();}
 
         RiskClassification risk       = resolveRisk(item);
         var                authResult = authorizer.authorize(risk, request.actorId(), principal.roles());
@@ -133,15 +133,15 @@ public class ApprovalResource {
     }
 
     private RiskClassification resolveRisk(WorkItem item) {
-        if (item.payload == null) {return RiskClassification.LOW;}
-        return planStore.retrieve(item.payload)
+        if (item.payload() == null) {return RiskClassification.LOW;}
+        return planStore.retrieve(item.payload())
                         .map(ApprovalPlan::risk)
                         .orElse(RiskClassification.LOW);
     }
 
     private ApprovalView toView(WorkItem item) {
-        var planOpt = item.payload != null
-                      ? planStore.retrieve(item.payload) : java.util.Optional.<ApprovalPlan>empty();
+        var planOpt = item.payload() != null
+                      ? planStore.retrieve(item.payload()) : java.util.Optional.<ApprovalPlan>empty();
         if (planOpt.isPresent()) {
             var    plan      = planOpt.get();
             String cluster   = null;
@@ -151,13 +151,13 @@ public class ApprovalResource {
                 namespace = extractNamespace(wrapper.resourceSpec());
             }
             return new ApprovalView(
-                    item.id, plan.nodeId().value(), plan.action().name(),
+                    item.id(), plan.nodeId().value(), plan.action().name(),
                     plan.risk(), plan.summary(), cluster, namespace,
-                    item.status.name(), item.assigneeId, item.createdAt);
+                    item.status().name(), item.assigneeId(), item.createdAt());
         }
         return new ApprovalView(
-                item.id, null, null, null, item.title,
-                null, null, item.status.name(), item.assigneeId, item.createdAt);
+                item.id(), null, null, null, item.title(),
+                null, null, item.status().name(), item.assigneeId(), item.createdAt());
     }
 
     private String extractNamespace(InfraNodeSpec spec) {

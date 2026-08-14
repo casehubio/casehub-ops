@@ -42,11 +42,11 @@ class InfraFaultPolicyTest {
         policy.onFault("t1", event, graph, EMPTY_ACTUAL);
         var mutations = policy.onFault("t1", event, graph, EMPTY_ACTUAL);
 
-        assertThat(mutations).hasSize(1);
+        assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
         var addNode = (GraphMutation.AddNode) mutations.getFirst();
-        assertThat(addNode.node().id()).isEqualTo(NodeId.of("review-vm-1"));
+        assertThat(addNode.node().id()).isEqualTo(NodeId.of("infra-review-vm-1"));
         assertThat(addNode.node().type()).isEqualTo(INFRA_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
         assertThat(addNode.node().spec()).isInstanceOf(InfraReviewSpec.class);
@@ -54,13 +54,18 @@ class InfraFaultPolicyTest {
         var spec = (InfraReviewSpec) addNode.node().spec();
         assertThat(spec.faultedNode()).isEqualTo(NodeId.of("vm-1"));
         assertThat(spec.reason()).isEqualTo("timeout");
+
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
+        var addDep = (GraphMutation.AddDependency) mutations.get(1);
+        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("infra-review-vm-1"));
+        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("vm-1"));
     }
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
         var vmNode = new DesiredNode(NodeId.of("vm-1"), NodeType.of("compute_instance"),
                                      testSpec(), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("review-vm-1"), INFRA_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("infra-review-vm-1"), INFRA_REVIEW,
                                          new InfraReviewSpec(NodeId.of("vm-1"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(vmNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("vm-1"), FaultType.PROVISION_FAILED, "still failing");
@@ -111,7 +116,7 @@ class InfraFaultPolicyTest {
             freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL);
             assertThat(freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL))
                     .as("Infra node type %s should escalate at threshold", infraType)
-                    .hasSize(1);
+                    .hasSize(2);
         }
     }
 

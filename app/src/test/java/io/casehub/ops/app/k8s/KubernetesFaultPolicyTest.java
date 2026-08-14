@@ -43,11 +43,11 @@ class KubernetesFaultPolicyTest {
         policy.onFault("t1", event, graph, EMPTY_ACTUAL);
         var mutations = policy.onFault("t1", event, graph, EMPTY_ACTUAL);
 
-        assertThat(mutations).hasSize(1);
+        assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
         var addNode = (GraphMutation.AddNode) mutations.getFirst();
-        assertThat(addNode.node().id()).isEqualTo(NodeId.of("review-deploy-1"));
+        assertThat(addNode.node().id()).isEqualTo(NodeId.of("k8s-review-deploy-1"));
         assertThat(addNode.node().type()).isEqualTo(K8S_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
         assertThat(addNode.node().spec()).isInstanceOf(K8sReviewSpec.class);
@@ -55,13 +55,18 @@ class KubernetesFaultPolicyTest {
         var spec = (K8sReviewSpec) addNode.node().spec();
         assertThat(spec.faultedNode()).isEqualTo(NodeId.of("deploy-1"));
         assertThat(spec.reason()).isEqualTo("image pull failed");
+
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
+        var addDep = (GraphMutation.AddDependency) mutations.get(1);
+        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("k8s-review-deploy-1"));
+        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("deploy-1"));
     }
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
         var deployNode = new DesiredNode(NodeId.of("deploy-1"), ApplicationNodeTypes.K8S_DEPLOYMENT,
                 testSpec(), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("review-deploy-1"), K8S_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("k8s-review-deploy-1"), K8S_REVIEW,
                 new K8sReviewSpec(NodeId.of("deploy-1"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(deployNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("deploy-1"), FaultType.PROVISION_FAILED, "still failing");
@@ -124,7 +129,7 @@ class KubernetesFaultPolicyTest {
             freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL);
             assertThat(freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL))
                     .as("K8s node type %s should escalate at threshold", k8sType)
-                    .hasSize(1);
+                    .hasSize(2);
         }
     }
 

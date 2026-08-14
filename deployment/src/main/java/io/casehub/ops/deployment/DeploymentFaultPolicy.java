@@ -28,9 +28,8 @@ public class DeploymentFaultPolicy implements FaultPolicy {
                                                                               NodeType.of("trust_policy"),
                                                                               NodeType.of("endpoint")))
                                                                       .ignoreTypes(Set.of(DEPLOYMENT_REVIEW))
-                                                                      .threshold(3)
-                                                                      .action(FaultPolicy.addReviewNode(DEPLOYMENT_REVIEW,
-                                                                                                        (event, current) -> new DeploymentReviewSpec(event.node(), event.detail())))
+                                                                      .tier(3, FaultPolicy.addReviewNode(DEPLOYMENT_REVIEW,
+                                                                              (event, current) -> new DeploymentReviewSpec(event.node(), event.detail())), DEPLOYMENT_REVIEW)
                                                                       .build();
 
     @Override

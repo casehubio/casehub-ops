@@ -31,9 +31,8 @@ public class InfraFaultPolicy implements FaultPolicy {
                                                                               NodeType.of("terraform_workspace"),
                                                                               NodeType.of("ansible_playbook")))
                                                                       .ignoreTypes(Set.of(INFRA_REVIEW))
-                                                                      .threshold(3)
-                                                                      .action(FaultPolicy.addReviewNode(INFRA_REVIEW,
-                                                                                                        (event, current) -> new InfraReviewSpec(event.node(), event.detail())))
+                                                                      .tier(3, FaultPolicy.addReviewNode(INFRA_REVIEW,
+                                                                              (event, current) -> new InfraReviewSpec(event.node(), event.detail())), INFRA_REVIEW)
                                                                       .build();
 
     @Override

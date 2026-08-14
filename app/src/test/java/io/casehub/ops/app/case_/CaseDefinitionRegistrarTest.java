@@ -8,7 +8,7 @@ import io.casehub.api.model.CaseDefinition;
 import io.casehub.engine.common.internal.model.CaseMetaModel;
 import io.casehub.engine.common.spi.CaseDefinitionRegistry;
 import io.casehub.platform.api.path.Path;
-import io.smallrye.mutiny.Uni;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
@@ -82,9 +82,9 @@ class CaseDefinitionRegistrarTest {
         final List<CaseDefinition> registered = new ArrayList<>();
 
         @Override
-        public Uni<CaseMetaModel> registerCaseDefinition(CaseDefinition model) {
+        public CaseMetaModel registerCaseDefinition(CaseDefinition model) {
             registered.add(model);
-            return Uni.createFrom().nullItem();
+            return null;
         }
 
         @Override

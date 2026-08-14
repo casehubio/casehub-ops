@@ -50,11 +50,11 @@ class IoTFaultPolicyTest {
         }
 
         var mutations = policy.onFault("t1", event, graph, emptyActual);
-        assertThat(mutations).hasSize(1);
+        assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
         var addNode = (GraphMutation.AddNode) mutations.getFirst();
-        assertThat(addNode.node().id()).isEqualTo(NodeId.of("review-dev-1-config"));
+        assertThat(addNode.node().id()).isEqualTo(NodeId.of("iot-review-dev-1-config"));
         assertThat(addNode.node().type()).isEqualTo(IOT_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
         assertThat(addNode.node().spec()).isInstanceOf(IoTReviewSpec.class);
@@ -62,13 +62,18 @@ class IoTFaultPolicyTest {
         var spec = (IoTReviewSpec) addNode.node().spec();
         assertThat(spec.faultedNode()).isEqualTo(NodeId.of("dev-1-config"));
         assertThat(spec.reason()).isEqualTo("unknown capability");
+
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
+        var addDep = (GraphMutation.AddDependency) mutations.get(1);
+        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("iot-review-dev-1-config"));
+        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("dev-1-config"));
     }
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
         var configNode = new DesiredNode(NodeId.of("dev-1-config"), DEVICE_CONFIG,
                                          new DeviceConfigSpec("dev-1", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("review-dev-1-config"), IOT_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("iot-review-dev-1-config"), IOT_REVIEW,
                                          new IoTReviewSpec(NodeId.of("dev-1-config"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(configNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("dev-1-config"), FaultType.PROVISION_FAILED, "still failing");
@@ -140,7 +145,7 @@ class IoTFaultPolicyTest {
             policy.onFault("t1", eventA, graph, emptyActual);
         }
         assertThat(policy.onFault("t1", eventB, graph, emptyActual)).isEmpty();
-        assertThat(policy.onFault("t1", eventA, graph, emptyActual)).hasSize(1);
+        assertThat(policy.onFault("t1", eventA, graph, emptyActual)).hasSize(2);
     }
 
     private DesiredStateGraph graphWithConfigNode(String nodeId) {
