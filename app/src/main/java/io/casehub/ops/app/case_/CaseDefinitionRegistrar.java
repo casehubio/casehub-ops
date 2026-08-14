@@ -33,8 +33,8 @@ public class CaseDefinitionRegistrar {
         List<CaseDefinition> definitions = List.of(
                 ApplicationCaseDescriptor.build(),
                 DriftRemediationCaseDescriptor.build(convergenceTracker),
-                StubChildCaseDescriptor.build("ops", "cve-response", "1.0"),
-                StubChildCaseDescriptor.build("ops", "service-upgrade", "1.0"),
+                CveResponseCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
+                ServiceUpgradeCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 IncidentResponseCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 ScalingEventCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 ComplianceRemediationCaseDescriptor.build(applicationLifecycleService, convergenceTracker));

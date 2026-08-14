@@ -49,7 +49,7 @@ class CaseDefinitionRegistrarTest {
     }
 
     @Test
-    void registersThreeStubDefinitions() {
+    void registersNoStubDefinitions() {
         var registry = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry, new io.casehub.ops.app.service.NodeConvergenceTracker((caseId, path, value) -> {}, new com.fasterxml.jackson.databind.ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())), null);
 
@@ -59,8 +59,47 @@ class CaseDefinitionRegistrarTest {
                 .filter(d -> d.getTitle() != null && d.getTitle().contains("stub"))
                 .map(CaseDefinition::getName)
                 .toList();
-        assertThat(stubNames).containsExactlyInAnyOrder(
-                "cve-response", "service-upgrade");
+        assertThat(stubNames).isEmpty();
+    }
+
+    @Test
+    void registersCveResponseWithRealCapabilities() {
+        var registry = new RecordingRegistry();
+        var registrar = new CaseDefinitionRegistrar(registry,
+                                                    new io.casehub.ops.app.service.NodeConvergenceTracker(
+                                                            (caseId, path, value) -> {},
+                                                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                                                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())),
+                                                    null);
+
+        registrar.onStartup(null);
+
+        var cveDef = registry.registered.stream()
+                                        .filter(d -> "cve-response".equals(d.getName()))
+                                        .findFirst().orElseThrow();
+        assertThat(cveDef.getTitle()).doesNotContain("stub");
+        assertThat(cveDef.getCapabilities()).extracting("name")
+                                            .contains("assess-cve", "remediate-cve");
+    }
+
+    @Test
+    void registersServiceUpgradeWithRealCapabilities() {
+        var registry = new RecordingRegistry();
+        var registrar = new CaseDefinitionRegistrar(registry,
+                                                    new io.casehub.ops.app.service.NodeConvergenceTracker(
+                                                            (caseId, path, value) -> {},
+                                                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                                                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())),
+                                                    null);
+
+        registrar.onStartup(null);
+
+        var upgradeDef = registry.registered.stream()
+                                            .filter(d -> "service-upgrade".equals(d.getName()))
+                                            .findFirst().orElseThrow();
+        assertThat(upgradeDef.getTitle()).doesNotContain("stub");
+        assertThat(upgradeDef.getCapabilities()).extracting("name")
+                                                .contains("assess-upgrade", "execute-upgrade");
     }
 
     @Test
