@@ -40,7 +40,7 @@ class JpaPlanStoreTest {
     void deploymentSpecRoundTrip() throws Exception {
         var spec = new AgentNodeSpec("agent-1", "test-agent", "reviewer",
                                      "claude", "opus", null, null, null, null, null,
-                                     null, null, null, null, null, null, null, null);
+                                     null, null, null, null, null, null, null, null, null);
         var plan = new ApprovalPlan(
                 NodeId.of("agent-1"), StepAction.PROVISION, RiskClassification.HIGH,
                 "Provision agent 'agent-1'",

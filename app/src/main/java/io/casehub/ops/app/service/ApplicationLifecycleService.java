@@ -59,6 +59,14 @@ public class ApplicationLifecycleService {
     io.casehub.ops.app.lifecycle.ServiceCaseRegistry serviceCaseRegistry;
     @Inject
     io.casehub.ops.app.lifecycle.ServiceDetectionBridge serviceDetectionBridge;
+    private io.casehub.ops.app.lifecycle.ras.ServiceMonitoringRegistrar serviceMonitoringRegistrar;
+
+    private io.casehub.ops.app.lifecycle.ras.ServiceMonitoringRegistrar monitoringRegistrar() {
+        if (serviceMonitoringRegistrar == null) {
+            serviceMonitoringRegistrar = new io.casehub.ops.app.lifecycle.ras.ServiceMonitoringRegistrar(serviceDetectionBridge);
+        }
+        return serviceMonitoringRegistrar;
+    }
 
 
     @Transactional
@@ -113,14 +121,16 @@ public class ApplicationLifecycleService {
 
         var serviceCaseDefinition = io.casehub.ops.app.lifecycle.ServiceCaseDescriptor.build();
         UUID serviceCaseId = caseHubRuntime.startCase(serviceCaseDefinition,
-                java.util.Map.of("serviceId", applicationId.toString(), "serviceName", app.name, "tenancyId", tenancyId));
+                                                      java.util.Map.of("serviceId", applicationId.toString(), "serviceName", app.name, "tenancyId", tenancyId));
         app.engineCaseId = serviceCaseId;
 
         serviceCaseRegistry.register(serviceCaseId, applicationId.toString(), app.name,
-                io.casehub.ops.api.lifecycle.ManagedServiceCategory.APPLICATION,
-                java.util.Map.of("tenancyId", tenancyId, "clusters", clusterIds),
-                (key, value) -> caseHubRuntime.signal(serviceCaseId, key, value),
-                key -> null);
+                                     io.casehub.ops.api.lifecycle.ManagedServiceCategory.APPLICATION,
+                                     java.util.Map.of("tenancyId", tenancyId, "clusters", clusterIds),
+                                     (key, value) -> caseHubRuntime.signal(serviceCaseId, key, value),
+                                     key -> null);
+
+        monitoringRegistrar().register(applicationId, serviceCaseId);
 
         java.util.Map<String, Integer> baseReplicas = new java.util.HashMap<>();
         for (ServiceDefinition sd : services) {
@@ -157,7 +167,7 @@ public class ApplicationLifecycleService {
         }
 
         if (app.engineCaseId != null) {
-            serviceDetectionBridge.deregisterBindings(app.engineCaseId);
+            monitoringRegistrar().deregister(app.id, app.engineCaseId);
             serviceCaseRegistry.deregister(app.engineCaseId);
         }
     }

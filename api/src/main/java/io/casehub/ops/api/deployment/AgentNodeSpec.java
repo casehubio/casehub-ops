@@ -23,6 +23,7 @@ public record AgentNodeSpec(
         String domainVocabulary,
         String slotVocabulary,
         String dispositionVocabulary,
+        String styleVocabulary,
         Map<DispositionAxis, String> axisVocabularies,
         List<AgentCapability> capabilities,
         AgentDisposition disposition,
@@ -61,7 +62,7 @@ public record AgentNodeSpec(
         return new AgentDescriptor(
                 agentId, name, version, provider, modelFamily, modelVersion,
                 weightsFingerprint, domainVocabulary, slotVocabulary,
-                dispositionVocabulary, axisVocabularies, slot, capabilities,
+                dispositionVocabulary, styleVocabulary, axisVocabularies, slot, capabilities,
                 disposition, jurisdiction, dataHandlingPolicy, tenancyId, briefing,
                 List.of(), List.of(), List.of());}
 
@@ -70,7 +71,7 @@ public record AgentNodeSpec(
         return new AgentNodeSpec(
             newId, name, slot, provider, modelFamily, modelVersion, version,
             weightsFingerprint, domainVocabulary, slotVocabulary,
-            dispositionVocabulary, axisVocabularies, capabilities,
+            dispositionVocabulary, styleVocabulary, axisVocabularies, capabilities,
             disposition, jurisdiction, dataHandlingPolicy, briefing,
             providerConfigs);
     }
