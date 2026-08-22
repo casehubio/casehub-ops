@@ -1,6 +1,7 @@
 package io.casehub.ops.api.deployment;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ras.api.ChainMode;
 import io.casehub.ras.api.SituationDefinition;
 import io.casehub.ras.api.SituationRegistration;
@@ -40,8 +41,8 @@ public record DetectionNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "detection";
+    public NodeType nodeType() {
+        return NodeType.of("detection");
     }
 
     public SituationRegistration toRegistration() {

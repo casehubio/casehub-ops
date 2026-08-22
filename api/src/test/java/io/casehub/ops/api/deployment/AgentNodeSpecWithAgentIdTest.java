@@ -11,7 +11,7 @@ class AgentNodeSpecWithAgentIdTest {
     void withAgentIdChangesOnlyAgentId() {
         var original = new AgentNodeSpec(
             "original-id", "Test Agent", "worker", "claude",
-            null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null,
             Map.of(), List.of(), null, null, null, null, List.of());
         var derived = original.withAgentId("derived-id");
 
@@ -26,7 +26,7 @@ class AgentNodeSpecWithAgentIdTest {
     void withAgentIdRejectsNull() {
         var original = new AgentNodeSpec(
             "id", "name", "worker", null,
-            null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null,
             Map.of(), List.of(), null, null, null, null, List.of());
         assertThrows(NullPointerException.class, () -> original.withAgentId(null));
     }

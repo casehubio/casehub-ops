@@ -50,7 +50,6 @@ final class ScaleAction {
             if (!result.nodes().containsKey(nid)) {
                 DesiredNode derived = new DesiredNode(
                     nid,
-                    baseNode.type(),
                     agentSpec.withAgentId(derivedId),
                     baseNode.humanGating()
                 );

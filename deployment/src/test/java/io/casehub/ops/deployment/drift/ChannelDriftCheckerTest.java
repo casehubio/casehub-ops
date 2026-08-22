@@ -146,7 +146,7 @@ class ChannelDriftCheckerTest {
     void unknownSpecType() {
         var spec = new io.casehub.ops.api.deployment.AgentNodeSpec(
                 "agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
-                "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(), null, "US", "policy", null, List.of());
+                "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(), null, "US", "policy", null, List.of());
 
         assertEquals(NodeStatus.UNKNOWN, checker.check(spec, TENANCY_ID));
     }

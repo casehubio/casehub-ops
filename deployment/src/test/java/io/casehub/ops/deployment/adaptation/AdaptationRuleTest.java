@@ -6,7 +6,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
@@ -94,7 +93,6 @@ class AdaptationRuleTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -117,7 +115,7 @@ class AdaptationRuleTest {
             "new-agent", "New Agent", "new-slot",
             "anthropic", "claude", "opus-4.6-2026",
             "1.0.0", "fp-xyz789",
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of()
         );
         var addAction = new AdaptationActionSpec.AddActionSpec(
@@ -164,7 +162,6 @@ class AdaptationRuleTest {
         var baseNode = createAgentNode("risk-agent");
         var policyNode = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             new TrustPolicyNodeSpec("risk-assessment", 0.7, 10, 0.05, 0.6, Map.of(), true),
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -199,7 +196,6 @@ class AdaptationRuleTest {
         var baseNode = createAgentNode("risk-agent");
         var policyNode = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             new TrustPolicyNodeSpec("risk-assessment", 0.7, 10, 0.05, 0.6, Map.of(), true),
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -227,9 +223,9 @@ class AdaptationRuleTest {
             agentId, "Risk Agent", "risk-assessment",
             "anthropic", "claude", "opus-4.6-2026",
             "1.0.0", "fp-abc123",
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of()
         );
-        return new DesiredNode(NodeId.of(agentId), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        return new DesiredNode(NodeId.of(agentId), spec, io.casehub.desiredstate.api.HumanGating.NONE);
     }
 }

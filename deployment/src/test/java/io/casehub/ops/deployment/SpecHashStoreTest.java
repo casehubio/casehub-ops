@@ -23,7 +23,7 @@ class SpecHashStoreTest {
     void unknownNodeHasDrifted() {
         NodeId id = new NodeId("agent-1");
         AgentNodeSpec spec = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
 
         assertThat(store.hasDrifted(id, spec)).isTrue();
@@ -33,7 +33,7 @@ class SpecHashStoreTest {
     void recordedNodeHasNotDrifted() {
         NodeId id = new NodeId("agent-1");
         AgentNodeSpec spec = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
 
         store.record(id, spec);
@@ -45,10 +45,10 @@ class SpecHashStoreTest {
     void changedSpecHasDrifted() {
         NodeId id = new NodeId("agent-1");
         AgentNodeSpec spec1 = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
         AgentNodeSpec spec2 = new AgentNodeSpec("agent-1", "DifferentName", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
 
         store.record(id, spec1);
@@ -60,7 +60,7 @@ class SpecHashStoreTest {
     void removeNodeMakesDriftedAgain() {
         NodeId id = new NodeId("agent-1");
         AgentNodeSpec spec = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
 
         store.record(id, spec);
@@ -73,10 +73,10 @@ class SpecHashStoreTest {
     void nestedMapChangesDetected() {
         NodeId id = new NodeId("agent-1");
         AgentNodeSpec spec1 = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
         AgentNodeSpec spec2 = new AgentNodeSpec("agent-1", "Agent", "worker",
-            null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
             List.of(), null, null, null, null, List.of(
                 new io.casehub.ops.api.deployment.ProviderConfig("test", Map.of("key", "value"))
             ));

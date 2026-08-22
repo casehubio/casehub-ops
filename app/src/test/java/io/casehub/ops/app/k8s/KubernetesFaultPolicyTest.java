@@ -64,9 +64,9 @@ class KubernetesFaultPolicyTest {
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
-        var deployNode = new DesiredNode(NodeId.of("deploy-1"), ApplicationNodeTypes.K8S_DEPLOYMENT,
-                testSpec(), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("k8s-review-deploy-1"), K8S_REVIEW,
+        var deployNode = new DesiredNode(NodeId.of("deploy-1"),
+                testSpec(ApplicationNodeTypes.K8S_DEPLOYMENT), HumanGating.NONE);
+        var reviewNode = new DesiredNode(NodeId.of("k8s-review-deploy-1"),
                 new K8sReviewSpec(NodeId.of("deploy-1"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(deployNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("deploy-1"), FaultType.PROVISION_FAILED, "still failing");
@@ -78,7 +78,7 @@ class KubernetesFaultPolicyTest {
 
     @Test
     void provisionFailed_onReviewNode_returnsEmpty() {
-        var reviewNode = new DesiredNode(NodeId.of("review-deploy-1"), K8S_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("review-deploy-1"),
                 new K8sReviewSpec(NodeId.of("deploy-1"), "test"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("review-deploy-1"), FaultType.PROVISION_FAILED, "failed");
@@ -103,8 +103,8 @@ class KubernetesFaultPolicyTest {
 
     @Test
     void nonK8sNodeType_returnsEmpty() {
-        var otherNode = new DesiredNode(NodeId.of("other-1"), NodeType.of("something-else"),
-                testSpec(), HumanGating.NONE);
+        var otherNode = new DesiredNode(NodeId.of("other-1"),
+                testSpec(NodeType.of("something-else")), HumanGating.NONE);
         var graph = graphFactory.of(List.of(otherNode), List.of());
         var event = new FaultEvent(NodeId.of("other-1"), FaultType.PROVISION_FAILED, "failed");
 
@@ -121,7 +121,7 @@ class KubernetesFaultPolicyTest {
                 ApplicationNodeTypes.K8S_INGRESS,
                 ApplicationNodeTypes.K8S_CONFIGMAP)) {
             var freshPolicy = new KubernetesFaultPolicy();
-            var node = new DesiredNode(NodeId.of("res-1"), k8sType, testSpec(), HumanGating.NONE);
+            var node = new DesiredNode(NodeId.of("res-1"), testSpec(k8sType), HumanGating.NONE);
             var graph = graphFactory.of(List.of(node), List.of());
             var event = new FaultEvent(NodeId.of("res-1"), FaultType.PROVISION_FAILED, "fail");
 
@@ -134,11 +134,13 @@ class KubernetesFaultPolicyTest {
     }
 
     private DesiredStateGraph graphWithK8sNode(String nodeId, NodeType type) {
-        var node = new DesiredNode(NodeId.of(nodeId), type, testSpec(), HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of(nodeId), testSpec(type), HumanGating.NONE);
         return graphFactory.of(List.of(node), List.of());
     }
 
-    private NodeSpec testSpec() {
-        return new NodeSpec() {};
+    private NodeSpec testSpec(NodeType type) {
+        return new NodeSpec() {
+            public NodeType nodeType() { return type; }
+        };
     }
 }

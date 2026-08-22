@@ -2,6 +2,7 @@ package io.casehub.ops.api.k8s;
 
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeType;
 
 import java.util.Objects;
 
@@ -10,4 +11,6 @@ public record K8sReviewSpec(NodeId faultedNode, String reason) implements NodeSp
         Objects.requireNonNull(faultedNode, "faultedNode");
         Objects.requireNonNull(reason, "reason");
     }
+
+    public NodeType nodeType() { return NodeType.of("k8s-review"); }
 }

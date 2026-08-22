@@ -63,9 +63,9 @@ class InfraFaultPolicyTest {
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
-        var vmNode = new DesiredNode(NodeId.of("vm-1"), NodeType.of("compute_instance"),
-                                     testSpec(), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("infra-review-vm-1"), INFRA_REVIEW,
+        var vmNode = new DesiredNode(NodeId.of("vm-1"),
+                                     testSpec(NodeType.of("compute_instance")), HumanGating.NONE);
+        var reviewNode = new DesiredNode(NodeId.of("infra-review-vm-1"),
                                          new InfraReviewSpec(NodeId.of("vm-1"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(vmNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("vm-1"), FaultType.PROVISION_FAILED, "still failing");
@@ -90,8 +90,8 @@ class InfraFaultPolicyTest {
 
     @Test
     void nonInfraNodeType_returnsEmpty() {
-        var otherNode = new DesiredNode(NodeId.of("other-1"), NodeType.of("something-else"),
-                                        testSpec(), HumanGating.NONE);
+        var otherNode = new DesiredNode(NodeId.of("other-1"),
+                                        testSpec(NodeType.of("something-else")), HumanGating.NONE);
         var graph = graphFactory.of(List.of(otherNode), List.of());
         var event = new FaultEvent(NodeId.of("other-1"), FaultType.PROVISION_FAILED, "failed");
 
@@ -108,7 +108,7 @@ class InfraFaultPolicyTest {
                 NodeType.of("compute_instance"), NodeType.of("database_cluster"),
                 NodeType.of("terraform_workspace"), NodeType.of("ansible_playbook"))) {
             var freshPolicy = new InfraFaultPolicy();
-            var node        = new DesiredNode(NodeId.of("res-1"), infraType, testSpec(), HumanGating.NONE);
+            var node        = new DesiredNode(NodeId.of("res-1"), testSpec(infraType), HumanGating.NONE);
             var graph       = graphFactory.of(List.of(node), List.of());
             var event       = new FaultEvent(NodeId.of("res-1"), FaultType.PROVISION_FAILED, "fail");
 
@@ -122,7 +122,7 @@ class InfraFaultPolicyTest {
 
     @Test
     void provisionFailed_onReviewNode_returnsEmpty() {
-        var reviewNode = new DesiredNode(NodeId.of("review-vm-1"), INFRA_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("review-vm-1"),
                                          new InfraReviewSpec(NodeId.of("vm-1"), "test"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("review-vm-1"), FaultType.PROVISION_FAILED, "failed");
@@ -133,11 +133,13 @@ class InfraFaultPolicyTest {
     }
 
     private DesiredStateGraph graphWithNode(String nodeId, NodeType type) {
-        var node = new DesiredNode(NodeId.of(nodeId), type, testSpec(), HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of(nodeId), testSpec(type), HumanGating.NONE);
         return graphFactory.of(List.of(node), List.of());
     }
 
-    private NodeSpec testSpec() {
-        return new NodeSpec() {};
+    private NodeSpec testSpec(NodeType type) {
+        return new NodeSpec() {
+            public NodeType nodeType() { return type; }
+        };
     }
 }

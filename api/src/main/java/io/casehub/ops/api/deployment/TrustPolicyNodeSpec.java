@@ -3,6 +3,7 @@ package io.casehub.ops.api.deployment;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record TrustPolicyNodeSpec(
@@ -28,7 +29,7 @@ public record TrustPolicyNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "trust_policy";
+    public NodeType nodeType() {
+        return NodeType.of("trust_policy");
     }
 }

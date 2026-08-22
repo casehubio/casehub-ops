@@ -1,5 +1,6 @@
 package io.casehub.ops.api.deployment;
 
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.platform.api.endpoints.*;
 import io.casehub.platform.api.path.Path;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class EndpointNodeSpecTest {
     @Test
     void nodeTypeReturnsEndpoint() {
         var spec = kafkaEndpoint("streams/vitals", "patient.vitals");
-        assertThat(spec.nodeType()).isEqualTo("endpoint");
+        assertThat(spec.nodeType()).isEqualTo(NodeType.of("endpoint"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package io.casehub.ops.api.approval;
 
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.api.StepAction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,5 +56,7 @@ class InMemoryPlanStoreTest {
         assertThat(ref1).isNotEqualTo(ref2);
     }
 
-    private record StubSpec() implements NodeSpec {}
+    private record StubSpec() implements NodeSpec {
+        @Override public NodeType nodeType() { return NodeType.of("stub"); }
+    }
 }

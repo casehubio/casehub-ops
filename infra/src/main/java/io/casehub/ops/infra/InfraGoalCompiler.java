@@ -7,7 +7,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ops.api.infra.AnsiblePlaybookSpec;
 import io.casehub.ops.api.infra.ComputeInstanceSpec;
 import io.casehub.ops.api.infra.DatabaseClusterSpec;
@@ -72,7 +71,7 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
             validateBackendCompatibility(decl.type(), backendId);
 
             var wrapper = new InfraDesiredNodeSpec(resourceSpec, backendId);
-            nodes.add(new DesiredNode(NodeId.of(decl.id()), NodeType.of(decl.type()), wrapper, io.casehub.desiredstate.api.HumanGating.NONE));
+            nodes.add(new DesiredNode(NodeId.of(decl.id()), wrapper, io.casehub.desiredstate.api.HumanGating.NONE));
 
             for (String dep : decl.dependsOn()) {
                 // decl.id() depends on dep: Dependency(from=dependent, to=dependency)
@@ -85,7 +84,7 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
             InfraNodeSpec resourceSpec = parseSpec(decl.type(), decl.config());
 
             var wrapper = new InfraDesiredNodeSpec(resourceSpec, backendId);
-            nodes.add(new DesiredNode(NodeId.of(decl.id()), NodeType.of(decl.type()), wrapper, io.casehub.desiredstate.api.HumanGating.NONE));
+            nodes.add(new DesiredNode(NodeId.of(decl.id()), wrapper, io.casehub.desiredstate.api.HumanGating.NONE));
 
             for (String dep : decl.dependsOn()) {
                 dependencies.add(new Dependency(NodeId.of(decl.id()), NodeId.of(dep)));

@@ -150,8 +150,7 @@ class InfraNodeProvisionerTest {
     private static final DefaultDesiredStateGraphFactory GRAPH_FACTORY = new DefaultDesiredStateGraphFactory();
 
     private DesiredNode infraNode(NodeId nodeId, InfraNodeSpec resourceSpec, String backendId) {
-        return new DesiredNode(nodeId, NodeType.of(resourceSpec.resourceType()),
-                new InfraDesiredNodeSpec(resourceSpec, backendId), io.casehub.desiredstate.api.HumanGating.NONE);
+        return new DesiredNode(nodeId, new InfraDesiredNodeSpec(resourceSpec, backendId), io.casehub.desiredstate.api.HumanGating.NONE);
     }
 
     private DesiredStateGraph graphOf(DesiredNode... nodes) {
@@ -211,8 +210,8 @@ class InfraNodeProvisionerTest {
         var provisioner = provisionerWithAutoApprove(List.of(new TrackingBackend("terraform")));
 
         // Use a raw NodeSpec that is NOT InfraDesiredNodeSpec
-        NodeSpec rawSpec = new NodeSpec() {};
-        var node = new DesiredNode(NODE_1, NodeType.of("raw"), rawSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        NodeSpec rawSpec = new NodeSpec() { public NodeType nodeType() { return NodeType.of("raw"); } };
+        var node = new DesiredNode(NODE_1, rawSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphOf(node);
 
         ProvisionResult result = provisioner.provision(node, provisionContext(graph));

@@ -88,7 +88,7 @@ class DeploymentGoalLoaderTest {
 
     private AgentNodeSpec minimalAgent(String id) {
         return new AgentNodeSpec(id, "Agent", "worker",
-                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null,
                 java.util.List.of(), null, null, null, null, java.util.List.of());
     }
 }

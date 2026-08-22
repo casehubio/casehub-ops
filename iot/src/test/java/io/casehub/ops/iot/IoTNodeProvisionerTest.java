@@ -98,7 +98,7 @@ class IoTNodeProvisionerTest {
     @Test
     void physicalProvision_rejectedAsUnknownSpec() {
         var provisioner = provisioner(null, new ArrayList<>(), CommandResult.SENT);
-        var node = new DesiredNode(NodeId.of("dev-1"), NodeType.of("physical-device"),
+        var node = new DesiredNode(NodeId.of("dev-1"),
             new PhysicalDeviceSpec("dev-1", DeviceClass.THERMOSTAT, "Label"), io.casehub.desiredstate.api.HumanGating.NONE);
         var result = provisioner.provision(node, context());
 
@@ -117,7 +117,7 @@ class IoTNodeProvisionerTest {
     @Test
     void physicalDeprovision_returnsSuccess() {
         var provisioner = provisioner(null, new ArrayList<>(), CommandResult.SENT);
-        var node = new DesiredNode(NodeId.of("dev-1"), NodeType.of("physical-device"),
+        var node = new DesiredNode(NodeId.of("dev-1"),
             new PhysicalDeviceSpec("dev-1", DeviceClass.THERMOSTAT, "Label"), io.casehub.desiredstate.api.HumanGating.NONE);
         var result = provisioner.deprovision(node, deprovisionContext());
 
@@ -152,7 +152,7 @@ class IoTNodeProvisionerTest {
     void reviewProvision_returnsSuccess() {
         var provisioner = provisioner(null, new ArrayList<>(), CommandResult.SENT);
         var spec        = new io.casehub.ops.api.iot.IoTReviewSpec(NodeId.of("dev-1-config"), "test reason");
-        var node        = new DesiredNode(NodeId.of("review-dev-1-config"), NodeType.of("iot-review"), spec, io.casehub.desiredstate.api.HumanGating.ALL);
+        var node        = new DesiredNode(NodeId.of("review-dev-1-config"), spec, io.casehub.desiredstate.api.HumanGating.ALL);
         var result      = provisioner.provision(node, context());
 
         assertThat(result).isInstanceOf(ProvisionResult.Success.class);
@@ -162,7 +162,7 @@ class IoTNodeProvisionerTest {
     void reviewDeprovision_returnsSuccess() {
         var provisioner = provisioner(null, new ArrayList<>(), CommandResult.SENT);
         var spec        = new io.casehub.ops.api.iot.IoTReviewSpec(NodeId.of("dev-1-config"), "test reason");
-        var node        = new DesiredNode(NodeId.of("review-dev-1-config"), NodeType.of("iot-review"), spec, io.casehub.desiredstate.api.HumanGating.ALL);
+        var node        = new DesiredNode(NodeId.of("review-dev-1-config"), spec, io.casehub.desiredstate.api.HumanGating.ALL);
         var result      = provisioner.deprovision(node, deprovisionContext());
 
         assertThat(result).isInstanceOf(DeprovisionResult.Success.class);
@@ -177,8 +177,7 @@ class IoTNodeProvisionerTest {
     }
 
     private DesiredNode configNode(String id, DeviceClass dc, Map<String, Object> caps) {
-        return new DesiredNode(NodeId.of(id + "-config"), NodeType.of("device-config"),
-            new DeviceConfigSpec(id, dc, caps), io.casehub.desiredstate.api.HumanGating.NONE);
+        return new DesiredNode(NodeId.of(id + "-config"), new DeviceConfigSpec(id, dc, caps), io.casehub.desiredstate.api.HumanGating.NONE);
     }
 
     private ProvisionContext context() {

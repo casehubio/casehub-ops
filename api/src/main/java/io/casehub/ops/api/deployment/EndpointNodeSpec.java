@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.platform.api.endpoints.EndpointCapability;
 import io.casehub.platform.api.endpoints.EndpointDescriptor;
 import io.casehub.platform.api.endpoints.EndpointPropertyKeys;
@@ -46,8 +47,8 @@ public record EndpointNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "endpoint";
+    public NodeType nodeType() {
+        return NodeType.of("endpoint");
     }
 
     public EndpointDescriptor toDescriptor(String tenancyId) {

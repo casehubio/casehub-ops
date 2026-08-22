@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CaseTypeNodeSpec(
@@ -38,7 +39,7 @@ public record CaseTypeNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "case_type";
+    public NodeType nodeType() {
+        return NodeType.of("case_type");
     }
 }

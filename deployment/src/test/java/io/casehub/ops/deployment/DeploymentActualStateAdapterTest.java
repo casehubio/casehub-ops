@@ -30,7 +30,7 @@ class DeploymentActualStateAdapterTest {
     void absentStaysAbsent() {
         agentChecker.nextStatus = NodeStatus.ABSENT;
         var spec = minimalAgent("agent-1");
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("a1"))).isEqualTo(NodeStatus.ABSENT);
@@ -40,7 +40,7 @@ class DeploymentActualStateAdapterTest {
     void externalDriftedStaysDrifted() {
         agentChecker.nextStatus = NodeStatus.DRIFTED;
         var spec = minimalAgent("agent-1");
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("a1"))).isEqualTo(NodeStatus.DRIFTED);
@@ -51,7 +51,7 @@ class DeploymentActualStateAdapterTest {
         agentChecker.nextStatus = NodeStatus.PRESENT;
         var spec = minimalAgent("agent-1");
         specHashStore.record(NodeId.of("a1"), spec);
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("a1"))).isEqualTo(NodeStatus.PRESENT);
@@ -63,9 +63,9 @@ class DeploymentActualStateAdapterTest {
         var specOld = minimalAgent("agent-1");
         specHashStore.record(NodeId.of("a1"), specOld);
         var specNew = new AgentNodeSpec("agent-1", "Changed", "worker",
-                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null,
                 List.of(), null, null, null, null, List.of());
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), specNew, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("a1"), specNew, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("a1"))).isEqualTo(NodeStatus.DRIFTED);
@@ -75,7 +75,7 @@ class DeploymentActualStateAdapterTest {
     void unknownStaysUnknown() {
         agentChecker.nextStatus = NodeStatus.UNKNOWN;
         var spec = minimalAgent("agent-1");
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("a1"))).isEqualTo(NodeStatus.UNKNOWN);
@@ -83,8 +83,8 @@ class DeploymentActualStateAdapterTest {
 
     @Test
     void unknownNodeTypeReturnsUnknown() {
-        var unknownSpec = new NodeSpec() {};
-        var node = new DesiredNode(NodeId.of("x1"), NodeType.of("unknown_type"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var unknownSpec = new NodeSpec() { public NodeType nodeType() { return NodeType.of("unknown"); } };
+        var node = new DesiredNode(NodeId.of("x1"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
         var actual = adapter.readActual(graph, "tenant-1");
         assertThat(actual.statuses().get(NodeId.of("x1"))).isEqualTo(NodeStatus.UNKNOWN);
@@ -92,7 +92,7 @@ class DeploymentActualStateAdapterTest {
 
     private AgentNodeSpec minimalAgent(String id) {
         return new AgentNodeSpec(id, "Agent", "worker",
-                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null,
                 List.of(), null, null, null, null, List.of());
     }
 

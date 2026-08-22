@@ -5,7 +5,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.AdaptationActionSpec.ScaleActionSpec;
@@ -166,7 +165,6 @@ class ScaleActionTest {
 
         var trustNode = new DesiredNode(
             NodeId.of("trust-policy"),
-            NodeType.of("trust_policy"),
             new TrustPolicyNodeSpec("risk-assessment", 0.8, 10, 0.05, 0.7, Map.of(), true),
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -198,9 +196,9 @@ class ScaleActionTest {
             agentId, "Risk Agent", "risk-assessment",
             "anthropic", "claude", "opus-4.6-2026",
             "1.0.0", "fp-abc123",
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of()
         );
-        return new DesiredNode(NodeId.of(agentId), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        return new DesiredNode(NodeId.of(agentId), spec, io.casehub.desiredstate.api.HumanGating.NONE);
     }
 }

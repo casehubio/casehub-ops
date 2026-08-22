@@ -1,5 +1,6 @@
 package io.casehub.ops.api.iot;
 
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.iot.api.DeviceClass;
 import java.util.Objects;
 
@@ -17,4 +18,6 @@ public record PhysicalDeviceSpec(
     public boolean requiresHuman() {
         return true;
     }
+
+    public NodeType nodeType() { return NodeType.of("physical-device"); }
 }

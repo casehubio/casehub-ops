@@ -67,8 +67,8 @@ class DeploymentNodeProvisionerTest {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var disp = AgentDisposition.builder().delegation(false).build();
         var spec = new AgentNodeSpec("agent-1", "Worker Agent", "worker", "anthropic", "claude", "4.6",
-                "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(cap), disp, "US", "policy", null, List.of());
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+                "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(cap), disp, "US", "policy", null, List.of());
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
         var result = provisioner.provision(node, context);
@@ -81,7 +81,7 @@ class DeploymentNodeProvisionerTest {
     void dispatchesChannelToHandler() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
                 Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
-        var node = new DesiredNode(NodeId.of("ch1"), NodeType.of("channel"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("ch1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
         var result = provisioner.provision(node, context);
@@ -93,8 +93,8 @@ class DeploymentNodeProvisionerTest {
     @Test
     void rejectsNonDeploymentNodeSpec() {
         // Use a simple stub spec that's not DeploymentNodeSpec
-        NodeSpec unknownSpec = new NodeSpec() {};
-        var node = new DesiredNode(NodeId.of("ns1"), NodeType.of("unknown"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        NodeSpec unknownSpec = new NodeSpec() { public NodeType nodeType() { return NodeType.of("unknown"); } };
+        var node = new DesiredNode(NodeId.of("ns1"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
         var result = provisioner.provision(node, context);
@@ -107,8 +107,8 @@ class DeploymentNodeProvisionerTest {
     @Test
     void provisionRecordsSpecHash() {
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
-                "1.0", null, null, null, null, null, List.of(), null, null, null, null, List.of());
-        var node = new DesiredNode(NodeId.of("a1"), NodeType.of("agent"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+                "1.0", null, null, null, null, null, null, List.of(), null, null, null, null, List.of());
+        var node = new DesiredNode(NodeId.of("a1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         provisioner.provision(node, new ProvisionContext("tenant-1", emptyGraph));
         assertThat(specHashStore.hasDrifted(NodeId.of("a1"), spec)).isFalse();
     }
@@ -117,7 +117,7 @@ class DeploymentNodeProvisionerTest {
     void deprovisionRemovesSpecHash() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
                 null, null, null, null, null, null, null, null, null, null, null);
-        var node = new DesiredNode(NodeId.of("ch1"), NodeType.of("channel"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("ch1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         provisioner.provision(node, new ProvisionContext("tenant-1", emptyGraph));
         assertThat(specHashStore.hasDrifted(NodeId.of("ch1"), spec)).isFalse();
         provisioner.deprovision(node, new DeprovisionContext("tenant-1", emptyGraph));
@@ -126,8 +126,8 @@ class DeploymentNodeProvisionerTest {
 
     @Test
     void failedProvisionDoesNotRecordHash() {
-        NodeSpec unknownSpec = new NodeSpec() {};
-        var node = new DesiredNode(NodeId.of("ns1"), NodeType.of("unknown"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        NodeSpec unknownSpec = new NodeSpec() { public NodeType nodeType() { return NodeType.of("unknown"); } };
+        var node = new DesiredNode(NodeId.of("ns1"), unknownSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         provisioner.provision(node, new ProvisionContext("tenant-1", emptyGraph));
         // Unknown spec causes Failed — should not record hash
         assertThat(specHashStore.hasDrifted(NodeId.of("ns1"), unknownSpec)).isTrue();
@@ -138,7 +138,7 @@ class DeploymentNodeProvisionerTest {
     @Test
     void highRiskNodeReturnsPendingApproval() {
         var spec = new TrustPolicyNodeSpec("claims-routing", 0.85, 10, 0.1, 0.3, Map.of(), true);
-        var node = new DesiredNode(NodeId.of("tp-1"), NodeType.of("trust"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("tp-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
         var result = provisioner.provision(node, context);
@@ -155,7 +155,7 @@ class DeploymentNodeProvisionerTest {
     void lowRiskNodeProvisionsDirect() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
                 null, null, null, null, null, null, null, null, null, null, null);
-        var node = new DesiredNode(NodeId.of("ch-1"), NodeType.of("channel"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("ch-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
         var result = provisioner.provision(node, context);
@@ -167,7 +167,7 @@ class DeploymentNodeProvisionerTest {
     @Test
     void reEntryWithValidApprovalProvisions() {
         var spec = new TrustPolicyNodeSpec("claims-routing", 0.85, 10, 0.1, 0.3, Map.of(), true);
-        var node = new DesiredNode(NodeId.of("tp-1"), NodeType.of("trust"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("tp-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         // First call — gets PendingApproval
         var firstResult = provisioner.provision(node, new ProvisionContext("tenant-1", emptyGraph));
@@ -189,7 +189,7 @@ class DeploymentNodeProvisionerTest {
     @Test
     void reEntryWithStaleSpecReEvaluates() {
         var originalSpec = new TrustPolicyNodeSpec("claims-routing", 0.85, 10, 0.1, 0.3, Map.of(), true);
-        var originalNode = new DesiredNode(NodeId.of("tp-1"), NodeType.of("trust"), originalSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var originalNode = new DesiredNode(NodeId.of("tp-1"), originalSpec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         // First call — gets PendingApproval
         var firstResult = provisioner.provision(originalNode, new ProvisionContext("tenant-1", emptyGraph));
@@ -199,7 +199,7 @@ class DeploymentNodeProvisionerTest {
 
         // Spec changed between approval and re-entry
         var changedSpec = new TrustPolicyNodeSpec("claims-routing", 0.95, 10, 0.1, 0.3, Map.of(), true);
-        var changedNode = new DesiredNode(NodeId.of("tp-1"), NodeType.of("trust"), changedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var changedNode = new DesiredNode(NodeId.of("tp-1"), changedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         var approval = new PlanApproval(originalRef, "admin", Instant.now());
         var reEntryContext = new ProvisionContext("tenant-1", emptyGraph, approval);
@@ -219,7 +219,7 @@ class DeploymentNodeProvisionerTest {
     @Test
     void deprovisionApprovalFlow() {
         var spec = new TrustPolicyNodeSpec("claims-routing", 0.85, 10, 0.1, 0.3, Map.of(), true);
-        var node = new DesiredNode(NodeId.of("tp-1"), NodeType.of("trust"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("tp-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         // Deprovision — should require approval
         var deprovResult = provisioner.deprovision(node, new DeprovisionContext("tenant-1", emptyGraph));

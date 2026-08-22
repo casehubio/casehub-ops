@@ -1,5 +1,6 @@
 package io.casehub.ops.api.deployment;
 
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ras.api.*;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,7 @@ class DetectionNodeSpecTest {
     @Test
     void nodeTypeReturnsDetection() {
         var spec = testSpec("app.failure-detection");
-        assertThat(spec.nodeType()).isEqualTo("detection");
+        assertThat(spec.nodeType()).isEqualTo(NodeType.of("detection"));
     }
 
     @Test

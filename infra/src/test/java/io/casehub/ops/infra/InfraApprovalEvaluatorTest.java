@@ -154,8 +154,8 @@ class InfraApprovalEvaluatorTest {
         var evaluator = new InfraApprovalEvaluator(
                 List.of(backend), new ApprovalThresholds(RiskClassification.HIGH));
 
-        NodeSpec rawSpec = new NodeSpec() {};
-        var node = new DesiredNode(NodeId.of("x-1"), NodeType.of("unknown"), rawSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        NodeSpec rawSpec = new NodeSpec() { public NodeType nodeType() { return NodeType.of("unknown"); } };
+        var node = new DesiredNode(NodeId.of("x-1"), rawSpec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -219,7 +219,6 @@ class InfraApprovalEvaluatorTest {
     // --- helpers ---
 
     private static DesiredNode infraNode(NodeId nodeId, InfraNodeSpec resourceSpec, String backendId) {
-        return new DesiredNode(nodeId, NodeType.of(resourceSpec.resourceType()),
-                new InfraDesiredNodeSpec(resourceSpec, backendId), io.casehub.desiredstate.api.HumanGating.NONE);
+        return new DesiredNode(nodeId, new InfraDesiredNodeSpec(resourceSpec, backendId), io.casehub.desiredstate.api.HumanGating.NONE);
     }
 }

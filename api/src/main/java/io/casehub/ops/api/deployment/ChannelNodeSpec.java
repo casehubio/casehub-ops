@@ -3,6 +3,7 @@ package io.casehub.ops.api.deployment;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
 
@@ -41,7 +42,7 @@ public record ChannelNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "channel";
+    public NodeType nodeType() {
+        return NodeType.of("channel");
     }
 }

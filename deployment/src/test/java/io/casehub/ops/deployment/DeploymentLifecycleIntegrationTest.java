@@ -6,21 +6,15 @@ import io.casehub.eidos.api.*;
 import io.casehub.ops.api.deployment.*;
 import io.casehub.ops.deployment.drift.*;
 import io.casehub.ops.deployment.handler.*;
+import io.casehub.ops.testing.*;
 import io.casehub.platform.api.endpoints.*;
-import io.casehub.platform.api.path.Path;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
-import io.casehub.qhorus.api.channel.Channel;
-import io.casehub.qhorus.api.channel.ChannelConnectorBinding;
-import io.casehub.qhorus.api.channel.ChannelCreateRequest;
-import io.casehub.qhorus.api.store.ChannelBindingStore;
-import io.casehub.qhorus.api.store.CrossTenantChannelStore;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,7 +45,7 @@ class DeploymentLifecycleIntegrationTest {
         agentRegistry = new StubAgentRegistry();
         channelStore = new StubChannelStore();
         bindingStore = new StubChannelBindingStore();
-        channelOps = new StubChannelOperations(channelStore);
+        channelOps = new StubChannelOperations(channelStore, TENANCY_ID);
         endpointRegistry = new StubEndpointRegistry();
         providerConfigStore = new DeploymentProviderConfigStore();
         caseTypeHandler = new CaseTypeProvisionHandler();
@@ -99,7 +93,7 @@ class DeploymentLifecycleIntegrationTest {
         var agentDisp = AgentDisposition.builder().delegation(false).build();
         var claudonyConfig = new ProviderConfig("claudony", Map.of("tools", "read,write"));
         var agentSpec = new AgentNodeSpec("agent-1", "Worker Agent", "worker", "anthropic", "claude", "4.6",
-                "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(agentCap), agentDisp, "US", "policy", "Reviews code quality", List.of(claudonyConfig));
+                "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", "Reviews code quality", List.of(claudonyConfig));
 
         var channelSpec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
                 Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
@@ -174,7 +168,7 @@ class DeploymentLifecycleIntegrationTest {
         var agentCap = new AgentCapability("cap-b", null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var agentDisp = AgentDisposition.builder().delegation(false).build();
         var agentSpec = new AgentNodeSpec("agent-drift", "Original", "worker", "anthropic", "claude", "4.6",
-                "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
+                "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
 
         var deploymentGoals = new DeploymentGoals(
                 List.of(new GoalEntry<>(agentSpec, List.of())),
@@ -193,7 +187,7 @@ class DeploymentLifecycleIntegrationTest {
 
         // Compile a modified agent (different name field = different spec hash)
         var modifiedSpec = new AgentNodeSpec("agent-drift", "Modified Name", "worker", "anthropic", "claude", "4.6",
-                "1.0", "fp1", "domain", "slot", "disp", Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
+                "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
         var modifiedGoals = new DeploymentGoals(
                 List.of(new GoalEntry<>(modifiedSpec, List.of())),
                 List.of(),
@@ -283,206 +277,4 @@ class DeploymentLifecycleIntegrationTest {
         assertThat(mutations).isEmpty();
     }
 
-    // Test stubs
-    static class StubAgentRegistry implements AgentRegistry {
-        private final Map<String, AgentDescriptor> agents = new ConcurrentHashMap<>();
-
-        @Override
-        public void register(AgentDescriptor descriptor) {
-            String key = descriptor.agentId() + ":" + descriptor.tenancyId();
-            agents.put(key, descriptor);
-        }
-
-        @Override
-        public Optional<AgentDescriptor> findById(String agentId, String tenancyId) {
-            String key = agentId + ":" + tenancyId;
-            return Optional.ofNullable(agents.get(key));
-        }
-
-        @Override
-        public List<AgentMatch> find(AgentQuery query) {
-            return agents.values().stream()
-                    .map(d -> new AgentMatch(d, null))
-                    .collect(java.util.stream.Collectors.toList());
-        }
-    }
-
-    static class StubChannelOperations implements ChannelProvisionHandler.ChannelOperations {
-        final Map<String, Channel> channels = new ConcurrentHashMap<>();
-        final StubChannelStore channelStore;
-
-        StubChannelOperations(StubChannelStore channelStore) {
-            this.channelStore = channelStore;
-        }
-
-        @Override
-        public Optional<Channel> findByName(String name) {
-            return Optional.ofNullable(channels.get(name));
-        }
-
-        @Override
-        public Channel create(ChannelCreateRequest req) {
-            Channel ch = Channel.builder(req.name())
-                    .id(UUID.randomUUID())
-                    .description(req.description())
-                    .semantic(req.semantic())
-                    .allowedTypes(req.allowedTypes())
-                    .deniedTypes(req.deniedTypes())
-                    .rateLimitPerChannel(req.rateLimitPerChannel())
-                    .rateLimitPerInstance(req.rateLimitPerInstance())
-                    .allowedWriters(req.allowedWriters())
-                    .adminInstances(req.adminInstances())
-                    .barrierContributors(req.barrierContributors())
-                    .build();
-            channels.put(ch.name(), ch);
-            // Also store in channelStore with tenancy — using TENANCY_ID constant
-            channelStore.put(ch, TENANCY_ID);
-            return ch;
-        }
-
-        @Override
-        public void delete(UUID channelId, boolean force) {
-            channels.values().removeIf(ch -> ch.id().equals(channelId));
-            // Also remove from channelStore
-            channelStore.channels.entrySet().removeIf(e -> e.getValue().id().equals(channelId));
-        }
-
-        @Override
-        public Channel setTypeConstraints(UUID channelId, Set<MessageType> allowed, Set<MessageType> denied) {
-            for (Channel ch : channels.values()) {
-                if (ch.id().equals(channelId)) {
-                    Channel updated = ch.toBuilder().allowedTypes(allowed).deniedTypes(denied).build();
-                    channels.put(updated.name(), updated);
-                    channelStore.put(updated, TENANCY_ID);
-                    return updated;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Channel setRateLimits(UUID channelId, Integer perChannel, Integer perInstance) {
-            for (Channel ch : channels.values()) {
-                if (ch.id().equals(channelId)) {
-                    Channel updated = ch.toBuilder().rateLimitPerChannel(perChannel).rateLimitPerInstance(perInstance).build();
-                    channels.put(updated.name(), updated);
-                    channelStore.put(updated, TENANCY_ID);
-                    return updated;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Channel setAllowedWriters(UUID channelId, List<String> allowedWriters) {
-            for (Channel ch : channels.values()) {
-                if (ch.id().equals(channelId)) {
-                    Channel updated = ch.toBuilder().allowedWriters(allowedWriters).build();
-                    channels.put(updated.name(), updated);
-                    channelStore.put(updated, TENANCY_ID);
-                    return updated;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Channel setAdminInstances(UUID channelId, List<String> adminInstances) {
-            for (Channel ch : channels.values()) {
-                if (ch.id().equals(channelId)) {
-                    Channel updated = ch.toBuilder().adminInstances(adminInstances).build();
-                    channels.put(updated.name(), updated);
-                    channelStore.put(updated, TENANCY_ID);
-                    return updated;
-                }
-            }
-            return null;
-        }
-    }
-
-    static class StubEndpointRegistry implements EndpointRegistry {
-        private final Map<String, EndpointDescriptor> endpoints = new ConcurrentHashMap<>();
-
-        private String key(Path path, String tenancyId) {
-            return path.value() + ":" + tenancyId;
-        }
-
-        @Override
-        public void register(EndpointDescriptor endpoint) {
-            endpoints.put(key(endpoint.path(), endpoint.tenancyId()), endpoint);
-        }
-
-        @Override
-        public Optional<EndpointDescriptor> resolve(Path path, String tenancyId) {
-            return Optional.ofNullable(endpoints.get(key(path, tenancyId)));
-        }
-
-        @Override
-        public List<EndpointDescriptor> discover(EndpointQuery query) {
-            return new ArrayList<>(endpoints.values());
-        }
-
-        @Override
-        public void deregister(Path path, String tenancyId) {
-            endpoints.remove(key(path, tenancyId));
-        }
-    }
-
-    static class StubChannelStore implements CrossTenantChannelStore {
-        final Map<String, Channel> channels = new ConcurrentHashMap<>();
-
-        private String key(String name, String tenancyId) {
-            return name + ":" + tenancyId;
-        }
-
-        @Override
-        public Optional<Channel> findByNameAndTenancy(String name, String tenancyId) {
-            return Optional.ofNullable(channels.get(key(name, tenancyId)));
-        }
-
-        @Override
-        public List<Channel> listAll() {
-            return new ArrayList<>(channels.values());
-        }
-
-        @Override
-        public Optional<Channel> findById(UUID id) {
-            return channels.values().stream()
-                    .filter(ch -> ch.id().equals(id))
-                    .findFirst();
-        }
-
-        void put(Channel channel, String tenancyId) {
-            channels.put(key(channel.name(), tenancyId), channel);
-        }
-    }
-
-    static class StubChannelBindingStore implements ChannelBindingStore {
-        final Map<UUID, ChannelConnectorBinding> bindings = new ConcurrentHashMap<>();
-
-        @Override
-        public Optional<ChannelConnectorBinding> findByChannelId(UUID channelId) {
-            return Optional.ofNullable(bindings.get(channelId));
-        }
-
-        @Override
-        public Optional<ChannelConnectorBinding> findByKey(String inboundConnectorId, String externalKey) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void put(ChannelConnectorBinding binding) {
-            bindings.put(binding.channelId(), binding);
-        }
-
-        @Override
-        public void delete(UUID channelId) {
-            bindings.remove(channelId);
-        }
-
-        @Override
-        public Map<UUID, ChannelConnectorBinding> findAll() {
-            return new HashMap<>(bindings);
-        }
-    }
 }

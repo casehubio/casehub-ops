@@ -2,6 +2,7 @@ package io.casehub.ops.api.compliance;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeType;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,4 +38,6 @@ public record ComplianceControlSpec(
     public boolean requiresHuman() {
         return requiresHumanReview();
     }
+
+    public NodeType nodeType() { return NodeType.of(controlType); }
 }

@@ -6,7 +6,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ops.api.iot.DeviceConfigSpec;
 import io.casehub.ops.api.iot.PhysicalDeviceSpec;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,8 +18,6 @@ import java.util.Map;
 @ApplicationScoped
 public class IoTGoalCompiler implements GoalCompiler<IoTGoals> {
 
-    private static final NodeType PHYSICAL_DEVICE = NodeType.of("physical-device");
-    private static final NodeType DEVICE_CONFIG = NodeType.of("device-config");
 
     @Override
     public CompilationResult compile(IoTGoals goals, DesiredStateGraphFactory factory) {
@@ -38,16 +35,16 @@ public class IoTGoalCompiler implements GoalCompiler<IoTGoals> {
         for (IoTDeviceGoal goal : goals.devices()) {
             if (goal.physical()) {
                 nodes.add(new DesiredNode(
-                    NodeId.of(goal.deviceId()), PHYSICAL_DEVICE,
+                    NodeId.of(goal.deviceId()),
                     new PhysicalDeviceSpec(goal.deviceId(), goal.deviceClass(), goal.label()), io.casehub.desiredstate.api.HumanGating.ALL));
                 nodes.add(new DesiredNode(
-                    NodeId.of(goal.deviceId() + "-config"), DEVICE_CONFIG,
+                    NodeId.of(goal.deviceId() + "-config"),
                     new DeviceConfigSpec(goal.deviceId(), goal.deviceClass(), goal.config()), io.casehub.desiredstate.api.HumanGating.NONE));
                 deps.add(new Dependency(
                     NodeId.of(goal.deviceId() + "-config"), NodeId.of(goal.deviceId())));
             } else {
                 nodes.add(new DesiredNode(
-                    NodeId.of(goal.deviceId()), DEVICE_CONFIG,
+                    NodeId.of(goal.deviceId()),
                     new DeviceConfigSpec(goal.deviceId(), goal.deviceClass(), goal.config()), io.casehub.desiredstate.api.HumanGating.NONE));
             }
 

@@ -155,7 +155,7 @@ class AdaptiveTopologyManagerTest {
         var forensicsAgent = new AgentNodeSpec(
             "forensics-agent", "Forensics Specialist", "worker",
             null, null, null, null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
         var trigger = new AdaptationTrigger("volatility-spike", 0.7, 0.5, null);
         var addAction = new AdaptationActionSpec.AddActionSpec(
@@ -221,7 +221,7 @@ class AdaptiveTopologyManagerTest {
         var forensicsAgent = new AgentNodeSpec(
             "forensics-agent", "Forensics Specialist", "worker",
             null, null, null, null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
         var trigger = new AdaptationTrigger("volatility-spike", 0.7, 0.5,
             Duration.ofMinutes(5));
@@ -357,7 +357,7 @@ class AdaptiveTopologyManagerTest {
         var forensicsAgent = new AgentNodeSpec(
             "forensics-agent", "Forensics Specialist", "worker",
             null, null, null, null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
 
         var trigger = new AdaptationTrigger("active-breach", 0.8, null, null);
@@ -448,7 +448,7 @@ class AdaptiveTopologyManagerTest {
         var agent = new AgentNodeSpec(
             agentId, "Test Agent", "worker",
             null, null, null, null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             List.of(), null, null, null, null, List.of());
         return new DeploymentGoals(
             List.of(new GoalEntry<>(agent, List.of())),

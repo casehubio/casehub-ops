@@ -5,7 +5,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec.UpdateActionSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
@@ -35,7 +34,6 @@ class UpdateActionTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -72,7 +70,6 @@ class UpdateActionTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -100,7 +97,6 @@ class UpdateActionTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -128,7 +124,6 @@ class UpdateActionTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );
@@ -153,7 +148,6 @@ class UpdateActionTest {
         );
         var node = new DesiredNode(
             NodeId.of("risk-policy"),
-            NodeType.of("trust_policy"),
             originalSpec,
             io.casehub.desiredstate.api.HumanGating.NONE
         );

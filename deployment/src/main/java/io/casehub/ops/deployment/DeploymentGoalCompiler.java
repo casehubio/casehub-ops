@@ -12,7 +12,6 @@ import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
@@ -69,7 +68,7 @@ public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
         for (var entry : entries) {
             var spec = entry.spec();
             nodes.add(new DesiredNode(
-                    NodeId.of(spec.nodeId()), NodeType.of(spec.nodeType()), spec, io.casehub.desiredstate.api.HumanGating.NONE));
+                    NodeId.of(spec.nodeId()), spec, io.casehub.desiredstate.api.HumanGating.NONE));
             for (String dep : entry.dependsOn()) {
                 deps.add(new Dependency(NodeId.of(spec.nodeId()), NodeId.of(dep)));
             }

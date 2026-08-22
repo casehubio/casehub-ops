@@ -1,5 +1,6 @@
 package io.casehub.ops.api.iot;
 
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.iot.api.DeviceClass;
 import java.util.Map;
 import java.util.Objects;
@@ -19,4 +20,6 @@ public record DeviceConfigSpec(
         }
         desiredCapabilities = Map.copyOf(desiredCapabilities);
     }
+
+    public NodeType nodeType() { return NodeType.of("device-config"); }
 }

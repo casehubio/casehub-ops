@@ -55,7 +55,7 @@ class ComplianceNodeProvisionerTest {
                 "enc", "ENCRYPTION_AT_REST", "FILE_EXISTENCE", "Enc", "D",
                 List.of(new FrameworkMapping("SOC2", "CC6.1")),
                 30, false, Map.of());
-        var node = new DesiredNode(NodeId.of("enc"), NodeType.of("ENCRYPTION_AT_REST"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("enc"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("default", graphFactory.empty());
 
         ProvisionResult result = provisioner.provision(node, context);
@@ -81,7 +81,7 @@ class ComplianceNodeProvisionerTest {
 
         var spec = new ComplianceControlSpec(
                 "enc", "ENCRYPTION_AT_REST", "FILE_EXISTENCE", "Enc", "D", List.of(), 30, false, Map.of());
-        var node = new DesiredNode(NodeId.of("enc"), NodeType.of("ENCRYPTION_AT_REST"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("enc"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         ProvisionResult result = provisioner.provision(node, new ProvisionContext("default", graphFactory.empty()));
 
@@ -95,7 +95,7 @@ class ComplianceNodeProvisionerTest {
                 "enc", "ENCRYPTION_AT_REST", "FILE_EXISTENCE", "Enc", "D",
                 List.of(new FrameworkMapping("SOC2", "CC6.1")),
                 30, false, Map.of());
-        var node = new DesiredNode(NodeId.of("enc"), NodeType.of("ENCRYPTION_AT_REST"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("enc"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         provisioner.provision(node, new ProvisionContext("default", graphFactory.empty()));
 
         DeprovisionResult result = provisioner.deprovision(node, new DeprovisionContext("default", graphFactory.empty()));
@@ -107,7 +107,7 @@ class ComplianceNodeProvisionerTest {
 
     @Test
     void nonComplianceSpecReturnsFailed() {
-        var node = new DesiredNode(NodeId.of("x"), NodeType.of("unknown"), new NodeSpec() {}, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of("x"), new NodeSpec() { public NodeType nodeType() { return NodeType.of("unknown"); } }, io.casehub.desiredstate.api.HumanGating.NONE);
         var result = provisioner.provision(node, new ProvisionContext("default", graphFactory.empty()));
         assertThat(result).isInstanceOf(ProvisionResult.Failed.class);
     }

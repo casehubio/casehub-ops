@@ -1,6 +1,7 @@
 package io.casehub.ops.api.deployment;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.eidos.api.AgentCapability;
 import io.casehub.eidos.api.AgentDescriptor;
 import io.casehub.eidos.api.AgentDisposition;
@@ -54,8 +55,8 @@ public record AgentNodeSpec(
     }
 
     @Override
-    public String nodeType() {
-        return "agent";
+    public NodeType nodeType() {
+        return NodeType.of("agent");
     }
 
     public AgentDescriptor toDescriptor(String tenancyId) {

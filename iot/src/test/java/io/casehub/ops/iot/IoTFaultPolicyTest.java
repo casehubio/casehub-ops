@@ -71,10 +71,8 @@ class IoTFaultPolicyTest {
 
     @Test
     void provisionFailed_reviewAlreadyExists_returnsEmpty() {
-        var configNode = new DesiredNode(NodeId.of("dev-1-config"), DEVICE_CONFIG,
-                                         new DeviceConfigSpec("dev-1", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
-        var reviewNode = new DesiredNode(NodeId.of("iot-review-dev-1-config"), IOT_REVIEW,
-                                         new IoTReviewSpec(NodeId.of("dev-1-config"), "prior"), HumanGating.ALL);
+        var configNode = new DesiredNode(NodeId.of("dev-1-config"), new DeviceConfigSpec("dev-1", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
+        var reviewNode = new DesiredNode(NodeId.of("iot-review-dev-1-config"), new IoTReviewSpec(NodeId.of("dev-1-config"), "prior"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(configNode, reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("dev-1-config"), FaultType.PROVISION_FAILED, "still failing");
 
@@ -85,8 +83,7 @@ class IoTFaultPolicyTest {
 
     @Test
     void provisionFailed_onNonConfigNode_returnsEmpty() {
-        var physNode = new DesiredNode(NodeId.of("dev-1"), PHYSICAL_DEVICE,
-                                       new PhysicalDeviceSpec("dev-1", DeviceClass.SENSOR, "Sensor 1"), HumanGating.ALL);
+        var physNode = new DesiredNode(NodeId.of("dev-1"), new PhysicalDeviceSpec("dev-1", DeviceClass.SENSOR, "Sensor 1"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(physNode), List.of());
         var event = new FaultEvent(NodeId.of("dev-1"), FaultType.PROVISION_FAILED, "failed");
 
@@ -97,8 +94,7 @@ class IoTFaultPolicyTest {
 
     @Test
     void provisionFailed_onReviewNode_returnsEmpty() {
-        var reviewNode = new DesiredNode(NodeId.of("review-dev-1-config"), IOT_REVIEW,
-                                         new IoTReviewSpec(NodeId.of("dev-1-config"), "test"), HumanGating.ALL);
+        var reviewNode = new DesiredNode(NodeId.of("review-dev-1-config"), new IoTReviewSpec(NodeId.of("dev-1-config"), "test"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("review-dev-1-config"), FaultType.PROVISION_FAILED, "failed");
 
@@ -132,10 +128,8 @@ class IoTFaultPolicyTest {
 
     @Test
     void independentCountsPerNode() {
-        var config1 = new DesiredNode(NodeId.of("a-config"), DEVICE_CONFIG,
-                                      new DeviceConfigSpec("a", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
-        var config2 = new DesiredNode(NodeId.of("b-config"), DEVICE_CONFIG,
-                                      new DeviceConfigSpec("b", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
+        var config1 = new DesiredNode(NodeId.of("a-config"), new DeviceConfigSpec("a", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
+        var config2 = new DesiredNode(NodeId.of("b-config"), new DeviceConfigSpec("b", DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
         var graph = graphFactory.of(List.of(config1, config2), List.of());
 
         var eventA = new FaultEvent(NodeId.of("a-config"), FaultType.PROVISION_FAILED, "fail a");
@@ -149,8 +143,7 @@ class IoTFaultPolicyTest {
     }
 
     private DesiredStateGraph graphWithConfigNode(String nodeId) {
-        var node = new DesiredNode(NodeId.of(nodeId), DEVICE_CONFIG,
-                                   new DeviceConfigSpec(nodeId.replace("-config", ""), DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of(nodeId), new DeviceConfigSpec(nodeId.replace("-config", ""), DeviceClass.SENSOR, Map.of()), HumanGating.NONE);
         return graphFactory.of(List.of(node), List.of());
     }
 }

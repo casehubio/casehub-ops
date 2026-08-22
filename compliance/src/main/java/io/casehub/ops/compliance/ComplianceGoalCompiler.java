@@ -18,7 +18,6 @@ public class ComplianceGoalCompiler implements GoalCompiler<ComplianceGoals> {
             ComplianceControlSpec spec = entry.spec();
             nodes.add(new DesiredNode(
                     NodeId.of(spec.controlId()),
-                    NodeType.of(spec.controlType()),
                     spec, spec.requiresHumanReview() ? HumanGating.ALL : HumanGating.NONE));
 
             for (String depId : entry.dependsOn()) {

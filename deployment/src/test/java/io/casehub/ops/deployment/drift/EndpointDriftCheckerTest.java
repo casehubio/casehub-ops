@@ -92,7 +92,7 @@ class EndpointDriftCheckerTest {
     void unknownSpecType() {
         var spec = new AgentNodeSpec(
                 "agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
-                "1.0", null, null, null, null, null, List.of(), null, null, null, null, List.of());
+                "1.0", null, null, null, null, null, null, List.of(), null, null, null, null, List.of());
 
         assertEquals(NodeStatus.UNKNOWN, checker.check(spec, TENANCY_ID));
     }

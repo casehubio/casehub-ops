@@ -76,8 +76,8 @@ class DeploymentFaultPolicyTest {
 
     @Test
     void nonDeploymentNodeType_returnsEmpty() {
-        var otherNode = new DesiredNode(NodeId.of("other-1"), NodeType.of("something-else"),
-                testSpec(), HumanGating.NONE);
+        var otherNode = new DesiredNode(NodeId.of("other-1"),
+                testSpec(NodeType.of("something-else")), HumanGating.NONE);
         var graph = graphFactory.of(List.of(otherNode), List.of());
         var event = new FaultEvent(NodeId.of("other-1"), FaultType.PROVISION_FAILED, "failed");
 
@@ -93,7 +93,7 @@ class DeploymentFaultPolicyTest {
                 NodeType.of("case_type"), NodeType.of("trust_policy"),
                 NodeType.of("endpoint"))) {
             var freshPolicy = new DeploymentFaultPolicy();
-            var node = new DesiredNode(NodeId.of("res-1"), deployType, testSpec(), HumanGating.NONE);
+            var node = new DesiredNode(NodeId.of("res-1"), testSpec(deployType), HumanGating.NONE);
             var graph = graphFactory.of(List.of(node), List.of());
             var event = new FaultEvent(NodeId.of("res-1"), FaultType.PROVISION_FAILED, "fail");
 
@@ -107,7 +107,7 @@ class DeploymentFaultPolicyTest {
 
     @Test
     void provisionFailed_onReviewNode_returnsEmpty() {
-        var reviewNode = new DesiredNode(NodeId.of("review-agent-1"), DEPLOYMENT_REVIEW,
+        var reviewNode = new DesiredNode(NodeId.of("review-agent-1"),
                 new DeploymentReviewSpec(NodeId.of("agent-1"), "test"), HumanGating.ALL);
         var graph = graphFactory.of(List.of(reviewNode), List.of());
         var event = new FaultEvent(NodeId.of("review-agent-1"), FaultType.PROVISION_FAILED, "failed");
@@ -118,11 +118,13 @@ class DeploymentFaultPolicyTest {
     }
 
     private DesiredStateGraph graphWithNode(String nodeId, NodeType type) {
-        var node = new DesiredNode(NodeId.of(nodeId), type, testSpec(), HumanGating.NONE);
+        var node = new DesiredNode(NodeId.of(nodeId), testSpec(type), HumanGating.NONE);
         return graphFactory.of(List.of(node), List.of());
     }
 
-    private NodeSpec testSpec() {
-        return new NodeSpec() {};
+    private NodeSpec testSpec(NodeType type) {
+        return new NodeSpec() {
+            public NodeType nodeType() { return type; }
+        };
     }
 }

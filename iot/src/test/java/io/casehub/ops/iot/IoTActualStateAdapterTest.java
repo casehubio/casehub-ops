@@ -101,7 +101,6 @@ class IoTActualStateAdapterTest {
                                                  Map<String, Object> caps) {
         return FACTORY.of(
             List.of(new DesiredNode(NodeId.of(deviceId + "-config"),
-                NodeType.of("device-config"),
                 new DeviceConfigSpec(deviceId, dc, caps), io.casehub.desiredstate.api.HumanGating.NONE)),
             List.of());
     }
@@ -109,7 +108,6 @@ class IoTActualStateAdapterTest {
     private DesiredStateGraph singlePhysicalGraph(String deviceId, DeviceClass dc) {
         return FACTORY.of(
             List.of(new DesiredNode(NodeId.of(deviceId),
-                NodeType.of("physical-device"),
                 new PhysicalDeviceSpec(deviceId, dc, "Label"), io.casehub.desiredstate.api.HumanGating.ALL)),
             List.of());
     }

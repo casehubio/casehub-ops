@@ -35,7 +35,7 @@ class KubernetesNodeProvisionerTest {
         var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
         var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(nodeId, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
 
         var handler = new StubHandler(NodeStatus.PRESENT);
@@ -56,7 +56,7 @@ class KubernetesNodeProvisionerTest {
         var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
         var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(nodeId, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
 
         var handler = new StubHandler(NodeStatus.PRESENT);
@@ -77,7 +77,7 @@ class KubernetesNodeProvisionerTest {
         var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
         var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(nodeId, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
 
         var handler = new StubHandler(NodeStatus.PRESENT) {
@@ -150,7 +150,7 @@ class KubernetesNodeProvisionerTest {
         var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
         var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(nodeId, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
 
         java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger();
@@ -180,7 +180,7 @@ class KubernetesNodeProvisionerTest {
         var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
         var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var node = new DesiredNode(nodeId, wrappedSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.of(List.of(node), List.of());
 
         java.util.concurrent.atomic.AtomicInteger callCount = new java.util.concurrent.atomic.AtomicInteger();
@@ -218,7 +218,7 @@ class KubernetesNodeProvisionerTest {
                 new K8sNamespaceSpec("prod-billing", Labels.of(Map.of())),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("ns-1"),
-                                   ApplicationNodeTypes.K8S_NAMESPACE, spec, io.casehub.desiredstate.api.HumanGating.NONE);
+                                   spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.empty();
 
         var result = provisioner.deprovision(node, new DeprovisionContext("tenant-1", graph));
@@ -241,7 +241,7 @@ class KubernetesNodeProvisionerTest {
                 new K8sNamespaceSpec("prod", Labels.of(Map.of())),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("ns-1"),
-                                   ApplicationNodeTypes.K8S_NAMESPACE, spec, io.casehub.desiredstate.api.HumanGating.NONE);
+                                   spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.empty();
 
         var result1 = provisioner.deprovision(node, new DeprovisionContext("tenant-1", graph));
@@ -269,7 +269,7 @@ class KubernetesNodeProvisionerTest {
                 new K8sNamespaceSpec("prod", Labels.of(Map.of())),
                 "kubernetes:ops-prod");
         var node1 = new DesiredNode(NodeId.of("ns-1"),
-                                    ApplicationNodeTypes.K8S_NAMESPACE, spec1, io.casehub.desiredstate.api.HumanGating.NONE);
+                                    spec1, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.empty();
 
         var result1 = provisioner.deprovision(node1, new DeprovisionContext("tenant-1", graph));
@@ -279,7 +279,7 @@ class KubernetesNodeProvisionerTest {
                 new K8sNamespaceSpec("prod-v2", Labels.of(Map.of())),
                 "kubernetes:ops-prod");
         var node2 = new DesiredNode(NodeId.of("ns-1"),
-                                    ApplicationNodeTypes.K8S_NAMESPACE, spec2, io.casehub.desiredstate.api.HumanGating.NONE);
+                                    spec2, io.casehub.desiredstate.api.HumanGating.NONE);
 
         var approval    = new io.casehub.desiredstate.api.PlanApproval(pa.planReference(), "admin", java.time.Instant.now());
         var ctxApproved = new DeprovisionContext("tenant-1", graph, approval);
@@ -301,7 +301,7 @@ class KubernetesNodeProvisionerTest {
                 new K8sNamespaceSpec("dev-sandbox", Labels.of(Map.of())),
                 "kubernetes:ops-dev");
         var node = new DesiredNode(NodeId.of("ns-1"),
-                                   ApplicationNodeTypes.K8S_NAMESPACE, spec, io.casehub.desiredstate.api.HumanGating.NONE);
+                                   spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = graphFactory.empty();
 
         var result = provisioner.provision(node, new ProvisionContext("tenant-1", graph));

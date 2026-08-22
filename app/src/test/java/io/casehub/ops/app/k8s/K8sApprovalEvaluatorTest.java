@@ -33,7 +33,7 @@ class K8sApprovalEvaluatorTest {
                 new K8sNamespaceSpec("prod-billing", Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("ns-1"),
-                ApplicationNodeTypes.K8S_NAMESPACE, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -49,7 +49,7 @@ class K8sApprovalEvaluatorTest {
                 new K8sNamespaceSpec("dev-sandbox", Labels.empty()),
                 "kubernetes:ops-dev");
         var node = new DesiredNode(NodeId.of("ns-2"),
-                ApplicationNodeTypes.K8S_NAMESPACE, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -64,7 +64,7 @@ class K8sApprovalEvaluatorTest {
                         Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("dep-1"),
-                ApplicationNodeTypes.K8S_DEPLOYMENT, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -81,7 +81,7 @@ class K8sApprovalEvaluatorTest {
                         Labels.empty()),
                 "kubernetes:ops-staging");
         var node = new DesiredNode(NodeId.of("dep-2"),
-                ApplicationNodeTypes.K8S_DEPLOYMENT, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -95,7 +95,7 @@ class K8sApprovalEvaluatorTest {
                         ServiceType.CLUSTER_IP, Labels.empty(), Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("svc-1"),
-                ApplicationNodeTypes.K8S_SERVICE, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -108,7 +108,7 @@ class K8sApprovalEvaluatorTest {
                 new K8sConfigMapSpec("prod", "app-config", Map.of("key", "val"), Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("cm-1"),
-                ApplicationNodeTypes.K8S_CONFIGMAP, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -117,9 +117,9 @@ class K8sApprovalEvaluatorTest {
 
     @Test
     void nonInfraSpec_autoApproves() {
-        record TestNodeSpec() implements NodeSpec {}
+        record TestNodeSpec() implements NodeSpec { public NodeType nodeType() { return NodeType.of("unknown"); } }
         var node = new DesiredNode(NodeId.of("other-1"),
-                NodeType.of("unknown"), new TestNodeSpec(), HumanGating.NONE);
+                new TestNodeSpec(), HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -134,7 +134,7 @@ class K8sApprovalEvaluatorTest {
                         Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("dep-1"),
-                ApplicationNodeTypes.K8S_DEPLOYMENT, spec, HumanGating.NONE);
+                spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -155,7 +155,7 @@ class K8sApprovalEvaluatorTest {
                                       Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("dep-ctx-1"),
-                                   ApplicationNodeTypes.K8S_DEPLOYMENT, spec, HumanGating.NONE);
+                                   spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -174,7 +174,7 @@ class K8sApprovalEvaluatorTest {
                                       Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("dep-ctx-2"),
-                                   ApplicationNodeTypes.K8S_DEPLOYMENT, spec, HumanGating.NONE);
+                                   spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -192,7 +192,7 @@ class K8sApprovalEvaluatorTest {
                                    ServiceType.CLUSTER_IP, Labels.empty(), Labels.empty()),
                 "kubernetes:ops-dev");
         var node = new DesiredNode(NodeId.of("svc-ctx-1"),
-                                   ApplicationNodeTypes.K8S_SERVICE, spec, HumanGating.NONE);
+                                   spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");
 
@@ -207,7 +207,7 @@ class K8sApprovalEvaluatorTest {
                 new K8sNamespaceSpec("prod-billing", Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("ns-ctx-1"),
-                                   ApplicationNodeTypes.K8S_NAMESPACE, spec, HumanGating.NONE);
+                                   spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
