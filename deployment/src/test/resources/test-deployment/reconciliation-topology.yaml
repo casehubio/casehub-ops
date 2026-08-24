@@ -1,0 +1,37 @@
+agents:
+  - spec:
+      agentId: recon-agent
+      name: Reconciliation Agent
+      slot: worker
+    dependsOn:
+      - recon/events
+channels:
+  - spec:
+      name: recon/work
+      semantic: APPEND
+    dependsOn: []
+caseTypes:
+  - spec:
+      namespace: io.test
+      name: recon-case
+      version: "1.0"
+    dependsOn: []
+trust:
+  - spec:
+      capability: review
+      threshold: 0.7
+      minimumObservations: 5
+      borderlineMargin: 0.1
+      blendFactor: 0.5
+      bootstrapEscalationRequired: false
+    dependsOn: []
+endpoints:
+  - spec:
+      path: recon/events
+      type: SERVICE
+      protocol: KAFKA
+      properties:
+        topic: recon.events
+      capabilities:
+        - RECEIVE
+    dependsOn: []
