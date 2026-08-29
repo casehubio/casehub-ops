@@ -1,7 +1,9 @@
 # Canonical Deployment Topologies — Design Spec
 
 **Date:** 2026-08-29
+**Issue:** TBD — to be created before Phase 1 begins
 **Research:** `docs/research/2026-08-29-canonical-deployment-topologies.md`
+**Chapter:** C6 — Canonical Deployment Topologies (Journey: Infrastructure maturity, extends L2 Infra)
 **Status:** Design — pending review
 
 ---
@@ -26,7 +28,9 @@ and the reference catalogue for how to deploy software with CaseHub.
 - 5 application architectures × 4 infrastructure topologies (~14 meaningful
   intersections)
 - New `InfraNodeSpec` sealed variants for topology infrastructure types (Java records)
+- Supporting enum types: `LoadBalancerType`, `FailoverPolicy`, `ReplicationMode`
 - New `InfraNodeProvisioner` handlers for those types
+- `NodeSpecFactory` SPI in YAML frontend for `InfraDesiredNodeSpec` wrapping
 - Reusable YAML topology modules shipping in `casehub-ops-infra.jar`
 - YAML topology exemplars for each matrix intersection with real-domain language
 - 3-layer test pyramid (compilation, reconciliation, live) gated by Maven profiles
@@ -65,9 +69,9 @@ and the reference catalogue for how to deploy software with CaseHub.
 │  + existing: K8sNamespaceSpec, K8sDeploymentSpec, K8sServiceSpec  │
 │              K8sIngressSpec, ComputeInstanceSpec, ...             │
 └──────────────────────────┬──────────────────────────────────────┘
-                           │ Jandex + NodeSpecRegistry
+                           │ @NodeTypeId + NodeSpecFactory
 ┌──────────────────────────▼──────────────────────────────────────┐
-│              YamlGraphRecorder (existing — no changes)            │
+│           YamlGraphRecorder + NodeSpecFactory wrapping            │
 │  Variables → Conditions → ForEach → Modules → Rules → Invariants │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ produces
@@ -83,7 +87,7 @@ and the reference catalogue for how to deploy software with CaseHub.
                            │
             ┌──────────────▼──────────────┐
             │     InfraNodeProvisioner     │
-            │   (sealed type dispatch)     │
+            │    (backend-id dispatch)     │
             └─────────────────────────────┘
 ```
 
@@ -91,28 +95,105 @@ and the reference catalogue for how to deploy software with CaseHub.
 
 | Component | Status | Work Required |
 |---|---|---|
-| YamlGraphRecorder | Exists | None |
-| ForEachExpander | Exists | None |
+| YamlGraphRecorder | Exists | Use `NodeSpecFactory` for spec resolution instead of direct class cast |
+| ForEachExpander | Exists | Use `NodeSpecFactory` for spec resolution instead of direct class cast |
 | ModuleExpander | Exists | None |
 | GraphRuleEngine | Exists | None |
 | GraphInvariantEngine | Exists | None |
 | YamlLifecycleCompiler | Exists | None |
-| NodeSpecRegistry | Exists | None |
+| NodeSpecRegistry | Exists | Generalized: maps type string → `NodeSpecFactory` (backwards-compatible) |
+| YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory |
 | VariableResolver | Exists | None |
 | TransitionPlanner | Exists | None |
-| InfraNodeProvisioner | Exists | New handler cases for new spec types |
-| InfraNodeSpec hierarchy | Exists | 5 new sealed variants |
+| InfraNodeProvisioner | Exists | Add 5 types to `handledTypes()` |
+| InfraActualStateAdapter | Exists | Add 5 types to `handledTypes()` |
+| InfraGoalCompiler | Exists | Add 5 `parseSpec()` cases for new types |
+| InfraNodeSpec hierarchy | Exists | 5 new sealed variants + `@NodeTypeId` on all variants (new and existing) |
+| NodeSpecFactory | **New** | SPI: `NodeSpec create(ObjectMapper, Map<String,Object>)` — wrapping hook for non-NodeSpec types |
+| Supporting enums | **New** | `LoadBalancerType`, `FailoverPolicy`, `ReplicationMode` |
 | Topology modules | **New** | 4 YAML modules |
 | Topology exemplars | **New** | ~14 YAML declarations |
 | topology-tests module | **New** | Maven module + test pyramid |
+
+### 3.3 YAML-to-Infra Compilation Pathway
+
+`InfraNodeSpec` does **not** extend `NodeSpec` — this is intentional (ARC42STORIES
+§9.4 L1). The YAML frontend's `NodeSpecRegistry` maps type strings to
+`Class<? extends NodeSpec>`, so `InfraNodeSpec` types cannot be registered directly.
+
+The solution is a `NodeSpecFactory` SPI that hooks into YAML type resolution:
+
+```java
+public interface NodeSpecFactory {
+    NodeSpec create(ObjectMapper mapper, Map<String, Object> rawProperties);
+}
+```
+
+**Build-time discovery:** `YamlDesiredStateProcessor.scanNodeTypes()` is extended to
+detect `@NodeTypeId` annotations on `InfraNodeSpec` implementors (not just `NodeSpec`
+implementors). For each discovered infra type, it registers a wrapping factory that:
+
+1. Deserializes the raw YAML map into the `InfraNodeSpec` record
+   (`mapper.convertValue(rawProperties, K8sIngressSpec.class)`)
+2. Wraps in `InfraDesiredNodeSpec(infraSpec, backendId)` — `backendId` comes from
+   the YAML spec map or defaults to the configured backend
+
+**Registry evolution:** `NodeSpecRegistry` is generalized from
+`Map<String, Class<? extends NodeSpec>>` to `Map<String, NodeSpecFactory>`.
+Existing `NodeSpec` types use a direct-cast factory (backwards-compatible):
+
+```java
+// Legacy path: type extends NodeSpec directly
+class DirectCastFactory implements NodeSpecFactory {
+    private final Class<? extends NodeSpec> specClass;
+    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw) {
+        return mapper.convertValue(raw, specClass);
+    }
+}
+
+// InfraNodeSpec path: wrap in InfraDesiredNodeSpec
+class InfraWrappingFactory implements NodeSpecFactory {
+    private final Class<? extends InfraNodeSpec> infraClass;
+    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw) {
+        var backendId = (String) raw.getOrDefault("backendId", defaultBackend);
+        var infraSpec = mapper.convertValue(raw, infraClass);
+        return new InfraDesiredNodeSpec(infraSpec, backendId);
+    }
+}
+```
+
+This preserves the compile-time safety of the `InfraNodeSpec`/`NodeSpec` separation
+while enabling YAML-native topology declarations without a custom goal compiler.
 
 ---
 
 ## 4. New InfraNodeSpec Sealed Variants
 
 Each is a Java record in `api/src/main/java/io/casehub/ops/api/infra/`, extending the
-existing `InfraNodeSpec` sealed interface. Builder DSLs and annotations enable the
-platform generator to produce YAML schema and TS types.
+existing `InfraNodeSpec` sealed interface. Each record carries `@NodeTypeId` matching
+its `resourceType()` return value — this is how `YamlDesiredStateProcessor` discovers
+the type at build time and registers it with the wrapping `NodeSpecFactory` (§3.3).
+
+**Why sealed variants, not `GenericResourceSpec`?** The existing sealed hierarchy
+includes `GenericResourceSpec(String resourceType, JsonNode config)` — an untyped
+escape hatch. These five types are sealed variants because:
+
+1. **Compile-time exhaustiveness** — `switch` on `InfraNodeSpec` forces handling
+   each type; `GenericResourceSpec` collapses everything into one branch.
+2. **Record field validation** — compact constructors enforce required fields and
+   coalesce optional defaults. `GenericResourceSpec` defers all validation to
+   runtime JSON inspection.
+3. **Schema generation** — the platform generator derives YAML schemas and
+   TypeScript types from record fields. `JsonNode config` is opaque.
+4. **Domain modelling** — load balancers, service meshes, and DNS failover are
+   first-class infrastructure concepts with stable, well-understood schemas.
+   `GenericResourceSpec` is for genuinely ad-hoc resources where the schema is
+   unknown or provider-specific at design time.
+
+`GenericResourceSpec` remains available for extension points — if a backend needs a
+resource type not worth promoting to a sealed variant, it uses the generic escape
+hatch. The threshold: does the type appear in reusable topology modules? If yes,
+it should be a sealed variant for schema safety.
 
 ### 4.1 LoadBalancerSpec
 
@@ -120,6 +201,7 @@ Represents a load balancer (application or network layer) that distributes traff
 across target services.
 
 ```java
+@NodeTypeId("load_balancer")
 public record LoadBalancerSpec(
     String name,
     String namespace,
@@ -136,7 +218,7 @@ public record LoadBalancerSpec(
 **YAML usage:**
 ```yaml
 store-lb:
-  type: load-balancer
+  type: load_balancer
   spec:
     name: storefront-lb
     namespace: storefront
@@ -151,6 +233,7 @@ store-lb:
 Represents the control plane of a service mesh (Istio pilot, Linkerd control plane).
 
 ```java
+@NodeTypeId("mesh_control_plane")
 public record ServiceMeshControlPlaneSpec(
     String name,
     String namespace,
@@ -167,6 +250,7 @@ public record ServiceMeshControlPlaneSpec(
 Represents a sidecar proxy container paired with an application service.
 
 ```java
+@NodeTypeId("sidecar_proxy")
 public record SidecarProxySpec(
     String name,
     String namespace,
@@ -184,6 +268,7 @@ public record SidecarProxySpec(
 Represents DNS-based failover configuration between a primary and secondary cluster.
 
 ```java
+@NodeTypeId("dns_failover")
 public record DnsFailoverSpec(
     String name,
     String primaryEndpoint,
@@ -201,6 +286,7 @@ public record DnsFailoverSpec(
 Represents data replication between clusters/regions.
 
 ```java
+@NodeTypeId("data_replication")
 public record DataReplicationSpec(
     String name,
     String sourceCluster,
@@ -214,8 +300,78 @@ public record DataReplicationSpec(
 ```
 
 All five variants are wrapped in `InfraDesiredNodeSpec` (existing composite pattern)
-to carry `backendId` for backend routing. The `InfraNodeProvisioner` gets new cases
-in its sealed type switch.
+to carry `backendId` for backend routing. `InfraNodeProvisioner.handledTypes()` and
+`InfraActualStateAdapter.handledTypes()` must be extended to include the 5 new
+`resourceType()` values (`load_balancer`, `mesh_control_plane`, `sidecar_proxy`,
+`dns_failover`, `data_replication`), so that `DefaultNodeProvisionerRouter` routes
+to the infra provisioner and actual-state reads return meaningful status.
+
+**Dispatch mechanism:** `InfraNodeProvisioner.provision()` unwraps the
+`InfraDesiredNodeSpec`, looks up the `InfraBackend` by `backendId`, and delegates.
+There is no sealed type switch in the provisioner — dispatch is by backend, not by
+spec type. The backend (`StandaloneBackend`) locates a `ResourceProvisioner` via
+`handles(spec)`, with `InMemoryResourceProvisioner` at `@Priority(0)` as the
+catch-all fallback.
+
+**Provisioning scope:** These new types represent a data model for topology
+expression and YAML compilation. The `InMemoryResourceProvisioner` handles all
+`InfraNodeSpec` types and records them as HEALTHY in-memory — sufficient for
+compilation and reconciliation testing. Real infrastructure backends (cloud LB
+provisioners, DNS API provisioners, replication managers) are separate
+implementation work beyond this spec's scope.
+
+**YAML deserialization contract:** All new records must null-coalesce optional fields
+in their compact constructors rather than `requireNonNull`, because the YAML path
+(`mapper.convertValue()` in `ForEachExpander`) passes `null` for absent YAML keys.
+`Labels` defaults to `Labels.empty()`. Example pattern for `LoadBalancerSpec`:
+
+```java
+public LoadBalancerSpec {
+    Objects.requireNonNull(name, "name");
+    Objects.requireNonNull(namespace, "namespace");
+    Objects.requireNonNull(type, "type");
+    Objects.requireNonNull(targetServices, "targetServices");
+    targetServices = List.copyOf(targetServices);
+    if (labels == null) labels = Labels.empty();
+}
+```
+
+All five records follow this pattern — required fields use `requireNonNull`,
+optional fields (`Labels`, `ResourceRequirements`) null-coalesce to empty defaults.
+
+### 4.6 Supporting Enum Types
+
+Three new enums in `api/src/main/java/io/casehub/ops/api/infra/types/`:
+
+```java
+public enum LoadBalancerType { APPLICATION, NETWORK }
+
+public enum FailoverPolicy { AUTOMATIC, MANUAL }
+
+public enum ReplicationMode { ASYNC, SEMI_SYNC }
+```
+
+These are referenced by `LoadBalancerSpec`, `DnsFailoverSpec`, and
+`DataReplicationSpec` respectively. Jackson deserializes enum values from YAML
+strings directly (`APPLICATION`, `ASYNC`, etc.).
+
+### 4.7 ResourceRequirements YAML Contract
+
+The existing `ResourceRequirements` record has four fields (`cpuRequest`,
+`cpuLimit`, `memoryRequest`, `memoryLimit`). YAML declarations using
+`SidecarProxySpec` or any type with `ResourceRequirements resources` must specify
+all four fields:
+
+```yaml
+resources:
+  cpuRequest: "100m"
+  cpuLimit: "500m"
+  memoryRequest: "128Mi"
+  memoryLimit: "256Mi"
+```
+
+The research document's shorthand (`cpu`, `memory`) was incorrect — it does not
+match the Java record structure.
 
 ---
 
@@ -244,7 +400,8 @@ module:
 
 nodes:
   lb:
-    type: load-balancer
+    type: load_balancer
+    dependsOn: ["${var.target_service}"]
     spec:
       name: "${var.target_service}-lb"
       namespace: ${var.namespace}
@@ -254,22 +411,24 @@ nodes:
       targetServices: ["${var.target_service}"]
 
   ingress:
-    type: k8s-ingress
+    type: k8s_ingress
     dependsOn: [lb]
     spec:
       namespace: ${var.namespace}
       name: "${var.target_service}-ingress"
+      host: "${var.target_service}.example.com"
       rules:
-        - host: "${var.target_service}.example.com"
-          path: /
+        - path: /
           serviceName: ${var.target_service}
           servicePort: 80
 
 invariants:
   lb-has-target:
     match:
-      lb: { type: load-balancer }
-    message: "Load balancer must have at least one target service"
+      lb: { type: load_balancer }
+    directDep:
+      target: { type: "*", of: lb, direction: DEPENDENCIES }
+    message: "Load balancer must route to at least one target service"
 ```
 
 ### 5.2 ha-multi-az.yaml
@@ -290,7 +449,7 @@ module:
 
 nodes:
   ha-control-plane:
-    type: k8s-deployment
+    type: k8s_deployment
     spec:
       namespace: ${var.namespace}
       name: ha-control-plane
@@ -302,9 +461,21 @@ nodes:
         anti-affinity: zone-spread
 
 invariants:
-  minimum-three-zones:
-    message: "HA multi-AZ requires at least 3 availability zones"
+  ha-control-plane-in-namespace:
+    match:
+      cp: { type: k8s_deployment }
+    directDep:
+      ns: { type: k8s_namespace, of: cp, direction: DEPENDENCIES }
+    message: "HA control plane must be deployed within a managed namespace"
 ```
+
+**Note on zone count validation:** The original `minimum-three-zones` invariant
+was non-functional — an invariant with only a `message:` and no `match:` pattern
+never evaluates (the engine requires at least one MATCH pattern to bind nodes).
+The replacement validates structural correctness. Minimum zone count enforcement
+requires parameter-level constraints (`minLength: 3` on the `zones` parameter),
+which the module parameter system does not yet support. Tracked as a future
+enhancement.
 
 ### 5.3 service-mesh.yaml
 
@@ -324,7 +495,7 @@ module:
 
 nodes:
   mesh-control-plane:
-    type: mesh-control-plane
+    type: mesh_control_plane
     spec:
       name: mesh-control-plane
       namespace: ${var.namespace}
@@ -342,6 +513,13 @@ rules:
           from: "${match.proxy.id}"
           to: mesh-control-plane
 ```
+
+**Sidecar injection scoping:** The sidecar-injection rule in the research
+exemplar matches ALL `k8s-deployment` nodes. The YAML rule system's `match:`
+clause filters by node type only — not by spec fields or labels. This is by
+design: importing the `service-mesh` module means the entire topology is
+meshed. For mixed workloads (some meshed, some not), use separate topology
+declarations or conditional nodes (`when:`) on the deployment definitions.
 
 ### 5.4 multi-region.yaml
 
@@ -395,6 +573,25 @@ invariants:
       repl: { type: data-replication, of: fo, direction: DEPENDENCIES }
     message: "DNS failover requires data replication to be configured first"
 ```
+
+---
+
+### 5.5 Module + Lifecycle Phase Interaction
+
+When a topology uses both `lifecycle:` phases and `imports:`, module expansion must
+occur before phase compilation. Currently, `createYamlLifecycleGoalCompiler()` does
+not call `ModuleExpander` — this is a gap that must be addressed in Phase 2.
+
+**Design:** Module imports are expanded at the graph level before lifecycle phasing.
+Module-imported nodes that have `dependsOn` on a phased node are assigned to the
+same phase as their latest dependency. Module-imported nodes with no phase-internal
+dependencies are placed in the final phase. This preserves the lifecycle ordering
+guarantee while allowing modules to compose with phased rollouts.
+
+**Exemplar impact:** The e-commerce exemplar (T4) uses lifecycle phases for ordered
+rollout AND the `load-balancer` module. The module-imported nodes (`lb`, `ingress`)
+depend on `storefront-nginx` in the `web-tier` phase, so they are placed in or after
+the web tier.
 
 ---
 
@@ -487,20 +684,48 @@ void t4_multiTierEcommerceLbCluster() {
 
 ### 7.3 Layer 2: Reconciliation Tests (`-Preconciliation`)
 
-Wire compiled graphs through the full reconciliation loop with stubbed
-`InfraBackend` implementations:
+Wire compiled graphs through the full reconciliation loop with a
+`FailableResourceProvisioner` test stub that supports deterministic failure
+injection:
+
+```java
+public class FailableResourceProvisioner implements ResourceProvisioner {
+    private final Map<NodeId, Integer> failUntilAttempt = new ConcurrentHashMap<>();
+
+    public void failNode(NodeId nodeId, int failForAttempts) {
+        failUntilAttempt.put(nodeId, failForAttempts);
+    }
+
+    @Override
+    public ProvisionOutcome execute(ProvisionTask task) {
+        Integer remaining = failUntilAttempt.get(task.nodeId());
+        if (remaining != null && remaining > 0) {
+            failUntilAttempt.put(task.nodeId(), remaining - 1);
+            return new ProvisionOutcome(false, null, null, "injected failure");
+        }
+        // delegate to InMemoryResourceProvisioner for success path
+    }
+}
+```
+
 - Assert `TransitionPlanner` produces correct provision/deprovision steps
 - Assert topological ordering (namespace before deployments, etc.)
 - Assert drift detection works (modify a spec, verify DRIFTED status)
-- Assert fault policies fire on repeated failures
+- Assert fault policies fire on repeated failures (using `failNode()` injection)
+- Assert escalation path: threshold breach → review node → human gating
 
 ### 7.4 Layer 3: Live Deployment Tests (`-Pinfra-live`)
 
-Deploy real Docker images to K8s (kind/minikube for CI):
+Deploy real Docker images to K8s (kind/minikube for CI). Scoped to K8s-native
+types (`k8s_namespace`, `k8s_deployment`, `k8s_service`, `k8s_ingress`) — the
+new topology types (`load_balancer`, `dns_failover`, `data_replication`,
+`mesh_control_plane`, `sidecar_proxy`) are verified at Layer 1 (compilation)
+and Layer 2 (reconciliation) only, since real cloud/mesh infrastructure
+provisioners are out of scope:
+
 - Assert namespace creation
 - Assert deployments reach Ready state
 - Assert services resolve
-- Assert load balancer routes traffic
 - Assert health checks pass
 - Assert reconciliation loop converges after manual drift injection
 
@@ -529,8 +754,8 @@ Deploy real Docker images to K8s (kind/minikube for CI):
 
 | Phase | What | Type | Depends On |
 |---|---|---|---|
-| 1 | InfraNodeSpec extensions (5 new records) + provisioner handlers | Java | — |
-| 2 | Topology modules (4 YAML modules) | YAML | Phase 1 |
+| 1 | InfraNodeSpec extensions (5 new records) + `handledTypes()` registration in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler | Java | — |
+| 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
 | 5 | Live K8s deployment tests | Java + infra | Phase 4 |
@@ -547,6 +772,6 @@ Phases 1-5 are this spec. Phases 6-7 are separate specs building on this foundat
 - `casehub-desiredstate/yaml/runtime/` — YAML frontend implementation
 - `casehub-desiredstate/examples/webapp-yaml/` — tutorial YAML examples
 - `api/src/main/java/io/casehub/ops/api/infra/InfraNodeSpec.java` — sealed hierarchy
-- `infra/src/main/java/io/casehub/ops/infra/InfraNodeProvisioner.java` — sealed dispatch
+- `infra/src/main/java/io/casehub/ops/infra/InfraNodeProvisioner.java` — backend-id dispatch
 - `casehub-engine/api/src/main/java/io/casehub/engine/plan/goap/GoapPlanner.java` — GOAP planner
 - `casehub-desiredstate/runtime/src/main/java/io/casehub/desiredstate/runtime/TransitionPlanner.java` — steady-state planner
