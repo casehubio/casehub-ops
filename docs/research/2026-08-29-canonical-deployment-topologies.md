@@ -122,299 +122,528 @@ profiles so they don't all run on every build.
 
 ---
 
-## 5. YAML Frontend Design Direction
+## 5. The DesiredState YAML Frontend — What Already Exists
 
-### Decision: Topology-Aware YAML as a First-Class Construct
+### Critical Discovery
 
-The topology is not metadata or sugar — it's a first-class concept that informs
-compilation, validation, and reconciliation. A new `TopologyGoalCompiler` reads
-topology-aware YAML and produces a `DesiredStateGraph` directly.
+The `casehub-desiredstate-yaml` module provides a YAML frontend far more powerful
+than what the ops domain modules currently use. Auditing the code reveals a complete
+declarative toolkit:
 
-The topology type tells the compiler what structural constraints to enforce:
-- **multi-tier** → linear dependency chain between tiers is mandatory
-- **microservices** → service discovery configuration is required
-- **event-driven** → at least one broker node must exist
-- **sidecar** → each service gets a paired proxy container
+| Capability | Mechanism | Location |
+|---|---|---|
+| **Variables** | `${var.x}` substitution with per-environment overrides | `VariableResolver` |
+| **Conditional nodes** | `when: "${var.feature_enabled}"` — node vanishes from graph when false | `YamlGraphRecorder` |
+| **Optional deps** | `{ node: x, optional: true }` — silently dropped when target excluded | `YamlNode` |
+| **ForEach** | Named iteration groups, stamps copies per item | `ForEachExpander` |
+| **Modules** | Parameterised imports with aliases, promoted rules + invariants | `ModuleExpander` |
+| **Invariants** | Compile-time structural validation with match/directDep patterns | `GraphInvariantEngine` |
+| **Rules** | Auto-wiring that fires in a loop until graph stabilises | `GraphRuleEngine` |
+| **Fault policies** | Tiered escalation from YAML (threshold → review node → human gating) | `YamlFaultPolicyBuilder` |
+| **Lifecycle phases** | Ordered rollout stages with carry-forward nodes | `YamlLifecycleCompiler` |
+| **NodeSpec registry** | Pluggable type→class mapping — `NodeSpecRegistry.of(map)` | `NodeSpecRegistry` |
 
-The infrastructure type tells the compiler what infrastructure nodes to generate:
-- **single-node** → single namespace, no LB, no replication
-- **load-balanced-cluster** → ingress + LB nodes in front
-- **ha-multi-az** → per-AZ node pools, anti-affinity, HA control plane
-- **multi-region-active-passive** → two cluster scopes, replication nodes, DNS failover
+The webapp tutorial examples (`casehub-desiredstate/examples/webapp-yaml/`) demonstrate
+all of these working together: an e-commerce order pipeline with variables, conditional
+gift-wrapping, auto-wiring notification rules, invariant-enforced fraud checks, forEach
+warehouse replication, and reusable notification modules.
+
+### Implication: No New Compiler Needed
+
+**The "TopologyGoalCompiler" as a new Java class is the wrong approach.** The existing
+YAML frontend already provides every primitive needed to express deployment topologies.
+
+A deployment topology is a composition of existing primitives:
+
+| YAML Primitive | Topology Role |
+|---|---|
+| **Module** | Reusable infra pattern (LB module, HA module, mesh module) |
+| **Invariant** | Topology constraint enforcement ("multi-tier must have web→app→data chain") |
+| **Rule** | Auto-wiring ("for every service with `sidecar: true`, add envoy proxy") |
+| **forEach** | AZ replication ("stamp this service across 3 availability zones") |
+| **when:** | Optional features ("include mesh control plane only when `mesh_enabled`") |
+| **Lifecycle phase** | Ordered rollout ("infra first, then services, then monitoring") |
+| **Variables** | Per-environment config ("replicas: 1 in dev, 3 in prod") |
+| **NodeSpec registry** | Pluggable infra types ("k8s-deployment", "load-balancer", "sidecar") |
+
+### What's Actually New — The Real Gap Analysis
+
+The gaps are much smaller than initially assumed:
+
+| Gap | Type | Description |
+|---|---|---|
+| **InfraNodeSpec extensions** | Java | New sealed variants: `LoadBalancerSpec`, `ServiceMeshControlPlaneSpec`, `SidecarSpec`, `DnsFailoverSpec`, `DataReplicationSpec`. (`K8sIngressSpec` already exists.) |
+| **NodeProvisioner handlers** | Java | Handlers for the new spec types in `InfraNodeProvisioner` |
+| **Topology modules** | YAML | Pre-built modules for each infra pattern: `load-balancer.yaml`, `ha-multi-az.yaml`, `multi-region.yaml`, `service-mesh.yaml` |
+| **Topology invariants** | YAML | Per-topology structural validation rules |
+| **Topology rules** | YAML | Auto-wiring rules per topology (e.g., sidecar injection) |
+| **GOAP migration actions** | Java | Actions for topology type transitions (single-node → HA, etc.) |
+| **topology-tests module** | Java + YAML | YAML exemplars + 3-tier test pyramid |
+
+Items 3, 4, and 5 are **pure YAML** — no Java code required. The existing YAML
+frontend compiles them into DesiredStateGraphs using the existing `YamlGraphRecorder`.
+This is the power of the desiredstate YAML system: new deployment topologies are
+declared, not programmed.
+
+### Design Direction: Topology as YAML-Native Composition
+
+Instead of a new `TopologyGoalCompiler`, the topology is expressed as a YAML
+declaration that composes modules, enforces invariants, applies rules, and
+uses forEach for replication — all within the existing YAML frontend.
 
 ### Example: Multi-Tier E-Commerce on Load-Balanced Cluster
 
+Uses lifecycle phases for ordered rollout, the `load-balancer` module for traffic
+management, and a multi-tier invariant to enforce the dependency chain.
+
 ```yaml
-topology: multi-tier
-domain: e-commerce-storefront
+desiredState:
+  namespace: ecommerce
+  name: storefront-prod
 
-infrastructure:
-  type: load-balanced-cluster
-  cluster:
-    id: ecom-prod
-    namespace: storefront
-  loadBalancer:
-    type: application
-    healthCheck: /health
+variables:
+  replicas: 3
+  db_storage: 50Gi
+  payment_provider: stripe
 
-tiers:
-  web:
-    service: storefront-nginx
-    image: nginx:1.25
-    replicas: 3
-    ports:
-      - containerPort: 80
-        servicePort: 80
+# Ordered rollout: infra → data → application → web → traffic
+lifecycle:
+  phases:
+    - id: infrastructure
+      completionCondition: allPresent
+      nodes:
+        storefront-namespace:
+          type: k8s-namespace
+          spec:
+            name: storefront
+            labels: { managed-by: casehub-ops }
 
-  application:
-    service: catalog-api
-    image: ecom/catalog-api:2.1
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 8080
-    env:
-      DB_HOST: product-db
-      DB_NAME: catalog
-    healthCheck:
-      path: /health
-      port: 8080
+    - id: data-tier
+      completionCondition: allPresent
+      nodes:
+        product-db:
+          type: k8s-deployment
+          dependsOn: [storefront-namespace]
+          spec:
+            namespace: storefront
+            name: product-db
+            image: postgres:16
+            replicas: 1
+            ports: [{ containerPort: 5432, servicePort: 5432 }]
+            env: { POSTGRES_DB: catalog }
 
-  data:
-    service: product-db
-    image: postgres:16
-    replicas: 1
-    ports:
-      - containerPort: 5432
-        servicePort: 5432
-    storage:
-      size: 50Gi
-    env:
-      POSTGRES_DB: catalog
+    - id: application-tier
+      completionCondition: allPresent
+      nodes:
+        catalog-api:
+          type: k8s-deployment
+          dependsOn: [product-db]
+          spec:
+            namespace: storefront
+            name: catalog-api
+            image: ecom/catalog-api:2.1
+            replicas: ${var.replicas}
+            ports: [{ containerPort: 8080, servicePort: 8080 }]
+            env:
+              DB_HOST: product-db
+              DB_NAME: catalog
+            healthCheck: { path: /health, port: 8080 }
+
+        catalog-service:
+          type: k8s-service
+          dependsOn: [catalog-api]
+          spec:
+            namespace: storefront
+            name: catalog-api
+            port: 8080
+            targetPort: 8080
+
+    - id: web-tier
+      completionCondition: allPresent
+      nodes:
+        storefront-nginx:
+          type: k8s-deployment
+          dependsOn: [catalog-api]
+          spec:
+            namespace: storefront
+            name: storefront-nginx
+            image: nginx:1.25
+            replicas: ${var.replicas}
+            ports: [{ containerPort: 80, servicePort: 80 }]
+
+# Reusable module adds LB + ingress wired to the web tier
+imports:
+  - module: load-balancer
+    as: storefront-lb
+    parameters:
+      target_service: storefront-nginx
+      health_check_path: /health
+      namespace: storefront
+
+# Multi-tier invariant: web → app → data dependency chain must exist
+invariants:
+  web-depends-on-app:
+    match:
+      web: { type: k8s-deployment, spec: { name: storefront-nginx } }
+    directDep:
+      app: { type: k8s-deployment, of: web, direction: DEPENDENCIES }
+    message: "Web tier must depend on application tier"
+
+  app-depends-on-data:
+    match:
+      app: { type: k8s-deployment, spec: { name: catalog-api } }
+    directDep:
+      db: { type: k8s-deployment, of: app, direction: DEPENDENCIES }
+    message: "Application tier must depend on data tier"
+
+faultPolicy:
+  - faultTypes: [PROVISION_FAILED]
+    nodeTypes: [k8s-deployment]
+    ignoreTypes: [deployment-review]
+    namespace: deployment-escalation
+    tiers:
+      - threshold: 3
+        reviewNode:
+          type: deployment-review
+          humanGating: ALL
+          spec:
+            targetNodeId: "${fault.nodeId}"
+            errorDetail: "${fault.detail}"
 ```
-
-The compiler generates ~8 nodes: namespace, load balancer, ingress, 3 deployments (one
-per tier), 2 services (web, app — data tier is internal), with dependency edges:
-LB → ingress → web-deploy → app-deploy → data-deploy. Each deployment depends on the
-namespace. The topology type (`multi-tier`) enforces the linear chain; the
-infrastructure type (`load-balanced-cluster`) adds the LB and ingress nodes.
 
 ### Example: Microservices Food Delivery on HA Multi-AZ
 
-```yaml
-topology: microservices
-domain: food-delivery-platform
+Uses `forEach` to stamp services across availability zones, the `ha-multi-az`
+module for HA infrastructure, and a rule to auto-wire service discovery.
 
-infrastructure:
-  type: ha-multi-az
-  region: eu-west-1
-  availabilityZones:
-    - id: eu-west-1a
-    - id: eu-west-1b
-    - id: eu-west-1c
+```yaml
+desiredState:
   namespace: delivery
-  loadBalancer:
-    type: application
-    healthCheck: /health
+  name: food-delivery-platform
 
-serviceDiscovery:
-  type: dns
+variables:
+  replicas_per_az: 1
+  region: eu-west-1
 
-services:
-  - id: restaurant-catalog
-    image: delivery/restaurant-catalog:3.2
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    resources:
-      cpu: 500m
-      memory: 1Gi
-    healthCheck:
-      path: /health
-      port: 8080
+iterations:
+  availability-zones:
+    as: az
+    in: ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 
-  - id: order-service
-    image: delivery/order-service:2.8
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    env:
-      CATALOG_URL: http://restaurant-catalog
-      RIDER_URL: http://rider-dispatch
-    dependsOn:
-      - restaurant-catalog
-      - rider-dispatch
+nodes:
+  delivery-namespace:
+    type: k8s-namespace
+    spec:
+      name: delivery
+      labels: { managed-by: casehub-ops }
 
-  - id: rider-dispatch
-    image: delivery/rider-dispatch:1.5
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    env:
-      ORDER_URL: http://order-service
+  # Each service stamped across 3 AZs
+  restaurant-catalog:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [delivery-namespace]
+    spec:
+      namespace: delivery
+      name: "restaurant-catalog-${each.az}"
+      image: delivery/restaurant-catalog:3.2
+      replicas: ${var.replicas_per_az}
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: restaurant-catalog, az: "${each.az}" }
+      healthCheck: { path: /health, port: 8080 }
 
-  - id: payment-gateway
-    image: delivery/payment-gateway:4.0
-    replicas: 2
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    dependsOn:
-      - order-service
+  order-service:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [restaurant-catalog, rider-dispatch]
+    spec:
+      namespace: delivery
+      name: "order-service-${each.az}"
+      image: delivery/order-service:2.8
+      replicas: ${var.replicas_per_az}
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      env:
+        CATALOG_URL: http://restaurant-catalog
+        RIDER_URL: http://rider-dispatch
+      labels: { app: order-service, az: "${each.az}" }
+
+  rider-dispatch:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [delivery-namespace]
+    spec:
+      namespace: delivery
+      name: "rider-dispatch-${each.az}"
+      image: delivery/rider-dispatch:1.5
+      replicas: ${var.replicas_per_az}
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: rider-dispatch, az: "${each.az}" }
+
+  payment-gateway:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [order-service]
+    spec:
+      namespace: delivery
+      name: "payment-gateway-${each.az}"
+      image: delivery/payment-gateway:4.0
+      replicas: ${var.replicas_per_az}
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: payment-gateway, az: "${each.az}" }
+
+imports:
+  - module: ha-multi-az
+    as: delivery-ha
+    parameters:
+      namespace: delivery
+      region: ${var.region}
+      zones: ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+
+# Auto-wire: every deployment gets a ClusterIP service
+rules:
+  auto-service-per-deployment:
+    match:
+      deploy: { type: k8s-deployment }
+    notExists:
+      svc: { type: k8s-service, of: deploy, direction: DEPENDENTS }
+    actions:
+      - addNode:
+          id: "svc-${match.deploy.id}"
+          type: k8s-service
+          spec:
+            namespace: delivery
+            name: "${match.deploy.spec.name}"
+            port: 80
+            targetPort: 8080
+      - addDependency:
+          from: "svc-${match.deploy.id}"
+          to: "${match.deploy.id}"
 ```
 
-The compiler generates: 3 per-AZ namespace nodes, per-service deployment + service nodes
-(with anti-affinity annotations across AZs), LB with health checks, HA control plane
-nodes. The microservices topology type validates that `serviceDiscovery` is declared and
-that dependency cycles are absent (a mesh, not a ring).
+### Example: Event-Driven IoT Telemetry Pipeline
 
-### Example: Event-Driven IoT Telemetry on Load-Balanced Cluster
+Uses the broker as the architectural centre. An invariant enforces that every
+producer/consumer depends on the broker. A rule auto-wires dead-letter queues.
 
 ```yaml
-topology: event-driven
-domain: iot-sensor-telemetry
+desiredState:
+  namespace: telemetry
+  name: iot-sensor-pipeline
 
-infrastructure:
-  type: load-balanced-cluster
-  cluster:
-    id: telemetry-prod
-    namespace: telemetry
-  loadBalancer:
-    type: network
-    healthCheck: /health
+variables:
+  broker_replicas: 3
+  timeseries_storage: 100Gi
 
-broker:
-  service: sensor-broker
-  image: rabbitmq:3-management
-  replicas: 3
-  ports:
-    - containerPort: 5672
-      servicePort: 5672
-    - containerPort: 15672
-      servicePort: 15672
-  storage:
-    size: 20Gi
+nodes:
+  telemetry-namespace:
+    type: k8s-namespace
+    spec:
+      name: telemetry
+      labels: { managed-by: casehub-ops }
 
-producers:
-  - id: sensor-ingestion
-    image: telemetry/sensor-ingestion:1.0
-    replicas: 2
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    env:
-      BROKER_URL: amqp://sensor-broker:5672
-      EXCHANGE: sensor.readings
+  # The broker — architectural centre of gravity
+  sensor-broker:
+    type: k8s-deployment
+    dependsOn: [telemetry-namespace]
+    spec:
+      namespace: telemetry
+      name: sensor-broker
+      image: rabbitmq:3-management
+      replicas: ${var.broker_replicas}
+      ports:
+        - { containerPort: 5672, servicePort: 5672 }
+        - { containerPort: 15672, servicePort: 15672 }
 
-consumers:
-  - id: anomaly-detector
-    image: telemetry/anomaly-detector:2.1
-    replicas: 3
-    env:
-      BROKER_URL: amqp://sensor-broker:5672
-      QUEUE: sensor.readings.anomaly
-    healthCheck:
-      path: /health
-      port: 8080
+  # Producers — ingest sensor data
+  sensor-ingestion:
+    type: k8s-deployment
+    dependsOn: [sensor-broker]
+    spec:
+      namespace: telemetry
+      name: sensor-ingestion
+      image: telemetry/sensor-ingestion:1.0
+      replicas: 2
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      env:
+        BROKER_URL: amqp://sensor-broker:5672
+        EXCHANGE: sensor.readings
 
-  - id: timeseries-writer
-    image: telemetry/timeseries-writer:1.3
-    replicas: 2
-    env:
-      BROKER_URL: amqp://sensor-broker:5672
-      QUEUE: sensor.readings.store
-      TIMESCALEDB_URL: jdbc:postgresql://timeseries-db:5432/readings
-    dependsOn:
-      - timeseries-db
+  # Consumers — process sensor data
+  anomaly-detector:
+    type: k8s-deployment
+    dependsOn: [sensor-broker]
+    spec:
+      namespace: telemetry
+      name: anomaly-detector
+      image: telemetry/anomaly-detector:2.1
+      replicas: 3
+      env:
+        BROKER_URL: amqp://sensor-broker:5672
+        QUEUE: sensor.readings.anomaly
 
-  - id: timeseries-db
-    image: timescale/timescaledb:latest-pg16
-    replicas: 1
-    ports:
-      - containerPort: 5432
-        servicePort: 5432
-    storage:
-      size: 100Gi
+  timeseries-writer:
+    type: k8s-deployment
+    dependsOn: [sensor-broker, timeseries-db]
+    spec:
+      namespace: telemetry
+      name: timeseries-writer
+      image: telemetry/timeseries-writer:1.3
+      replicas: 2
+      env:
+        BROKER_URL: amqp://sensor-broker:5672
+        QUEUE: sensor.readings.store
+        TIMESCALEDB_URL: jdbc:postgresql://timeseries-db:5432/readings
+
+  timeseries-db:
+    type: k8s-deployment
+    dependsOn: [telemetry-namespace]
+    spec:
+      namespace: telemetry
+      name: timeseries-db
+      image: timescale/timescaledb:latest-pg16
+      replicas: 1
+      ports: [{ containerPort: 5432, servicePort: 5432 }]
+
+# Event-driven invariant: every non-broker deployment must depend on the broker
+invariants:
+  all-services-depend-on-broker:
+    match:
+      svc: { type: k8s-deployment }
+    when: "${match.svc.spec.name != 'sensor-broker'}"
+    directDep:
+      broker: { type: k8s-deployment, of: svc, direction: DEPENDENCIES }
+    message: "Service '${match.svc.id}' must depend on the message broker"
+
+faultPolicy:
+  - faultTypes: [PROVISION_FAILED]
+    nodeTypes: [k8s-deployment]
+    ignoreTypes: [telemetry-review]
+    namespace: telemetry-escalation
+    tiers:
+      - threshold: 3
+        reviewNode:
+          type: telemetry-review
+          humanGating: ALL
+          spec:
+            targetNodeId: "${fault.nodeId}"
+            errorDetail: "${fault.detail}"
 ```
-
-The compiler generates: broker nodes first (all producers and consumers depend on the
-broker), producer deployments, consumer deployments with explicit `dependsOn` edges.
-The event-driven topology type validates that a `broker` section exists and that
-producers/consumers reference it. No direct producer→consumer edges — the broker
-mediates.
 
 ### Example: Sidecar/Mesh Logistics Tracking on HA Multi-AZ
 
+Uses a rule to auto-inject sidecar proxies alongside every service, and the
+`service-mesh` module for control plane infrastructure.
+
 ```yaml
-topology: sidecar-mesh
-domain: logistics-fleet-tracking
-
-infrastructure:
-  type: ha-multi-az
-  region: us-east-1
-  availabilityZones:
-    - id: us-east-1a
-    - id: us-east-1b
-    - id: us-east-1c
+desiredState:
   namespace: logistics
+  name: fleet-tracking-mesh
 
-mesh:
-  controlPlane:
-    image: istio/pilot:1.20
-    replicas: 3
-  sidecar:
-    image: envoyproxy/envoy:v1.28
-    resources:
-      cpu: 100m
-      memory: 128Mi
+variables:
+  replicas: 3
+  sidecar_image: envoyproxy/envoy:v1.28
+  sidecar_cpu: 100m
+  sidecar_memory: 128Mi
 
-services:
-  - id: fleet-tracker
-    image: logistics/fleet-tracker:3.0
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    sidecar: true
-    env:
-      ROUTE_URL: http://route-optimizer
-      PARCEL_URL: http://parcel-service
+iterations:
+  availability-zones:
+    as: az
+    in: ["us-east-1a", "us-east-1b", "us-east-1c"]
 
-  - id: route-optimizer
-    image: logistics/route-optimizer:2.5
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    sidecar: true
+nodes:
+  logistics-namespace:
+    type: k8s-namespace
+    spec:
+      name: logistics
+      labels: { managed-by: casehub-ops }
 
-  - id: parcel-service
-    image: logistics/parcel-service:4.1
-    replicas: 3
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    sidecar: true
-    env:
-      WAREHOUSE_URL: http://warehouse-api
+  fleet-tracker:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [logistics-namespace]
+    spec:
+      namespace: logistics
+      name: "fleet-tracker-${each.az}"
+      image: logistics/fleet-tracker:3.0
+      replicas: 1
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: fleet-tracker, az: "${each.az}", mesh-inject: "true" }
+      env:
+        ROUTE_URL: http://route-optimizer
+        PARCEL_URL: http://parcel-service
 
-  - id: warehouse-api
-    image: logistics/warehouse-api:1.8
-    replicas: 2
-    ports:
-      - containerPort: 8080
-        servicePort: 80
-    sidecar: true
-```
+  route-optimizer:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [logistics-namespace]
+    spec:
+      namespace: logistics
+      name: "route-optimizer-${each.az}"
+      image: logistics/route-optimizer:2.5
+      replicas: 1
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: route-optimizer, az: "${each.az}", mesh-inject: "true" }
 
-The compiler generates: mesh control plane nodes (HA across AZs), per-service pairs
-(app container + envoy sidecar), service entries for mesh routing. The `sidecar: true`
-flag on each service triggers sidecar injection. The sidecar-mesh topology type
-validates that `mesh.controlPlane` is declared and that at least one service has
-`sidecar: true`.
+  parcel-service:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [logistics-namespace]
+    spec:
+      namespace: logistics
+      name: "parcel-service-${each.az}"
+      image: logistics/parcel-service:4.1
+      replicas: 1
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: parcel-service, az: "${each.az}", mesh-inject: "true" }
+      env:
+        WAREHOUSE_URL: http://warehouse-api
+
+  warehouse-api:
+    type: k8s-deployment
+    forEach: availability-zones
+    dependsOn: [logistics-namespace]
+    spec:
+      namespace: logistics
+      name: "warehouse-api-${each.az}"
+      image: logistics/warehouse-api:1.8
+      replicas: 1
+      ports: [{ containerPort: 8080, servicePort: 80 }]
+      labels: { app: warehouse-api, az: "${each.az}", mesh-inject: "true" }
+
+imports:
+  - module: service-mesh
+    as: logistics-mesh
+    parameters:
+      namespace: logistics
+      control_plane_image: istio/pilot:1.20
+      control_plane_replicas: 3
+
+# Auto-inject sidecar proxy for every deployment with mesh-inject label
+rules:
+  sidecar-injection:
+    match:
+      app: { type: k8s-deployment }
+    notExists:
+      proxy: { type: sidecar-proxy, of: app, direction: DEPENDENTS }
+    actions:
+      - addNode:
+          id: "proxy-${match.app.id}"
+          type: sidecar-proxy
+          spec:
+            image: ${var.sidecar_image}
+            targetService: "${match.app.id}"
+            resources: { cpu: ${var.sidecar_cpu}, memory: ${var.sidecar_memory} }
+      - addDependency:
+          from: "proxy-${match.app.id}"
+          to: "${match.app.id}"
+
+# Mesh invariant: control plane must exist
+invariants:
+  mesh-control-plane-exists:
+    match:
+      proxy: { type: sidecar-proxy }
+    directDep:
+      cp: { type: mesh-control-plane, of: proxy, direction: DEPENDENCIES }
+    message: "Sidecar proxy requires mesh control plane — import the service-mesh module"
 
 ---
 
@@ -665,34 +894,62 @@ Maven profiles control which layers run:
 
 ## 8. Implementation Sequencing
 
-### Phase 1: Foundation (TopologyGoalCompiler + Compilation Tests)
+### Phase 1: InfraNodeSpec Extensions + NodeSpec Registry Wiring
 
-Build the `TopologyGoalCompiler` with support for the 5 app architectures and 4 infra
-topologies. Write YAML exemplars for each of the ~14 matrix intersections. Compilation
-tests assert correct nodes, dependencies, and topology-specific constraints.
+Extend the `InfraNodeSpec` sealed hierarchy with new types needed by the topology
+modules. Register them in the `NodeSpecRegistry` so YAML `type:` references resolve.
 
-### Phase 2: Reconciliation (Integration Tests with Stubbed Backends)
+New sealed variants:
+- `LoadBalancerSpec` — type (application/network), health check, target services
+- `ServiceMeshControlPlaneSpec` — image, replicas, mesh config
+- `SidecarProxySpec` — image, target service, resources
+- `DnsFailoverSpec` — primary/secondary endpoints, TTL, failover policy
+- `DataReplicationSpec` — source cluster, target cluster, mode (async/sync)
 
-Wire the compiled DesiredStateGraphs through the full reconciliation loop with stubbed
-`InfraBackend` implementations. Verify that TransitionPlanner produces correct plans,
-drift detection works, and fault policies fire correctly.
+New `InfraNodeProvisioner` handlers for each type.
 
-### Phase 3: Live Deployment (Real K8s)
+### Phase 2: Topology Modules (Pure YAML)
 
-Deploy real Docker images to a K8s cluster (minikube/kind for CI, real cluster for
-manual verification). Verify health checks pass, services communicate, load balancers
-route, and the reconciliation loop converges.
+Write reusable YAML modules for each infrastructure pattern. No Java code — these
+compose existing primitives:
 
-### Phase 4: GOAP Migration Planning
+- `modules/load-balancer.yaml` — adds LB + ingress, wires to target service
+- `modules/ha-multi-az.yaml` — HA control plane, anti-affinity, AZ-aware storage
+- `modules/multi-region.yaml` — primary + DR clusters, data replication, DNS failover
+- `modules/service-mesh.yaml` — control plane nodes, sidecar injection rule
 
-Define GOAP actions for topology transitions. Verify that the GoapPlanner produces
-correct migration plans for topology type changes (e.g., single-node → HA, LB cluster →
-multi-region). Wire migration plans into engine cases with approval gates.
+Each module includes its own invariants (promoted to the importing graph) to validate
+correct usage.
 
-### Phase 5: Service Lifecycle Integration
+### Phase 3: Topology Exemplars + Compilation Tests
 
-Connect deployed topologies to the Chapter 5 service lifecycle model. Verify that
-deployed services automatically become long-lived cases with nine-dimension monitoring.
+Write YAML exemplars for each of the ~14 matrix intersections. These are complete
+desiredState YAML files using the modules from Phase 2. Compilation tests assert
+correct nodes, dependencies, and invariant enforcement using the existing
+`YamlGraphRecorder`.
+
+### Phase 4: Reconciliation Integration Tests
+
+Wire compiled DesiredStateGraphs through the full reconciliation loop with stubbed
+backends. Verify TransitionPlanner produces correct plans, drift detection works,
+and fault policies fire correctly. Gated by `-Preconciliation` Maven profile.
+
+### Phase 5: Live Deployment (Real K8s)
+
+Deploy real Docker images to K8s (minikube/kind for CI, real cluster for manual
+verification). Verify health checks, service communication, load balancer routing,
+and reconciliation loop convergence. Gated by `-Pinfra-live` Maven profile.
+
+### Phase 6: GOAP Migration Planning
+
+Define GOAP actions for topology transitions (single-node → HA, LB cluster →
+multi-region). Verify GoapPlanner produces correct migration plans. Wire into
+engine cases with approval gates.
+
+### Phase 7: Service Lifecycle Integration
+
+Connect deployed topologies to Chapter 5 service lifecycle. Deployed services
+automatically become long-lived cases with nine-dimension monitoring.
 
 ---
 
@@ -707,7 +964,9 @@ deployed services automatically become long-lived cases with nine-dimension moni
 | D5 | Toy services | Real Docker images (nginx, postgres, redis, RabbitMQ, envoy) | Maximum confidence; health checks, communication, replication all testable |
 | D6 | Module location | New `topology-tests/` module | Clean separation, doesn't bloat existing modules |
 | D7 | YAML format | Topology-aware as first-class construct | Topology informs validation and node generation, not just metadata |
-| D8 | Implementation | TopologyGoalCompiler — native composition | Composes existing compilers rather than building parallel machinery |
+| D8 | Implementation | ~~TopologyGoalCompiler~~ → YAML-native composition | Existing YAML frontend (modules, invariants, rules, forEach, lifecycle phases) provides every primitive needed. No new compiler. |
+| D9 | Gap analysis | Extend, don't reinvent | Only InfraNodeSpec extensions (Java) + topology modules (YAML) + GOAP actions (Java) are genuinely new. Everything else exists. |
+| D10 | CaseHub integration | Full stack: TransitionPlanner + GOAP + Engine + Service Lifecycle | Each layer handles a different timescale/problem. No parallel machinery. |
 
 ---
 
