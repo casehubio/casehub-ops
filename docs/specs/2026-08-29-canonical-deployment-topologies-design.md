@@ -128,9 +128,14 @@ The solution is a `NodeSpecFactory` SPI that hooks into YAML type resolution:
 
 ```java
 public interface NodeSpecFactory {
-    NodeSpec create(ObjectMapper mapper, Map<String, Object> rawProperties);
+    NodeSpec create(ObjectMapper mapper, Map<String, Object> rawProperties, @Nullable String backendId);
 }
 ```
+
+The `backendId` parameter carries infrastructure backend routing. Non-infrastructure
+factories ignore it. This avoids mixing routing metadata into the domain spec map
+(which would cause Jackson `UnrecognizedPropertyException` on records that don't
+declare a `backendId` field).
 
 **Build-time discovery:** `YamlDesiredStateProcessor.scanNodeTypes()` is extended to
 detect `@NodeTypeId` annotations on `InfraNodeSpec` implementors (not just `NodeSpec`
@@ -139,7 +144,24 @@ implementors). For each discovered infra type, it registers a wrapping factory t
 1. Deserializes the raw YAML map into the `InfraNodeSpec` record
    (`mapper.convertValue(rawProperties, K8sIngressSpec.class)`)
 2. Wraps in `InfraDesiredNodeSpec(infraSpec, backendId)` — `backendId` comes from
-   the YAML spec map or defaults to the configured backend
+   the `YamlNode.backendId()` field (node-level metadata, not inside `spec:`)
+
+**`backendId` at node level:** `backendId` is infrastructure routing metadata, not a
+domain property. It belongs alongside `type:`, `when:`, and `humanGating:` at the
+`YamlNode` level — not inside `spec:` where it would pollute domain records. The
+`YamlNode` record gains a `String backendId` field (cross-repo change in
+`casehub-desiredstate-yaml`, included in Phase 1):
+
+```yaml
+# backendId is node-level metadata, not a spec property
+store-lb:
+  type: load_balancer
+  backendId: cloud-aws          # ← node level, not inside spec:
+  spec:
+    name: storefront-lb
+    namespace: storefront
+    type: APPLICATION
+```
 
 **Registry evolution:** `NodeSpecRegistry` is generalized from
 `Map<String, Class<? extends NodeSpec>>` to `Map<String, NodeSpecFactory>`.
@@ -149,7 +171,7 @@ Existing `NodeSpec` types use a direct-cast factory (backwards-compatible):
 // Legacy path: type extends NodeSpec directly
 class DirectCastFactory implements NodeSpecFactory {
     private final Class<? extends NodeSpec> specClass;
-    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw) {
+    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw, String backendId) {
         return mapper.convertValue(raw, specClass);
     }
 }
@@ -157,22 +179,25 @@ class DirectCastFactory implements NodeSpecFactory {
 // InfraNodeSpec path: wrap in InfraDesiredNodeSpec
 class InfraWrappingFactory implements NodeSpecFactory {
     private final Class<? extends InfraNodeSpec> infraClass;
-    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw) {
-        var backendId = (String) raw.getOrDefault("backendId", defaultBackend);
+    private final String defaultBackend;
+    public NodeSpec create(ObjectMapper mapper, Map<String, Object> raw, String backendId) {
         var infraSpec = mapper.convertValue(raw, infraClass);
-        return new InfraDesiredNodeSpec(infraSpec, backendId);
+        var effectiveBackend = backendId != null ? backendId : defaultBackend;
+        return new InfraDesiredNodeSpec(infraSpec, effectiveBackend);
     }
 }
 ```
 
 This preserves the compile-time safety of the `InfraNodeSpec`/`NodeSpec` separation
 while enabling YAML-native topology declarations without a custom goal compiler.
+The raw spec map is never polluted with routing metadata, so Jackson deserialization
+works cleanly against the record's declared fields.
 
 **`defaultBackend` sourcing:** The `InfraWrappingFactory` receives its
 `defaultBackend` at construction time from the `YamlDesiredStateProcessor` build
 step. The default is configurable via Quarkus build-time config
 (`casehub.desiredstate.infra.default-backend`), defaulting to `"standalone"`.
-Individual YAML nodes can override by including `backendId` in their `spec:` map.
+Individual YAML nodes override via `backendId:` at the node level (see above).
 This parallels `InfraGoalCompiler.resolveBackend(decl.backend(), goals.defaultBackend())`
 — per-declaration override with a goal-level default.
 
@@ -658,16 +683,57 @@ When a topology uses both `lifecycle:` phases and `imports:`, module expansion m
 occur before phase compilation. Currently, `createYamlLifecycleGoalCompiler()` does
 not call `ModuleExpander` — this is a gap that must be addressed in Phase 2.
 
-**Design:** Module imports are expanded at the graph level before lifecycle phasing.
-Module-imported nodes that have `dependsOn` on a phased node are assigned to the
-same phase as their latest dependency. Module-imported nodes with no phase-internal
-dependencies are placed in the final phase. This preserves the lifecycle ordering
-guarantee while allowing modules to compose with phased rollouts.
+**Method signature change:** `createYamlLifecycleGoalCompiler()` gains an
+`availableModules` parameter (`Map<String, YamlModule>`), matching the existing
+`createYamlGoalCompiler()` overload that accepts module maps. The build-time
+processor passes discovered modules to both compilers.
+
+**Module expansion timing:** Module expansion runs once at the top of the method,
+before the phase iteration loop begins. This is the same call site pattern as the
+non-lifecycle compiler:
+
+1. If `yamlGraph.imports()` is non-empty and `availableModules` is provided, call
+   `ModuleExpander.expand(yamlGraph.imports(), availableModules, Map.of())`.
+2. The result produces expanded module nodes, module scopes, promoted rules, and
+   promoted invariants.
+3. Promoted rules and invariants are merged into the per-phase rule/invariant
+   evaluation (the existing loop already applies rules and invariants per phase).
+
+**Phase auto-assignment algorithm:** Module-imported nodes must be assigned to
+lifecycle phases because the lifecycle compiler processes each phase's nodes
+independently. The algorithm:
+
+1. **Build node→phase index.** Iterate `yamlGraph.lifecycle().phases()` and map
+   each nodeId defined in a phase to that phase's `id()`. Record phase ordering
+   (the `phases()` list defines execution order).
+
+2. **Assign each module-imported node.** For each node in the expanded module
+   output, scan its `dependsOn` targets against the node→phase index:
+   - If any dependency is assigned to a phase, assign the node to the **latest**
+     phase among its dependencies (latest = highest index in the phase ordering).
+   - If no dependency is in any phase, assign the node to the **final** phase.
+   - Update the node→phase index after each assignment so transitive dependencies
+     chain correctly (a module node depending on another module node that was just
+     assigned inherits the correct phase).
+
+3. **Inject into phase node maps.** Before processing each phase in the iteration
+   loop, merge the module-assigned nodes for that phase into the phase's node map.
+   Module scopes are passed to `ForEachExpander` for variable resolution within
+   module nodes (the same `moduleScopes` mechanism used in the non-lifecycle path).
+
+**Cross-phase dependency validation:** A module-imported node may depend on nodes
+in multiple phases (e.g., a load balancer depends on a web-tier service AND an
+infra-tier namespace). Assignment to the latest phase is correct because earlier
+phases are carry-forwarded — their nodes are visible in all subsequent phases.
+The carry-forward mechanism in the existing lifecycle compiler already handles this:
+it accumulates `carryForwardNodes` and `carryForwardDeps` across phases.
 
 **Exemplar impact:** The e-commerce exemplar (T4) uses lifecycle phases for ordered
 rollout AND the `load-balancer` module. The module-imported nodes (`lb`, `ingress`)
-depend on `storefront-nginx` in the `web-tier` phase, so they are placed in or after
-the web tier.
+depend on `storefront-nginx` in the `web-tier` phase, so they are assigned to the
+`web-tier` phase. They appear in the `web-tier` phase graph alongside the directly
+defined web-tier nodes, and their dependencies on earlier-phase nodes (e.g.,
+namespace from `infra` phase) are satisfied via carry-forward.
 
 ---
 
@@ -826,6 +892,7 @@ provisioners are out of scope:
 | D12 | Module discovery | Extend `discoverModules()` jar protocol | New discovery mechanism in ops | Minimal change — `discoverYamlFiles()` already handles both protocols, same pattern |
 | D13 | `handledTypes()` | Derive dynamically from sealed permits + `@NodeTypeId` | Hardcoded `Set.of(...)` | Eliminates coordinated-change fragility — new sealed variants auto-register |
 | D14 | Compilation paths | YAML primary + InfraGoalCompiler programmatic | Single path | Both produce same downstream graph; YAML for humans, Java for programmatic composition |
+| D15 | `backendId` placement | `YamlNode` level (node metadata) | Inside `spec:` map | Routing metadata ≠ domain property; avoids Jackson `UnrecognizedPropertyException` on records that don't declare `backendId` |
 
 ---
 
@@ -833,7 +900,7 @@ provisioners are out of scope:
 
 | Phase | What | Type | Depends On |
 |---|---|---|---|
-| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all 15 variants) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + **cross-repo** (`casehub-desiredstate-yaml`): `NodeSpecFactory` SPI + `NodeSpecRegistry` generalization + `YamlDesiredStateProcessor` InfraNodeSpec discovery + `discoverModules()` jar protocol support | Java | — |
+| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all 15 variants) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + **cross-repo** (`casehub-desiredstate-yaml`): `NodeSpecFactory` SPI (with `backendId` parameter) + `NodeSpecRegistry` generalization + `YamlNode.backendId` field + `YamlDesiredStateProcessor` InfraNodeSpec discovery + `discoverModules()` jar protocol support | Java | — |
 | 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
