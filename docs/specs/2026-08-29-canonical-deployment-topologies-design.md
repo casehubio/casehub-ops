@@ -103,7 +103,7 @@ and the reference catalogue for how to deploy software with CaseHub.
 | ModuleExpander | Exists | None |
 | GraphRuleEngine | Exists | None |
 | GraphInvariantEngine | Exists | None |
-| YamlLifecycleCompiler | Exists | None |
+| YamlLifecycleCompiler | Exists | Extended: call `ModuleExpander` before phase compilation (Phase 2, see §5.5) |
 | NodeSpecRegistry | Exists | Generalized: maps type string → `NodeSpecFactory` (backwards-compatible) |
 | YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory. Extended `discoverModules()`: handle `jar` protocol (currently only handles `file` protocol — modules in dependent JARs are invisible) |
 | VariableResolver | Exists | None |
@@ -194,6 +194,34 @@ application metadata). Both paths produce `InfraDesiredNodeSpec` nodes in a
 identical. Adding `parseSpec()` cases to `InfraGoalCompiler` (§3.2) ensures the
 new types are available in both paths.
 
+### 3.4 Cross-Repository Coordination
+
+This spec is filed under `casehub-ops` but Phase 1 requires changes in
+`casehub-desiredstate` (a separate repository). The split:
+
+**`casehub-desiredstate` changes (prerequisite — merged and released first):**
+
+| Module | Change |
+|---|---|
+| `casehub-desiredstate-api` | `@NodeTypeId` already exists here (`io.casehub.desiredstate.api.NodeTypeId`, `@Retention(RUNTIME)`, `@Target(TYPE)`) — no changes needed |
+| `casehub-desiredstate-yaml` (runtime) | `NodeSpecFactory` SPI interface + `DirectCastFactory` implementation. `NodeSpecRegistry` generalized to `Map<String, NodeSpecFactory>`. `YamlGraphRecorder` and `ForEachExpander` updated to use factory-based resolution |
+| `casehub-desiredstate-yaml` (deployment) | `YamlDesiredStateProcessor.scanNodeTypes()` extended to discover `@NodeTypeId` on `InfraNodeSpec` implementors. `discoverModules()` jar protocol support. `createYamlLifecycleGoalCompiler()` module expansion (Phase 2) |
+
+**`casehub-ops` changes (after `casehub-desiredstate` release):**
+
+| Module | Change |
+|---|---|
+| `casehub-ops-api` | 5 new `InfraNodeSpec` sealed variants + `@NodeTypeId` on all 15 variants + 3 supporting enums |
+| `casehub-ops-infra` | `InfraWrappingFactory` implementation. `InfraGoalCompiler` parseSpec() cases. `InfraNodeProvisioner`/`InfraActualStateAdapter` dynamic `handledTypes()`. Topology YAML modules in `META-INF/desiredstate/modules/` |
+| `topology-tests` (new) | Compilation, reconciliation, and live tests |
+
+**Coordination:** `casehub-desiredstate` changes are issued and tracked in that
+repo's issue tracker. The `casehub-ops` issue (this spec's TBD issue) depends on
+the `casehub-desiredstate` issue. After the `casehub-desiredstate` changes merge,
+`casehub-ops` bumps its `casehub-desiredstate` dependency version in `pom.xml`
+before Phase 1 work on `InfraWrappingFactory` and the new sealed variants can
+compile against the generalized `NodeSpecRegistry`.
+
 ---
 
 ## 4. New InfraNodeSpec Sealed Variants
@@ -202,6 +230,16 @@ Each is a Java record in `api/src/main/java/io/casehub/ops/api/infra/`, extendin
 existing `InfraNodeSpec` sealed interface. Each record carries `@NodeTypeId` matching
 its `resourceType()` return value — this is how `YamlDesiredStateProcessor` discovers
 the type at build time and registers it with the wrapping `NodeSpecFactory` (§3.3).
+
+**`@NodeTypeId` is an existing annotation** — defined at
+`io.casehub.desiredstate.api.NodeTypeId` in `casehub-desiredstate-api` with
+`@Retention(RUNTIME)` and `@Target(TYPE)`. It is already used by `NodeSpec`
+implementors compiled via the YAML frontend (e.g., pipeline example specs like
+`SchemaSpec`, `SinkSpec`, `TransformerSpec`) for build-time discovery by
+`YamlDesiredStateProcessor.scanNodeTypes()`. The new work adds this annotation
+to `InfraNodeSpec` variants (which previously didn't need it because they were
+only compiled via `InfraGoalCompiler`'s hard-coded switch). No changes to the
+annotation definition itself are required.
 
 **Why sealed variants, not `GenericResourceSpec`?** The existing sealed hierarchy
 includes `GenericResourceSpec(String resourceType, JsonNode config)` — an untyped
