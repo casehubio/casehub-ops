@@ -228,9 +228,9 @@ This spec is filed under `casehub-ops` but Phase 1 requires changes in
 
 | Module | Change |
 |---|---|
-| `casehub-desiredstate-api` | `@NodeTypeId` already exists here (`io.casehub.desiredstate.api.NodeTypeId`, `@Retention(RUNTIME)`, `@Target(TYPE)`) — no changes needed |
-| `casehub-desiredstate-yaml` (runtime) | `NodeSpecFactory` SPI interface + `DirectCastFactory` implementation. `NodeSpecRegistry` generalized to `Map<String, NodeSpecFactory>`. `YamlGraphRecorder` and `ForEachExpander` updated to use factory-based resolution |
-| `casehub-desiredstate-yaml` (deployment) | `YamlDesiredStateProcessor.scanNodeTypes()` extended to discover `@NodeTypeId` on `InfraNodeSpec` implementors. `discoverModules()` jar protocol support. `createYamlLifecycleGoalCompiler()` module expansion (Phase 2) |
+| `casehub-desiredstate-api` | `@NodeTypeId` already exists here (`io.casehub.desiredstate.api.NodeTypeId`, `@Retention(RUNTIME)`, `@Target(TYPE)`) — no changes needed. Add `NodeSpecFactory` SPI interface (alongside `NodeSpec`, `NodeType`) — this is a core API type, not YAML-specific. Placing it here avoids forcing `casehub-ops-infra` to depend on the YAML module just to implement the factory interface. |
+| `casehub-desiredstate-yaml` (runtime) | `DirectCastFactory` implementation (default factory for types that already implement `NodeSpec`). `NodeSpecRegistry` generalized to `Map<String, NodeSpecFactory>`. `YamlGraphRecorder` and `ForEachExpander` updated to use factory-based resolution. `YamlNode` record gains `String backendId` field. |
+| `casehub-desiredstate-yaml` (deployment) | `YamlDesiredStateProcessor.scanNodeTypes()` extended to discover `@NodeTypeId` on `InfraNodeSpec` implementors. `discoverModules()` jar protocol support. Phase 2: remove `validateLifecycle()` imports guard + `createYamlLifecycleGoalCompiler()` module expansion |
 
 **`casehub-ops` changes (after `casehub-desiredstate` release):**
 
@@ -683,6 +683,15 @@ When a topology uses both `lifecycle:` phases and `imports:`, module expansion m
 occur before phase compilation. Currently, `createYamlLifecycleGoalCompiler()` does
 not call `ModuleExpander` — this is a gap that must be addressed in Phase 2.
 
+**Build-time validation guard:** `YamlDesiredStateProcessor.validateLifecycle()`
+actively throws `RuntimeException` when `!graph.imports().isEmpty()` (line ~593),
+blocking any YAML file that combines `lifecycle:` with `imports:` at build time.
+This guard must be removed as part of Phase 2 — it is not sufficient to only add
+`ModuleExpander` support to the lifecycle compiler, because the validation guard
+fires before the compiler is reached. Exemplars T4, T6, and T10 (which combine
+lifecycle phases with topology module imports) will fail at build-time validation
+until this guard is removed.
+
 **Method signature change:** `createYamlLifecycleGoalCompiler()` gains an
 `availableModules` parameter (`Map<String, YamlModule>`), matching the existing
 `createYamlGoalCompiler()` overload that accepts module maps. The build-time
@@ -901,7 +910,7 @@ provisioners are out of scope:
 | Phase | What | Type | Depends On |
 |---|---|---|---|
 | 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all 15 variants) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + **cross-repo** (`casehub-desiredstate-yaml`): `NodeSpecFactory` SPI (with `backendId` parameter) + `NodeSpecRegistry` generalization + `YamlNode.backendId` field + `YamlDesiredStateProcessor` InfraNodeSpec discovery + `discoverModules()` jar protocol support | Java | — |
-| 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support | YAML + Java | Phase 1 |
+| 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support + remove `validateLifecycle()` imports guard (**cross-repo**: `casehub-desiredstate-yaml` deployment) | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
 | 5 | Live K8s deployment tests | Java + infra | Phase 4 |
