@@ -148,6 +148,40 @@ all of these working together: an e-commerce order pipeline with variables, cond
 gift-wrapping, auto-wiring notification rules, invariant-enforced fraud checks, forEach
 warehouse replication, and reusable notification modules.
 
+### The Generation Architecture — Java Canonical, YAML and TS Generated
+
+CaseHub follows a layered generation architecture across all repos:
+
+```
+Java records + annotations     (canonical — the source of truth)
+        │
+        ├── Builder DSLs       (ergonomic Java API for programmatic use)
+        │
+        ├──── generates ────►  YAML schema    (declarative API for end users)
+        │                          │
+        │                          └──►  NodeSpecRegistry auto-populates via Jandex
+        │
+        └──── generates ────►  TypeScript types  (UI layer, frontend tooling)
+```
+
+Eidos is currently extracting the shared generator to `casehub-platform` — all repos
+will use the same pipeline. This means:
+
+1. **New InfraNodeSpec variants are Java records** — that's the extension point
+2. **YAML schema follows automatically** — the generator produces it from the Java types
+3. **NodeSpecRegistry populates via Jandex** — no manual registration needed
+4. **TS types follow automatically** — UI can render and validate any topology
+
+**YAML parity with Java is a deliberate design goal.** End users should be able to do
+almost anything they can do programmatically from pure YAML documents. This drives mass
+appeal — YAML-first tutorials are accessible to DevOps engineers, platform teams, and
+compliance officers who may never write Java.
+
+This validates the approach: define topology types as Java records in
+`casehub-ops-api`, let the generation pipeline produce YAML schema, and write topology
+modules as pure YAML using the generated schema. The topology work exercises the full
+generation pipeline end-to-end.
+
 ### Implication: No New Compiler Needed
 
 **The "TopologyGoalCompiler" as a new Java class is the wrong approach.** The existing
@@ -894,12 +928,13 @@ Maven profiles control which layers run:
 
 ## 8. Implementation Sequencing
 
-### Phase 1: InfraNodeSpec Extensions + NodeSpec Registry Wiring
+### Phase 1: InfraNodeSpec Extensions (Java Canonical → YAML/TS Generated)
 
-Extend the `InfraNodeSpec` sealed hierarchy with new types needed by the topology
-modules. Register them in the `NodeSpecRegistry` so YAML `type:` references resolve.
+Extend the `InfraNodeSpec` sealed hierarchy with new Java records for the topology
+infrastructure types. The shared platform generator (from eidos) produces YAML schema
+and TypeScript types. Jandex indexing auto-populates the `NodeSpecRegistry`.
 
-New sealed variants:
+New sealed variants (Java records with builder DSLs and annotations):
 - `LoadBalancerSpec` — type (application/network), health check, target services
 - `ServiceMeshControlPlaneSpec` — image, replicas, mesh config
 - `SidecarProxySpec` — image, target service, resources
@@ -907,6 +942,9 @@ New sealed variants:
 - `DataReplicationSpec` — source cluster, target cluster, mode (async/sync)
 
 New `InfraNodeProvisioner` handlers for each type.
+
+This phase exercises the full generation pipeline: Java record → YAML schema →
+NodeSpecRegistry → YAML `type:` resolution.
 
 ### Phase 2: Topology Modules (Pure YAML)
 
