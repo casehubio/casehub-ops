@@ -505,9 +505,9 @@ nodes:
 rules:
   sidecar-depends-on-control-plane:
     match:
-      proxy: { type: sidecar-proxy }
+      proxy: { type: sidecar_proxy }
     notExists:
-      cp: { type: mesh-control-plane, of: proxy, direction: DEPENDENCIES }
+      cp: { type: mesh_control_plane, of: proxy, direction: DEPENDENCIES }
     actions:
       - addDependency:
           from: "${match.proxy.id}"
@@ -545,7 +545,7 @@ module:
 
 nodes:
   data-replication:
-    type: data-replication
+    type: data_replication
     spec:
       name: "${var.primary_cluster}-to-${var.dr_cluster}"
       sourceCluster: ${var.primary_cluster}
@@ -555,7 +555,7 @@ nodes:
       lagThresholdSeconds: 30
 
   dns-failover:
-    type: dns-failover
+    type: dns_failover
     dependsOn: [data-replication]
     spec:
       name: "${var.primary_cluster}-failover"
@@ -568,9 +568,9 @@ nodes:
 invariants:
   replication-before-failover:
     match:
-      fo: { type: dns-failover }
+      fo: { type: dns_failover }
     directDep:
-      repl: { type: data-replication, of: fo, direction: DEPENDENCIES }
+      repl: { type: data_replication, of: fo, direction: DEPENDENCIES }
     message: "DNS failover requires data replication to be configured first"
 ```
 
@@ -754,7 +754,7 @@ provisioners are out of scope:
 
 | Phase | What | Type | Depends On |
 |---|---|---|---|
-| 1 | InfraNodeSpec extensions (5 new records) + `handledTypes()` registration in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler | Java | — |
+| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all variants) + `handledTypes()` registration in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + `NodeSpecFactory` SPI + `NodeSpecRegistry` generalization + `YamlDesiredStateProcessor` InfraNodeSpec discovery | Java | — |
 | 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
