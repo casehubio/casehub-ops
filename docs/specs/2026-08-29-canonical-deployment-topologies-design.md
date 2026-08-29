@@ -64,10 +64,13 @@ and the reference catalogue for how to deploy software with CaseHub.
                            │ type: references
 ┌──────────────────────────▼──────────────────────────────────────┐
 │           InfraNodeSpec Sealed Hierarchy (Java records)           │
-│  LoadBalancerSpec  SidecarProxySpec  MeshControlPlaneSpec         │
-│  DnsFailoverSpec   DataReplicationSpec                           │
-│  + existing: K8sNamespaceSpec, K8sDeploymentSpec, K8sServiceSpec  │
-│              K8sIngressSpec, ComputeInstanceSpec, ...             │
+│  NEW: LoadBalancerSpec, SidecarProxySpec,                        │
+│       ServiceMeshControlPlaneSpec, DnsFailoverSpec,               │
+│       DataReplicationSpec                                        │
+│  EXISTING: K8sNamespaceSpec, K8sDeploymentSpec, K8sServiceSpec,  │
+│       K8sIngressSpec, K8sConfigMapSpec, ComputeInstanceSpec,     │
+│       DatabaseClusterSpec, TerraformWorkspaceSpec,                │
+│       AnsiblePlaybookSpec, GenericResourceSpec                    │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ @NodeTypeId + NodeSpecFactory
 ┌──────────────────────────▼──────────────────────────────────────┐
@@ -102,11 +105,11 @@ and the reference catalogue for how to deploy software with CaseHub.
 | GraphInvariantEngine | Exists | None |
 | YamlLifecycleCompiler | Exists | None |
 | NodeSpecRegistry | Exists | Generalized: maps type string → `NodeSpecFactory` (backwards-compatible) |
-| YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory |
+| YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory. Extended `discoverModules()`: handle `jar` protocol (currently only handles `file` protocol — modules in dependent JARs are invisible) |
 | VariableResolver | Exists | None |
 | TransitionPlanner | Exists | None |
-| InfraNodeProvisioner | Exists | Add 5 types to `handledTypes()` |
-| InfraActualStateAdapter | Exists | Add 5 types to `handledTypes()` |
+| InfraNodeProvisioner | Exists | Derive `handledTypes()` dynamically from `InfraNodeSpec` sealed permits via `@NodeTypeId` reflection (replaces hardcoded `Set.of(...)`) |
+| InfraActualStateAdapter | Exists | Derive `handledTypes()` dynamically from `InfraNodeSpec` sealed permits via `@NodeTypeId` reflection (same pattern) |
 | InfraGoalCompiler | Exists | Add 5 `parseSpec()` cases for new types |
 | InfraNodeSpec hierarchy | Exists | 5 new sealed variants + `@NodeTypeId` on all variants (new and existing) |
 | NodeSpecFactory | **New** | SPI: `NodeSpec create(ObjectMapper, Map<String,Object>)` — wrapping hook for non-NodeSpec types |
@@ -164,6 +167,32 @@ class InfraWrappingFactory implements NodeSpecFactory {
 
 This preserves the compile-time safety of the `InfraNodeSpec`/`NodeSpec` separation
 while enabling YAML-native topology declarations without a custom goal compiler.
+
+**`defaultBackend` sourcing:** The `InfraWrappingFactory` receives its
+`defaultBackend` at construction time from the `YamlDesiredStateProcessor` build
+step. The default is configurable via Quarkus build-time config
+(`casehub.desiredstate.infra.default-backend`), defaulting to `"standalone"`.
+Individual YAML nodes can override by including `backendId` in their `spec:` map.
+This parallels `InfraGoalCompiler.resolveBackend(decl.backend(), goals.defaultBackend())`
+— per-declaration override with a goal-level default.
+
+**Module discovery from dependent JARs:** `YamlDesiredStateProcessor.discoverModules()`
+currently only handles `"file"` protocol URLs when scanning
+`META-INF/desiredstate/modules/`. This means modules in dependent JARs (like
+`casehub-ops-infra.jar`) are invisible at build time. The same processor's
+`discoverYamlFiles()` already handles both `"file"` and `"jar"` protocols — the
+fix is to apply the same jar-protocol handling to `discoverModules()`. This is a
+targeted change in `casehub-desiredstate-yaml`, not a new mechanism.
+
+**Two compilation paths — complementary, not competing:** The YAML frontend
+(`YamlGraphRecorder` + `NodeSpecFactory`) is the primary path for human-authored
+topology declarations — it provides modules, rules, invariants, forEach, and
+lifecycle phases. `InfraGoalCompiler` remains the programmatic API for Java-native
+goal construction (e.g., `ApplicationGoalCompiler` building K8s deployments from
+application metadata). Both paths produce `InfraDesiredNodeSpec` nodes in a
+`DesiredStateGraph`; downstream (TransitionPlanner, InfraNodeProvisioner) is
+identical. Adding `parseSpec()` cases to `InfraGoalCompiler` (§3.2) ensures the
+new types are available in both paths.
 
 ---
 
@@ -379,6 +408,14 @@ match the Java record structure.
 
 Ship in `infra/src/main/resources/META-INF/desiredstate/modules/`.
 
+**Discovery:** The `YamlDesiredStateProcessor` build step scans
+`META-INF/desiredstate/modules/` at build time and passes discovered modules to
+`YamlGraphRecorder` as constructor arguments. Currently, `discoverModules()` only
+handles the `"file"` protocol — modules in dependent JARs are not found. Phase 1
+extends `discoverModules()` to handle the `"jar"` protocol, mirroring the existing
+`discoverYamlFiles()` implementation that already supports both protocols. This is a
+cross-repo change in `casehub-desiredstate-yaml` (see §3.3).
+
 ### 5.1 load-balancer.yaml
 
 ```yaml
@@ -474,8 +511,9 @@ was non-functional — an invariant with only a `message:` and no `match:` patte
 never evaluates (the engine requires at least one MATCH pattern to bind nodes).
 The replacement validates structural correctness. Minimum zone count enforcement
 requires parameter-level constraints (`minLength: 3` on the `zones` parameter),
-which the module parameter system does not yet support. Tracked as a future
-enhancement.
+which the module parameter system does not yet support. Tracked as
+casehubio/casehub-desiredstate#126 (parameter constraints) and
+casehubio/casehub-desiredstate#127 (count-based invariants).
 
 ### 5.3 service-mesh.yaml
 
@@ -747,6 +785,9 @@ provisioners are out of scope:
 | D9 | Gap analysis | Extend, don't reinvent | Build new compiler | Only InfraNodeSpec + modules + GOAP actions are new |
 | D10 | CaseHub stack | Full: TransitionPlanner + GOAP + Engine + Lifecycle | Parallel machinery | Each layer handles different timescale |
 | D11 | YAML role | Primary interface; Java is escape hatch | Parity goal | Mass appeal, tutorials, onboarding — YAML-first |
+| D12 | Module discovery | Extend `discoverModules()` jar protocol | New discovery mechanism in ops | Minimal change — `discoverYamlFiles()` already handles both protocols, same pattern |
+| D13 | `handledTypes()` | Derive dynamically from sealed permits + `@NodeTypeId` | Hardcoded `Set.of(...)` | Eliminates coordinated-change fragility — new sealed variants auto-register |
+| D14 | Compilation paths | YAML primary + InfraGoalCompiler programmatic | Single path | Both produce same downstream graph; YAML for humans, Java for programmatic composition |
 
 ---
 
@@ -754,7 +795,7 @@ provisioners are out of scope:
 
 | Phase | What | Type | Depends On |
 |---|---|---|---|
-| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all variants) + `handledTypes()` registration in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + `NodeSpecFactory` SPI + `NodeSpecRegistry` generalization + `YamlDesiredStateProcessor` InfraNodeSpec discovery | Java | — |
+| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all 15 variants) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + **cross-repo** (`casehub-desiredstate-yaml`): `NodeSpecFactory` SPI + `NodeSpecRegistry` generalization + `YamlDesiredStateProcessor` InfraNodeSpec discovery + `discoverModules()` jar protocol support | Java | — |
 | 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
