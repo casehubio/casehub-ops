@@ -172,10 +172,13 @@ will use the same pipeline. This means:
 3. **NodeSpecRegistry populates via Jandex** — no manual registration needed
 4. **TS types follow automatically** — UI can render and validate any topology
 
-**YAML parity with Java is a deliberate design goal.** End users should be able to do
-almost anything they can do programmatically from pure YAML documents. This drives mass
-appeal — YAML-first tutorials are accessible to DevOps engineers, platform teams, and
-compliance officers who may never write Java.
+**YAML is the primary user-facing interface — the main way CaseHub teaches and
+engages users.** Java is the escape hatch for Java developers who love their IDE and
+type safety. YAML parity with the Java layer is a deliberate design goal: end users
+should be able to do almost anything from pure YAML documents. This is what drives
+mass appeal — YAML-first tutorials are accessible to DevOps engineers, platform
+teams, and compliance officers who may never write Java. The topology exemplars in
+this research double as the tutorial material.
 
 This validates the approach: define topology types as Java records in
 `casehub-ops-api`, let the generation pipeline produce YAML schema, and write topology
