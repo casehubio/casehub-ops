@@ -105,7 +105,7 @@ and the reference catalogue for how to deploy software with CaseHub.
 | GraphInvariantEngine | Exists | None |
 | YamlLifecycleCompiler | Exists | Phase 1: adapt `registry.resolve()` and `mapper.convertValue()` calls to factory API (`NodeSpecFactory.create()`), matching `YamlGraphRecorder` and `ForEachExpander` changes. Phase 2: call `ModuleExpander` before phase compilation (see §5.5) |
 | NodeSpecRegistry | Exists | Generalized: maps type string → `NodeSpecFactory` (backwards-compatible) |
-| YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory. Extended `discoverModules()`: handle `jar` protocol (currently only handles `file` protocol — modules in dependent JARs are invisible) |
+| YamlDesiredStateProcessor | Exists | Generalized `scanNodeTypes()`: discover ALL `@NodeTypeId`-annotated classes (drop `NodeSpec` implementor guard — see D19). Extended `discoverModules()`: handle `jar` protocol (currently only handles `file` protocol — modules in dependent JARs are invisible) |
 | VariableResolver | Exists | None |
 | TransitionPlanner | Exists | None |
 | InfraNodeProvisioner | Exists | Derive `handledTypes()` dynamically from `InfraNodeSpec` sealed permits via `@NodeTypeId` reflection (replaces hardcoded `Set.of(...)`) |
