@@ -1305,7 +1305,115 @@ Each domain beyond D1 (already in spec) needs its own design spec:
 
 ---
 
-## 9. Sources
+## 9. Reusable Library Landscape
+
+### Principle: Quarkus First, Then Liberal OSS, Then Custom
+
+CaseHub runs on Quarkus. Before writing custom code or adopting a standalone library,
+check whether a Quarkus extension already solves the problem — Quarkus extensions get
+build-time optimisation, native compilation support, and CDI integration for free.
+
+### Existing CaseHub Capabilities (Don't Rebuild)
+
+| Capability | Location | What It Does |
+|---|---|---|
+| `SecretManager` SPI | `casehub-platform-api`, `casehub-engine-common` | Secret resolution — abstraction over secret backends |
+| `CredentialResolver` SPI | `casehub-platform-api` | Credential resolution for workers and services |
+| `WorkerCredential` | `casehub-platform-api` | Credential record for worker identity |
+| fabric8 K8s client | `casehub-ops-app` (already a dependency) | K8s resource provisioning, watches, events |
+
+D7 (Secret & Identity) should **extend** the existing `SecretManager` and
+`CredentialResolver` SPIs rather than building a parallel secret management system.
+The desired-state model manages the secret infrastructure (Vault paths, IAM roles);
+the existing SPIs resolve secrets at runtime.
+
+### Library Map by Domain
+
+| Domain | Concern | Quarkus Extension | Standalone Library | License | What CaseHub Writes |
+|--------|---------|-------------------|-------------------|---------|---------------------|
+| **D2** | SSH connectivity | — | **SSHJ** | Apache 2.0 | Connection pool + command executor |
+| **D2** | Template engine | — | **Jinjava** (HubSpot) | Apache 2.0 | Integration with `host_file` provisioner |
+| **D2** | Package/service mgmt | — | **None exists** | — | SPI + per-OS adapters (~80 lines each) |
+| **D4/D7** | TLS certificates | **Quarkus TLS Registry** (built-in ACME) | **acme4j** (if non-Quarkus) | Apache 2.0 | `certificate_renewal` provisioner |
+| **D7** | HashiCorp Vault | **quarkus-vault** (v4.9.0) | jopenlibs vault-java-driver | Apache 2.0 / MIT | `secret_engine` provisioner delegates to quarkus-vault |
+| **D1** | K8s resources | **quarkus-kubernetes-client** (fabric8) | — | Apache 2.0 | Already in use |
+| **D8** | Prometheus metrics | **quarkus-micrometer-registry-prometheus** | — | Apache 2.0 | `alert_rule` provisioner uses Prometheus API |
+| **D10** | Kafka topics | **quarkus-messaging-kafka** | Apache Kafka AdminClient | Apache 2.0 | `message_topic` provisioner |
+| **D10** | RabbitMQ | **quarkus-messaging-rabbitmq** | RabbitMQ Java client | Apache 2.0 | Queue/exchange provisioner |
+| **D1** | AWS resources | — | **AWS SDK v2** | Apache 2.0 | Cloud backend for infra module |
+| **D1** | Azure resources | — | **Azure SDK** | MIT | Cloud backend |
+| **D1** | GCP resources | — | **Google Cloud Java** | Apache 2.0 | Cloud backend |
+| **D1** | DNS protocol | — | **dnsjava** | BSD | DNS record provisioner |
+| **D8** | Grafana dashboards | — | Grafana REST API (HTTP client) | — | `dashboard` provisioner calls REST API |
+
+### Key Findings
+
+**Jinjava solves the #1 gap from the stress test.** HubSpot's Jinja2-compatible
+template engine for Java (Apache 2.0) means ops people use the exact same template
+syntax they already know. Filters, conditionals, loops — all supported. This is the
+`host_file` provisioner's template engine.
+
+**quarkus-vault replaces standalone Vault clients.** The Quarkiverse extension
+(v4.9.0, July 2026) provides Vault as a config source, database credential fetching,
+TOTP support, and automatic token renewal — all with Quarkus-native build-time
+optimisation. CaseHub's existing `SecretManager` SPI can delegate to `quarkus-vault`
+for Vault-backed secret resolution. No need for a separate Vault Java driver.
+
+**Quarkus TLS Registry has built-in ACME.** Server-side certificate management with
+Let's Encrypt, auto-renewal, and cert-manager integration is built into Quarkus.
+For managing certificates on *other* hosts (the D2/D4 use case), `acme4j` provides
+the ACME client protocol.
+
+**Host-level configuration is genuinely novel.** No Java library exists for
+cross-platform package/service/file management on remote hosts. This is the one area
+where CaseHub writes original code — but it's thin adapters over SSH + CLI commands,
+not a monolithic framework. The SPI architecture keeps each OS-family adapter small
+(~80 lines).
+
+### What CaseHub Writes From Scratch (Updated)
+
+| New Code | Lines (est.) | Why |
+|----------|-------------|-----|
+| D2 `HostConfigProvisioner` + SSH integration | ~500 | Novel composition of SSHJ + desired-state model |
+| D2 `PackageManager` SPI + 3 impls | ~300 | Too thin for a library — CLI wrappers over SSH |
+| D2 `ServiceManager` SPI + 2 impls | ~200 | Same — `systemctl`/`openrc` wrappers |
+| D2 Additional host SPIs (file, user, firewall, cron, mount) | ~600 | Per-concern adapters |
+| Node type records (all domains) | ~500 | Domain-specific — these ARE the design |
+| Provisioner adapters (wrap Quarkus extensions/libraries) | ~1,000 | Integration glue |
+| GOAP action libraries (D5) | ~500 | Domain-specific planning actions |
+| **Total genuinely new code** | **~3,600** | Everything else is Quarkus extensions or existing CaseHub |
+
+---
+
+## 10. Adversarial Stress Test Results
+
+The three-tier model (first-class node types + generic operations + script escape
+hatch) was adversarially stress-tested against the top 43 Ansible modules.
+
+**Verdict:** The claim holds for ~85% of production use cases. 30 of 43 modules
+covered by Tiers 1-2.
+
+**5 genuine gaps identified and addressed:**
+
+| Gap | Fix | Status |
+|-----|-----|--------|
+| Templating language | **Jinjava** (Jinja2-compatible, Apache 2.0) | Solved — library exists |
+| 5 missing node types (cron, mount, package_repo, selinux, alternatives) | Add to D2 sealed variants | Scope item |
+| Line-level file mutation (lineinfile/blockinfile) | Add `host_file_line` and `host_file_block` modes | Scope item |
+| Cross-host delegation | Model as separate graph nodes with dependencies | Architecture pattern (already natural) |
+| Progressive canary rollout with abort thresholds | Engine case with adaptive batch sizing | Design work needed (D5) |
+
+**False alarms (look like gaps but aren't):**
+- Roles → YAML modules (more powerful — graph-level composition)
+- Inventory → DesiredStateGraph IS the inventory
+- Vault → D7 + quarkus-vault + existing SecretManager SPI
+- Tags → Different paradigm (continuous convergence, not selective execution)
+- Handlers → `notifyService` on `host_file`
+- Facts → Actual-state adapter (continuous, not per-run)
+
+---
+
+## 11. Sources
 
 - [Day 2 Operations: A Practical Guide (2026)](https://www.cycloid.io/blog/day-2-operations-a-practical-guide-for-managing-post-deployment-complexity/)
 - [How Platform Teams Govern the Full Infrastructure Lifecycle](https://www.cycloid.io/blog/how-platform-teams-govern-the-full-infrastructure-lifecycle/)
