@@ -103,15 +103,15 @@ and the reference catalogue for how to deploy software with CaseHub.
 | ModuleExpander | Exists | None |
 | GraphRuleEngine | Exists | None |
 | GraphInvariantEngine | Exists | None |
-| YamlLifecycleCompiler | Exists | Extended: call `ModuleExpander` before phase compilation (Phase 2, see §5.5) |
+| YamlLifecycleCompiler | Exists | Phase 1: adapt `registry.resolve()` and `mapper.convertValue()` calls to factory API (`NodeSpecFactory.create()`), matching `YamlGraphRecorder` and `ForEachExpander` changes. Phase 2: call `ModuleExpander` before phase compilation (see §5.5) |
 | NodeSpecRegistry | Exists | Generalized: maps type string → `NodeSpecFactory` (backwards-compatible) |
 | YamlDesiredStateProcessor | Exists | Extended `scanNodeTypes()`: discover `@NodeTypeId` on `InfraNodeSpec` types, register with wrapping factory. Extended `discoverModules()`: handle `jar` protocol (currently only handles `file` protocol — modules in dependent JARs are invisible) |
 | VariableResolver | Exists | None |
 | TransitionPlanner | Exists | None |
 | InfraNodeProvisioner | Exists | Derive `handledTypes()` dynamically from `InfraNodeSpec` sealed permits via `@NodeTypeId` reflection (replaces hardcoded `Set.of(...)`) |
 | InfraActualStateAdapter | Exists | Derive `handledTypes()` dynamically from `InfraNodeSpec` sealed permits via `@NodeTypeId` reflection (same pattern) |
-| InfraGoalCompiler | Exists | Add 5 `parseSpec()` cases for new types |
-| InfraNodeSpec hierarchy | Exists | 5 new sealed variants + `@NodeTypeId` on all variants (new and existing) |
+| InfraGoalCompiler | Exists | Add 6 `parseSpec()` cases (5 new types + `k8s_configmap`) + `parseSpec`-coverage test (see D17) |
+| InfraNodeSpec hierarchy | Exists | 5 new sealed variants + `@NodeTypeId` on 14 non-generic variants (`GenericResourceSpec` excluded — see D16) |
 | NodeSpecFactory | **New** | SPI: `NodeSpec create(ObjectMapper, Map<String,Object>)` — wrapping hook for non-NodeSpec types |
 | Supporting enums | **New** | `LoadBalancerType`, `FailoverPolicy`, `ReplicationMode` |
 | Topology modules | **New** | 4 YAML modules |
@@ -137,9 +137,42 @@ factories ignore it. This avoids mixing routing metadata into the domain spec ma
 (which would cause Jackson `UnrecognizedPropertyException` on records that don't
 declare a `backendId` field).
 
-**Build-time discovery:** `YamlDesiredStateProcessor.scanNodeTypes()` is extended to
-detect `@NodeTypeId` annotations on `InfraNodeSpec` implementors (not just `NodeSpec`
-implementors). For each discovered infra type, it registers a wrapping factory that:
+**Build-time discovery:** `YamlDesiredStateProcessor.scanNodeTypes()` is generalized
+to discover ALL `@NodeTypeId`-annotated classes, removing the current
+`index.getAllKnownImplementors(NODE_SPEC).contains(cls)` guard. The type registry
+map (`Map<String, String>`: type name → class name) carries all discovered types
+regardless of whether they implement `NodeSpec` or `InfraNodeSpec`. This eliminates
+the coupling between the generic YAML processor and domain-specific type hierarchies.
+
+**Factory resolution at runtime — `NodeSpecFactoryProvider` SPI:** The
+`NodeSpecRegistry` uses `NodeSpecFactoryProvider` CDI beans to construct the correct
+`NodeSpecFactory` for each registered type. This is a new SPI in
+`casehub-desiredstate-api`:
+
+```java
+public interface NodeSpecFactoryProvider {
+    boolean handles(Class<?> specClass);
+    NodeSpecFactory createFactory(Class<?> specClass);
+}
+```
+
+Two providers ship with the platform:
+
+1. **`DirectCastFactoryProvider`** (in `casehub-desiredstate-yaml`): handles classes
+   assignable to `NodeSpec`. Creates `DirectCastFactory` instances (existing behavior).
+
+2. **`InfraNodeSpecFactoryProvider`** (in `casehub-ops-infra`): handles classes
+   assignable to `InfraNodeSpec`. Creates `InfraWrappingFactory` instances that
+   deserialize to the `InfraNodeSpec` record and wrap in `InfraDesiredNodeSpec`.
+   The `defaultBackend` is injected via `@ConfigProperty("casehub.desiredstate.infra.default-backend")`.
+
+At registry construction time, `NodeSpecRegistry.of()` loads each class from the
+type registry map and delegates to the first matching `NodeSpecFactoryProvider`.
+If no provider handles a class, construction fails with a clear error. This design
+avoids circular dependencies — each domain module provides its own provider, and the
+generic YAML processor knows nothing about domain-specific type hierarchies.
+
+Factory wrapping behavior for infra types:
 
 1. Deserializes the raw YAML map into the `InfraNodeSpec` record
    (`mapper.convertValue(rawProperties, K8sIngressSpec.class)`)
@@ -194,12 +227,11 @@ The raw spec map is never polluted with routing metadata, so Jackson deserializa
 works cleanly against the record's declared fields.
 
 **`defaultBackend` sourcing:** The `InfraWrappingFactory` receives its
-`defaultBackend` at construction time from the `YamlDesiredStateProcessor` build
-step. The default is configurable via Quarkus build-time config
-(`casehub.desiredstate.infra.default-backend`), defaulting to `"standalone"`.
-Individual YAML nodes override via `backendId:` at the node level (see above).
-This parallels `InfraGoalCompiler.resolveBackend(decl.backend(), goals.defaultBackend())`
-— per-declaration override with a goal-level default.
+`defaultBackend` from `InfraNodeSpecFactoryProvider`, which injects it via
+`@ConfigProperty("casehub.desiredstate.infra.default-backend")`, defaulting to
+`"standalone"`. Individual YAML nodes override via `backendId:` at the node level
+(see above). This parallels `InfraGoalCompiler.resolveBackend(decl.backend(),
+goals.defaultBackend())` — per-declaration override with a goal-level default.
 
 **Module discovery from dependent JARs:** `YamlDesiredStateProcessor.discoverModules()`
 currently only handles `"file"` protocol URLs when scanning
@@ -228,16 +260,16 @@ This spec is filed under `casehub-ops` but Phase 1 requires changes in
 
 | Module | Change |
 |---|---|
-| `casehub-desiredstate-api` | `@NodeTypeId` already exists here (`io.casehub.desiredstate.api.NodeTypeId`, `@Retention(RUNTIME)`, `@Target(TYPE)`) — no changes needed. Add `NodeSpecFactory` SPI interface (alongside `NodeSpec`, `NodeType`) — this is a core API type, not YAML-specific. Placing it here avoids forcing `casehub-ops-infra` to depend on the YAML module just to implement the factory interface. |
-| `casehub-desiredstate-yaml` (runtime) | `DirectCastFactory` implementation (default factory for types that already implement `NodeSpec`). `NodeSpecRegistry` generalized to `Map<String, NodeSpecFactory>`. `YamlGraphRecorder` and `ForEachExpander` updated to use factory-based resolution. `YamlNode` record gains `String backendId` field. |
-| `casehub-desiredstate-yaml` (deployment) | `YamlDesiredStateProcessor.scanNodeTypes()` extended to discover `@NodeTypeId` on `InfraNodeSpec` implementors. `discoverModules()` jar protocol support. Phase 2: remove `validateLifecycle()` imports guard + `createYamlLifecycleGoalCompiler()` module expansion |
+| `casehub-desiredstate-api` | `@NodeTypeId` already exists here (`io.casehub.desiredstate.api.NodeTypeId`, `@Retention(RUNTIME)`, `@Target(TYPE)`) — no changes needed. Add `NodeSpecFactory` SPI interface and `NodeSpecFactoryProvider` SPI interface (alongside `NodeSpec`, `NodeType`) — these are core API types, not YAML-specific. Placing them here avoids forcing `casehub-ops-infra` to depend on the YAML module just to implement the factory interface. |
+| `casehub-desiredstate-yaml` (runtime) | `DirectCastFactory` implementation + `DirectCastFactoryProvider` CDI bean (default factory for types that already implement `NodeSpec`). `NodeSpecRegistry` generalized to `Map<String, NodeSpecFactory>`, using `NodeSpecFactoryProvider` CDI beans for factory construction. `YamlGraphRecorder` (both non-lifecycle and lifecycle compilers) and `ForEachExpander` updated to use factory-based resolution. `YamlNode` record gains `String backendId` field. |
+| `casehub-desiredstate-yaml` (deployment) | `YamlDesiredStateProcessor.scanNodeTypes()` generalized: remove `NodeSpec` implementor guard — discover ALL `@NodeTypeId`-annotated classes. `discoverModules()` jar protocol support. Phase 2: remove `validateLifecycle()` imports guard + `createYamlLifecycleGoalCompiler()` module expansion |
 
 **`casehub-ops` changes (after `casehub-desiredstate` release):**
 
 | Module | Change |
 |---|---|
-| `casehub-ops-api` | 5 new `InfraNodeSpec` sealed variants + `@NodeTypeId` on all 15 variants + 3 supporting enums |
-| `casehub-ops-infra` | `InfraWrappingFactory` implementation. `InfraGoalCompiler` parseSpec() cases. `InfraNodeProvisioner`/`InfraActualStateAdapter` dynamic `handledTypes()`. Topology YAML modules in `META-INF/desiredstate/modules/` |
+| `casehub-ops-api` | 5 new `InfraNodeSpec` sealed variants + `@NodeTypeId` on 14 non-generic variants + 3 supporting enums + existing record null-coalescing (§4.8) |
+| `casehub-ops-infra` | `InfraWrappingFactory` implementation. `InfraNodeSpecFactoryProvider` CDI bean (`NodeSpecFactoryProvider` SPI — see §3.3). `InfraGoalCompiler` 6 parseSpec() cases (5 new + k8s_configmap). `InfraNodeProvisioner`/`InfraActualStateAdapter` dynamic `handledTypes()`. Topology YAML modules in `META-INF/desiredstate/modules/` |
 | `topology-tests` (new) | Compilation, reconciliation, and live tests |
 
 **Coordination:** `casehub-desiredstate` changes are issued and tracked in that
@@ -464,6 +496,42 @@ resources:
 
 The research document's shorthand (`cpu`, `memory`) was incorrect — it does not
 match the Java record structure.
+
+### 4.8 Existing Record Null-Coalescing for YAML Compatibility
+
+Phase 1 adds `@NodeTypeId` to existing `InfraNodeSpec` records, registering them
+in the YAML frontend. These records were designed exclusively for the Java
+compilation path (`InfraGoalCompiler.parseSpec()`), which manually null-coalesces
+via helper methods (`parseLabels()` returns `Labels.empty()` for null). The YAML
+path uses `mapper.convertValue()`, which passes `null` for absent YAML keys
+directly to the record's compact constructor.
+
+Existing records must be updated to null-coalesce optional fields in their compact
+constructors, matching the pattern used for new types (§4). Changes by record:
+
+| Record | Field | Current | Change |
+|---|---|---|---|
+| `K8sNamespaceSpec` | `labels` | `requireNonNull` | `if (labels == null) labels = Labels.empty()` |
+| `K8sDeploymentSpec` | `labels` | `requireNonNull` | `if (labels == null) labels = Labels.empty()` |
+| `K8sDeploymentSpec` | `ports` | `requireNonNull` | `if (ports == null) ports = List.of()` |
+| `K8sDeploymentSpec` | `env` | `requireNonNull` | `if (env == null) env = Map.of()` |
+| `K8sDeploymentSpec` | `healthCheck` | `requireNonNull` | `if (healthCheck == null) healthCheck = Optional.empty()` |
+| `K8sServiceSpec` | `serviceType` | `requireNonNull` | `if (serviceType == null) serviceType = ServiceType.CLUSTER_IP` |
+| `K8sServiceSpec` | `labels` | `requireNonNull` | `if (labels == null) labels = Labels.empty()` |
+| `K8sServiceSpec` | `selector` | `requireNonNull` | `if (selector == null) selector = labels` |
+| `K8sIngressSpec` | `rules` | `requireNonNull` | `if (rules == null) rules = List.of()` |
+| `K8sIngressSpec` | `labels` | `requireNonNull` | `if (labels == null) labels = Labels.empty()` |
+| `K8sConfigMapSpec` | `labels` | `requireNonNull` | `if (labels == null) labels = Labels.empty()` |
+
+Fields that remain `requireNonNull`: `namespace`, `name`, `image`, `host`,
+`resources` (K8sDeploymentSpec), `data` (K8sConfigMapSpec) — these are
+domain-required and must be present in both compilation paths.
+
+This change is safe for the existing Java path: `InfraGoalCompiler.parseSpec()`
+already null-coalesces these fields before constructing records (e.g.,
+`parseLabels()` returns `Labels.empty()`), so the constructor never receives null
+for these fields via the Java path today. The compact constructor change only
+affects the YAML path.
 
 ---
 
@@ -902,6 +970,10 @@ provisioners are out of scope:
 | D13 | `handledTypes()` | Derive dynamically from sealed permits + `@NodeTypeId` | Hardcoded `Set.of(...)` | Eliminates coordinated-change fragility — new sealed variants auto-register |
 | D14 | Compilation paths | YAML primary + InfraGoalCompiler programmatic | Single path | Both produce same downstream graph; YAML for humans, Java for programmatic composition |
 | D15 | `backendId` placement | `YamlNode` level (node metadata) | Inside `spec:` map | Routing metadata ≠ domain property; avoids Jackson `UnrecognizedPropertyException` on records that don't declare `backendId` |
+| D16 | `GenericResourceSpec` and `@NodeTypeId` | Exclude from `@NodeTypeId` | Annotate with `@NodeTypeId("generic_resource")` | `GenericResourceSpec.resourceType()` is dynamic (returns constructor argument), incompatible with `@NodeTypeId`'s static string. It is the unregistered escape hatch for unknown types in the Java path; the YAML path validates types at build time, making a generic fallback unnecessary |
+| D17 | `k8s_configmap` routing | Add to `parseSpec()` and include in `handledTypes()` via D13 | Leave as `GenericResourceSpec` fallback | D13 auto-registers `k8s_configmap` in `handledTypes()` — `parseSpec()` must match to prevent silent degradation. Also corrects a pre-existing gap where `K8sConfigMapSpec` was a sealed variant but excluded from both routing and parsing |
+| D18 | `parseSpec()` vs `handledTypes()` strategy | `handledTypes()` dynamic (D13), `parseSpec()` manual with coverage test | Apply D13 reflection to both | `handledTypes()` is a pure registration list — benefits from auto-discovery. `parseSpec()` has per-type parsing logic with specific error messages — benefits from explicit handling. Coverage test prevents silent omissions |
+| D19 | Factory selection mechanism | `NodeSpecFactoryProvider` CDI SPI | Build-item composition, hardcoded type check | CDI SPI avoids circular dependencies and build-item complexity. Each domain module provides its own factory provider. Generic YAML processor knows nothing about domain-specific type hierarchies |
 
 ---
 
@@ -909,7 +981,7 @@ provisioners are out of scope:
 
 | Phase | What | Type | Depends On |
 |---|---|---|---|
-| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on all 15 variants) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + `parseSpec()` cases in InfraGoalCompiler + **cross-repo** (`casehub-desiredstate-yaml`): `NodeSpecFactory` SPI (with `backendId` parameter) + `NodeSpecRegistry` generalization + `YamlNode.backendId` field + `YamlDesiredStateProcessor` InfraNodeSpec discovery + `discoverModules()` jar protocol support | Java | — |
+| 1 | InfraNodeSpec extensions (5 new records + 3 supporting enums + `@NodeTypeId` on 14 non-generic variants — `GenericResourceSpec` excluded per D16) + existing record null-coalescing (§4.8) + derive `handledTypes()` dynamically from sealed permits in InfraNodeProvisioner and InfraActualStateAdapter + 6 `parseSpec()` cases in InfraGoalCompiler (5 new + `k8s_configmap` per D17) + `parseSpec`-coverage test (D18) + **cross-repo** (`casehub-desiredstate`): `NodeSpecFactory` + `NodeSpecFactoryProvider` SPIs + `NodeSpecRegistry` generalization + `DirectCastFactoryProvider` + `YamlNode.backendId` field + `YamlDesiredStateProcessor.scanNodeTypes()` generalized (drop `NodeSpec` guard) + `YamlGraphRecorder.createYamlLifecycleGoalCompiler()` factory API migration + `ForEachExpander` factory API migration + `discoverModules()` jar protocol support + **`casehub-ops-infra`**: `InfraWrappingFactory` + `InfraNodeSpecFactoryProvider` (D19) | Java | — |
 | 2 | Topology modules (4 YAML modules) + `createYamlLifecycleGoalCompiler` module expansion support + remove `validateLifecycle()` imports guard (**cross-repo**: `casehub-desiredstate-yaml` deployment) | YAML + Java | Phase 1 |
 | 3 | Topology exemplars (14 YAML declarations) + compilation tests | YAML + Java | Phase 2 |
 | 4 | Reconciliation integration tests | Java | Phase 3 |
