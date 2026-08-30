@@ -209,9 +209,145 @@ prove the chain of custody.
 
 ---
 
-## 4. Three Techniques for Six Domains
+### Domain 7: Secret & Identity Management
 
-The six problem domains decompose into three distinct problem characters. Each
+**What:** Managing the infrastructure of trust — secret stores, IAM roles and
+policies, service accounts, OAuth/OIDC client registrations, API key lifecycle,
+mTLS certificate chains, zero-trust network policies.
+
+**Character:** Declarative (the identity infrastructure) + staleness-based (credential
+lifecycle) + orchestrated (rotation across consumers). This domain cross-cuts all
+others — every resource, host, and application depends on identity and secrets.
+
+**Examples:**
+- "A Vault secret engine for database credentials should exist at path db/catalog"
+- "IAM role 'catalog-api-role' should have read access to S3 bucket 'assets'"
+- "Service account 'deploy-agent' should exist with these scopes"
+- "OAuth client 'dashboard-app' should be registered with redirect URI https://..."
+- "mTLS certificate chain: root CA → intermediate → service certificates for all meshed services"
+- "API key for payment gateway should exist, rotated every 30 days"
+
+**Why it's a separate domain:** Identity is not a resource you provision once (Domain 1)
+or a host you configure (Domain 2). It's a living graph of trust relationships that
+evolves with the system. Adding a new service requires a new service account, new IAM
+bindings, new secret paths, and new certificate entries. Removing a service requires
+revoking all of these. The identity graph must be reconciled independently.
+
+**Lifecycle phase:** Day 0 (policy design) through Day 2 (rotation, revocation, audit)
+
+### Domain 8: Observability Infrastructure
+
+**What:** Managing the monitoring, alerting, logging, and tracing infrastructure as
+desired state — not just deploying agents (Domain 2), but managing the rules,
+dashboards, pipelines, and SLO definitions that make observability useful.
+
+**Character:** Declarative. Alert rules, dashboard definitions, log routing rules, and
+SLO targets are all desired-state objects. "This alert should exist and fire when
+error rate exceeds 5%" is a declarative statement with drift detection (someone
+deleted the alert rule → DRIFTED → re-create).
+
+"Observability as code" is an emerging industry practice in 2026 — managing
+observability systems through version-controlled configuration files.
+
+**Examples:**
+- "Prometheus alert 'HighErrorRate' should fire when error_rate > 0.05 for 5 minutes"
+- "Grafana dashboard 'Service Health' should exist with panels for latency, errors, throughput"
+- "Log pipeline should route 'audit.*' to long-term storage and 'debug.*' to 7-day retention"
+- "SLO: catalog-api availability should be ≥99.9% over 30-day window"
+- "Trace sampling: 100% for errors, 10% for successful requests, 1% for health checks"
+- "PagerDuty escalation policy: page on-call after 5 min, escalate to lead after 15 min"
+
+**Why it's a separate domain:** Observability configuration is not infrastructure
+(Domain 1) or host configuration (Domain 2). It's a meta-layer — configuration about
+how you observe and respond to the other domains. Alert rules reference services from
+Domain 3. SLOs span resources from Domain 1. Log pipelines touch hosts from Domain 2.
+Observability is the nervous system that connects all other domains.
+
+**Lifecycle phase:** Day 1 (initial setup) + Day 2 (rule evolution, threshold tuning,
+dashboard updates)
+
+### Domain 9: Environment Lifecycle
+
+**What:** Managing complete environments — dev, staging, production, ephemeral PR
+environments — as composed units that span resources (Domain 1), host configuration
+(Domain 2), and application deployment (Domain 3). Environment provisioning,
+promotion, parity enforcement, and orderly teardown.
+
+**Character:** Declarative at the environment level — "this environment should exist
+with these services at these versions" — with orchestrated promotion between
+environments (staging → production is a Technique 3 problem).
+
+**Examples:**
+- "Dev environment should mirror production topology with replicas=1 and smaller instance sizes"
+- "PR environment pr-423 should exist with the branch's container images, auto-destroyed after merge"
+- "Staging should be promoted to production after smoke tests pass and human approves"
+- "All environments should use the same YAML topology declaration with environment-specific variables"
+- "Decommission: drain traffic → archive data → revoke secrets → remove DNS → destroy resources"
+
+**Why it's a separate domain:** An environment is not a single resource or a single host
+— it's a composed graph of everything from Domains 1-8. The YAML frontend's variable
+system (`${var.replicas}`, `${var.instance_size}`) already supports environment
+parameterisation. Lifecycle phases support ordered rollout. But environment
+promotion, parity enforcement, and orderly teardown are higher-level orchestration
+problems.
+
+**Lifecycle phase:** Day 1 (provisioning) + Day 2 (promotion, parity, teardown)
+
+### Domain 10: Data Management
+
+**What:** Managing data lifecycle beyond the database resource itself (Domain 1) and
+schema migrations (Domain 3) — replication policies, backup retention, data masking
+for non-production environments, cache configuration, message queue/topic
+provisioning, data sovereignty enforcement.
+
+**Character:** Mixed. Replication policies and queue topics are declarative (Technique
+1). Backup execution is staleness-based (Technique 2). Data migration across regions
+is orchestrated (Technique 3). Data masking is a periodic operation applied when
+environments are refreshed.
+
+**Examples:**
+- "PostgreSQL replication should be configured: primary → 2 read replicas, async, lag <30s"
+- "Redis cache should be configured: 6GB, eviction policy allkeys-lru, persistence RDB every 15min"
+- "Kafka topic 'orders.placed' should exist with 12 partitions, retention 7 days, replication factor 3"
+- "Non-production databases should have PII columns masked (email → hash, phone → redacted)"
+- "Data in eu-west-1 must not be replicated to non-EU regions (GDPR data sovereignty)"
+- "Backup retention: daily for 30 days, weekly for 90 days, monthly for 1 year"
+
+**Why it's a separate domain:** Data has unique constraints that don't fit neatly into
+resource provisioning or application lifecycle. Data sovereignty is a legal
+constraint. Masking is a privacy requirement. Replication topology is an availability
+decision. These cross-cut multiple domains and have their own lifecycle (data outlives
+the applications that create it).
+
+**Lifecycle phase:** Day 1 (initial setup) + Day 2 (replication monitoring, retention
+enforcement, masking updates)
+
+### Cross-Cutting Concerns
+
+Three concerns span all 10 domains:
+
+**Multi-tenancy:** Every domain must support per-tenant isolation. Resources, hosts,
+applications, secrets, observability, and governance are all tenant-scoped. CaseHub's
+`tenancyId` propagation (already implemented across all domain modules) provides the
+foundation. Topology declarations can use variables (`${var.tenant_id}`) and forEach
+(stamp per tenant) to express multi-tenant deployments.
+
+**Edge constraints:** Edge deployments impose constraints on all domains — limited
+compute (smaller instances, fewer replicas), intermittent connectivity (must operate
+autonomously), heterogeneous hardware (ARM vs x86, varying memory). These are
+deployment-context constraints expressed as variables and conditional nodes
+(`when: "${var.edge_mode}"`), not a separate domain.
+
+**Cost governance:** Budget thresholds, right-sizing, reserved capacity, resource
+tagging enforcement, and chargeback allocation are governance concerns (Domain 6)
+applied to cost. They extend the compliance model: "cloud spend should not exceed
+$X/month" is a compliance control with evidence (the invoice) and staleness (monthly).
+
+---
+
+## 4. Three Techniques for Ten Domains
+
+The ten problem domains decompose into three distinct problem characters. Each
 requires a different technique — but all three share a common state model.
 
 ### Technique 1: Declarative Convergence
@@ -338,10 +474,9 @@ identifies the node types and provisioner behaviours needed.
 
 ### Domain 1: Resource Provisioning — Technique 1
 
-Already implemented in CaseHub. The infra module provides sealed NodeSpec variants
-for cloud resources (compute, networking, storage, K8s workloads). The
-TransitionPlanner diffs desired vs actual. The NodeProvisioner converges via
-backend-specific APIs.
+Already implemented. The infra module provides sealed NodeSpec variants for cloud
+resources (compute, networking, storage, K8s workloads). The TransitionPlanner diffs
+desired vs actual. The NodeProvisioner converges via backend-specific APIs.
 
 **Coverage:** Complete for K8s-native resources. Topology research extends to load
 balancers, service mesh, DNS failover, data replication. Cloud provider backends
@@ -667,6 +802,337 @@ The topology research adds governance for infrastructure changes:
 
 ---
 
+### Domain 7: Secret & Identity Management — Techniques 1 + 2
+
+**Not yet implemented as a distinct domain.** Currently, secrets are consumed by
+other domains (database passwords in app deployment, TLS certs in host config) but
+the identity infrastructure itself — the vault paths, IAM roles, service accounts,
+OAuth clients — is not managed as desired state.
+
+**New node types needed:**
+
+```yaml
+# Secret store path: "this secret engine should exist"
+catalog-db-secrets:
+  type: secret_engine
+  spec:
+    provider: vault
+    path: db/catalog
+    engineType: database
+    connection:
+      host: catalog-db.internal
+      port: 5432
+    roles:
+      - { name: catalog-api-read, statements: ["GRANT SELECT ON ALL TABLES..."] }
+      - { name: catalog-api-write, statements: ["GRANT ALL ON ALL TABLES..."] }
+
+# IAM role: "this role should exist with these permissions"
+catalog-api-role:
+  type: iam_role
+  spec:
+    provider: aws
+    name: catalog-api-role
+    assumeRolePolicy: ec2-service
+    policies:
+      - { action: "s3:GetObject", resource: "arn:aws:s3:::assets/*" }
+      - { action: "secretsmanager:GetSecretValue", resource: "arn:aws:secretsmanager:*:*:db/catalog" }
+
+# Service account: "this service account should exist"
+deploy-agent-sa:
+  type: service_account
+  spec:
+    provider: kubernetes
+    name: deploy-agent
+    namespace: platform
+    annotations:
+      iam.amazonaws.com/role: deploy-agent-role
+    secrets: [deploy-agent-token]
+
+# mTLS chain: "this certificate chain should exist"
+service-mesh-ca:
+  type: certificate_chain
+  spec:
+    rootCA:
+      commonName: "CaseHub Internal CA"
+      validity: 3650d
+    intermediateCA:
+      commonName: "Service Mesh Intermediate"
+      validity: 365d
+    leafCertificates:
+      - { service: catalog-api, validity: 90d }
+      - { service: order-service, validity: 90d }
+    autoRenewBeforeDays: 30
+```
+
+**Provisioner:** The `IdentityProvisioner` delegates to provider-specific backends
+(Vault API, AWS IAM API, K8s API). Drift detection queries the provider: does the
+role exist with these policies? Does the secret engine have these roles?
+
+**Certificate chain specifics:** The `certificate_chain` node type combines Technique
+1 (the chain should exist) with Technique 2 (leaf certificates auto-renew when
+approaching expiry). The `autoRenewBeforeDays` field triggers staleness-based drift
+for certificate renewal — the same pattern as compliance evidence staleness.
+
+### Domain 8: Observability Infrastructure — Technique 1
+
+**Not yet implemented.** Observability configuration is a natural desired-state problem
+— alert rules, dashboards, and SLO definitions are objects that should exist and can
+drift (someone deletes an alert rule, modifies a threshold, or removes a dashboard
+panel).
+
+**New node types needed:**
+
+```yaml
+# Alert rule: "this alert should exist and fire correctly"
+high-error-rate:
+  type: alert_rule
+  dependsOn: [catalog-api]
+  spec:
+    provider: prometheus
+    name: CatalogApiHighErrorRate
+    expression: |
+      rate(http_requests_total{service="catalog-api",status=~"5.."}[5m])
+      / rate(http_requests_total{service="catalog-api"}[5m]) > 0.05
+    duration: 5m
+    severity: critical
+    annotations:
+      summary: "Catalog API error rate above 5%"
+    labels:
+      team: platform
+
+# Dashboard: "this dashboard should exist with these panels"
+service-health-dashboard:
+  type: dashboard
+  spec:
+    provider: grafana
+    title: "Service Health Overview"
+    folder: platform
+    panels:
+      - { title: "Request Rate", type: graph, query: "rate(http_requests_total[5m])" }
+      - { title: "Error Rate", type: graph, query: "rate(http_requests_total{status=~'5..'}[5m])" }
+      - { title: "P99 Latency", type: graph, query: "histogram_quantile(0.99, http_duration_seconds_bucket)" }
+
+# SLO definition: "this service level objective should be tracked"
+catalog-api-slo:
+  type: slo_definition
+  spec:
+    service: catalog-api
+    objective:
+      name: availability
+      target: 99.9
+      window: 30d
+    indicator:
+      good: 'http_requests_total{status!~"5.."}'
+      total: 'http_requests_total'
+    alerting:
+      burnRateWindow: 1h
+      burnRateThreshold: 14.4
+
+# Log pipeline: "logs should be routed to these destinations"
+audit-log-routing:
+  type: log_pipeline
+  spec:
+    source: "audit.*"
+    destinations:
+      - { type: long_term_storage, backend: s3, bucket: audit-logs, retention: 365d }
+      - { type: real_time, backend: elasticsearch, index: audit-live, retention: 30d }
+
+# Escalation policy: "incidents should escalate through this chain"
+platform-escalation:
+  type: escalation_policy
+  spec:
+    provider: pagerduty
+    name: platform-team
+    steps:
+      - { delay: 5m, targets: [on-call-primary] }
+      - { delay: 15m, targets: [on-call-secondary, team-lead] }
+      - { delay: 30m, targets: [engineering-manager] }
+```
+
+**Provisioner:** Provider-specific backends (Prometheus/Alertmanager API, Grafana API,
+PagerDuty API, ElasticSearch API). Drift detection queries each provider's API to
+verify the object exists with the correct configuration.
+
+**Cross-domain dependencies:** Alert rules reference services from Domain 3.
+Dashboards visualise metrics from hosts (Domain 2) and applications (Domain 3). SLOs
+span multiple infrastructure resources. These dependencies are expressed as
+`dependsOn` edges in the desired-state graph — the same mechanism used by all other
+domains.
+
+### Domain 9: Environment Lifecycle — Techniques 1 + 3
+
+**Partially implemented via YAML frontend.** The variable system, forEach, and lifecycle
+phases already enable environment parameterisation. What's missing: environment-level
+orchestration (promotion, parity enforcement, ephemeral lifecycle).
+
+**How it works with existing primitives:**
+
+```yaml
+# Environment declaration — same topology, different variables per environment
+desiredState:
+  namespace: ecommerce
+  name: "${var.environment}-storefront"
+
+variables:
+  environment: staging          # overridden per environment
+  replicas: 2                   # staging: 2, production: 3
+  instance_size: m5.large       # staging: m5.large, production: m5.2xlarge
+  db_storage: 20Gi              # staging: 20Gi, production: 200Gi
+  enable_monitoring: "true"     # staging: true, production: true, dev: false
+
+nodes:
+  catalog-api:
+    type: k8s_deployment
+    spec:
+      name: catalog-api
+      replicas: ${var.replicas}
+      image: catalog-api:${var.image_version}
+      resources:
+        cpuRequest: "${var.cpu_request}"
+        cpuLimit: "${var.cpu_limit}"
+        memoryRequest: "${var.memory_request}"
+        memoryLimit: "${var.memory_limit}"
+
+  monitoring:
+    type: k8s_deployment
+    when: "${var.enable_monitoring}"
+    spec:
+      name: prometheus
+      image: prom/prometheus:latest
+```
+
+**New capabilities needed:**
+
+```yaml
+# Environment promotion: "staging should match production minus scale"
+# This is a GOAP problem — plan the sequence of: deploy to staging → run tests →
+# switch traffic → verify → promote
+promotion-gate:
+  type: environment_promotion
+  spec:
+    source: staging
+    target: production
+    gates:
+      - { type: test_suite, name: smoke-tests }
+      - { type: test_suite, name: integration-tests }
+      - { type: human_approval, role: release-manager }
+    strategy: blue_green
+
+# Ephemeral environment: "this environment should exist while the PR is open"
+pr-environment:
+  type: ephemeral_environment
+  spec:
+    trigger: pull_request
+    prNumber: ${var.pr_number}
+    topology: "${var.topology_template}"
+    variables:
+      replicas: 1
+      instance_size: t3.small
+    ttl: 48h                    # auto-destroy after 48 hours
+    destroyOn: pr_merged        # or destroy when PR merges
+```
+
+**Decommissioning as orchestrated teardown:** Environment destruction is a
+Technique 3 problem — orderly sequence with dependencies:
+
+```
+Goal: environment-destroyed
+Actions:
+  drain-traffic:        effects: { traffic-drained: true }
+  archive-data:         preconditions: { traffic-drained: true }
+                        effects: { data-archived: true }
+  revoke-secrets:       preconditions: { traffic-drained: true }
+                        effects: { secrets-revoked: true }
+  remove-dns:           preconditions: { traffic-drained: true }
+                        effects: { dns-cleaned: true }
+  destroy-resources:    preconditions: { data-archived, secrets-revoked, dns-cleaned }
+                        effects: { resources-destroyed: true }
+  notify-dependents:    preconditions: { resources-destroyed: true }
+                        effects: { dependents-notified: true }
+```
+
+### Domain 10: Data Management — Techniques 1 + 2
+
+**Partially implemented.** Database provisioning (Domain 1) and schema migrations
+(Domain 3) are sketched. The data-specific concerns are not yet covered.
+
+**New node types needed:**
+
+```yaml
+# Replication topology: "these replicas should exist with this configuration"
+catalog-db-replicas:
+  type: database_replication
+  dependsOn: [catalog-db]
+  spec:
+    primary: catalog-db
+    replicas:
+      - { name: catalog-db-read-1, region: eu-west-1a, mode: async }
+      - { name: catalog-db-read-2, region: eu-west-1b, mode: async }
+    maxLagSeconds: 30
+    failoverPolicy: automatic
+
+# Cache configuration: "this cache should exist with these settings"
+catalog-cache:
+  type: cache_configuration
+  spec:
+    provider: redis
+    name: catalog-cache
+    maxMemory: 6Gi
+    evictionPolicy: allkeys-lru
+    persistence:
+      type: rdb
+      intervalSeconds: 900
+    replication:
+      mode: sentinel
+      replicas: 2
+
+# Message queue: "this topic/queue should exist"
+orders-placed-topic:
+  type: message_topic
+  spec:
+    provider: kafka
+    name: orders.placed
+    partitions: 12
+    replicationFactor: 3
+    retentionHours: 168          # 7 days
+    cleanupPolicy: delete
+    config:
+      max.message.bytes: 1048576
+      compression.type: lz4
+
+# Data masking: "non-prod databases should mask PII"
+staging-data-masking:
+  type: data_masking
+  dependsOn: [staging-catalog-db]
+  spec:
+    target: staging-catalog-db
+    rules:
+      - { column: "customers.email", strategy: hash }
+      - { column: "customers.phone", strategy: redact }
+      - { column: "customers.address", strategy: fake }
+      - { column: "orders.payment_token", strategy: nullify }
+    applyOn: environment_refresh  # re-mask when staging is refreshed from prod
+
+# Data sovereignty: "data must not leave this region"
+eu-data-residency:
+  type: data_sovereignty
+  spec:
+    scope: eu-west-1
+    constraints:
+      - { dataClass: pii, allowedRegions: [eu-west-1, eu-central-1] }
+      - { dataClass: financial, allowedRegions: [eu-west-1] }
+    enforcement: block_replication  # prevent replication to non-allowed regions
+    auditFrequencyHours: 24
+```
+
+**Data sovereignty as compliance:** The `data_sovereignty` node type bridges Domain 10
+(Data Management) and Domain 6 (Continuous Governance). It's a compliance control
+with evidence collection — the actual-state adapter checks whether any replication
+targets exist outside allowed regions. Staleness-based re-verification ensures
+ongoing compliance.
+
+---
+
 ## 6. Coverage Summary
 
 | Domain | Technique | CaseHub Status | Gap |
@@ -678,18 +1144,25 @@ The topology research adds governance for infrastructure changes:
 | 4. Periodic Operations | Staleness-based | **Partially** (compliance evidence) | Credential rotation, certificate renewal, backup |
 | 5. Orchestrated Sequences | GOAP planning | **Infrastructure exists** | Pre-built action libraries |
 | 6. Continuous Governance | Declarative + evidence | **Implemented** (compliance module) | Cross-domain governance integration |
+| 7. Secret & Identity Mgmt | Declarative + staleness | **Not implemented** | Secret engine, IAM role, service account, cert chain node types |
+| 8. Observability Infra | Declarative convergence | **Not implemented** | Alert rule, dashboard, SLO, log pipeline, escalation node types |
+| 9. Environment Lifecycle | Declarative + GOAP | **Partially** (YAML variables + lifecycle phases) | Promotion gates, ephemeral envs, orderly teardown |
+| 10. Data Management | Declarative + staleness | **Not implemented** | Replication, cache, queue, masking, sovereignty node types |
 
 ### What's Genuinely New
 
-| New Work | Type | Complexity |
-|----------|------|-----------|
-| Host configuration node types (packages, services, files, users, firewall, sysctl) | New domain module | High — host-level provisioner with SSH/agent connection |
-| Schema migration node type | New node type in app/infra | Medium — integrate with Flyway/Liquibase APIs |
-| Credential rotation node type | New node type | Medium — dual-credential pattern, consumer coordination |
-| Certificate renewal node type | New node type | Medium — ACME challenge, deploy to targets |
-| Backup schedule node type | New node type | Low — record-keeping, staleness check |
-| Health check node type | New node type | Low — HTTP/TCP probe |
-| GOAP action libraries (rolling update, migration, rotation) | Action definitions | Medium — domain-specific preconditions/effects |
+| New Work | Domain | Type | Complexity |
+|----------|--------|------|-----------|
+| Host configuration (packages, services, files, users, firewall, sysctl) | D2 | New domain module | High — SSH/agent provisioner |
+| Secret engine, IAM role, service account, cert chain | D7 | New node types | High — multi-provider identity APIs |
+| Alert rule, dashboard, SLO, log pipeline, escalation policy | D8 | New node types | Medium — monitoring API integrations |
+| Database replication, cache config, message queue/topic | D10 | New node types | Medium — data platform APIs |
+| Data masking, data sovereignty | D10 | New node types | Medium — privacy/compliance rules |
+| Schema migration | D3 | New node type | Medium — Flyway/Liquibase integration |
+| Credential rotation, certificate renewal, backup schedule | D4 | New node types | Medium — staleness + consumer coordination |
+| Health check | D3 | New node type | Low — HTTP/TCP probe |
+| Environment promotion gates, ephemeral environments | D9 | New node types | Medium — GOAP + lifecycle integration |
+| GOAP action libraries (rolling update, migration, rotation, teardown) | D5 | Action definitions | Medium — domain-specific preconditions/effects |
 
 ### What Already Exists and Extends Naturally
 
@@ -775,25 +1248,60 @@ No declarative boundary.
 
 ## 8. Implementation Roadmap
 
-| Priority | Domain | Why |
-|----------|--------|-----|
-| 1 | Resource Provisioning (topology) | Already in spec — proves the YAML frontend |
-| 2 | Host Configuration | Largest gap — 70-80% of Day 1+ operations |
-| 3 | Periodic Operations (credential, cert, backup) | Extends existing compliance pattern |
-| 4 | Orchestrated Sequences (GOAP actions) | Infrastructure exists — needs action libraries |
-| 5 | Application Lifecycle (migrations, health) | Fills remaining gaps |
+### Priority Ordering
+
+| Priority | Domain | Why | Builds On |
+|----------|--------|-----|-----------|
+| 1 | Resource Provisioning — topology exemplars (D1) | Already in spec — proves the YAML frontend | Existing infra module |
+| 2 | Host Configuration (D2) | Largest gap — 70-80% of Day 1+ operations | D1 (hosts depend on compute instances) |
+| 3 | Secret & Identity Management (D7) | Cross-cutting — every other domain consumes secrets and identity | D1 (Vault/IAM are resources), D2 (agent deployment) |
+| 4 | Periodic Operations (D4) | Credential rotation, cert renewal, backups — extends proven compliance pattern | D7 (rotates secrets from D7), D3 (backups for D3 databases) |
+| 5 | Data Management (D10) | Replication, caching, queues — data outlives applications | D1 (databases), D4 (backup schedules) |
+| 6 | Observability Infrastructure (D8) | Monitoring, alerting, dashboards — the nervous system | D1-D5 (observes everything), D7 (secrets for API access) |
+| 7 | Application Lifecycle (D3) — migrations, health | Schema migrations and health verification | D1 (databases), D2 (host config) |
+| 8 | Orchestrated Sequences (D5) — GOAP actions | Rolling updates, topology migrations, complex rotations | D1-D4 (actions operate on all domains) |
+| 9 | Environment Lifecycle (D9) | Promotion, parity, ephemeral, teardown | D1-D8 (environments compose all domains) |
+| 10 | Continuous Governance extensions (D6) | Cross-domain governance, cost governance | D1-D9 (governs everything) |
+
+### Dependency Graph
+
+```
+D1 Resource Provisioning (topology exemplars)
+ │
+ ├──► D2 Host Configuration
+ │     │
+ │     ├──► D7 Secret & Identity
+ │     │     │
+ │     │     ├──► D4 Periodic Operations (rotation, renewal, backup)
+ │     │     │
+ │     │     └──► D8 Observability Infrastructure
+ │     │
+ │     └──► D3 Application Lifecycle (migrations, health)
+ │
+ ├──► D10 Data Management
+ │
+ ├──► D5 Orchestrated Sequences (GOAP actions for D1-D4)
+ │
+ └──► D9 Environment Lifecycle (composes D1-D8)
+      │
+      └──► D6 Continuous Governance extensions (governs D1-D9)
+```
 
 ### Separate Design Specs Needed
 
-1. **Host Configuration Domain** — new `casehub-ops-hostconfig` module with sealed
-   NodeSpec variants for packages, services, files, users, firewall, sysctl. SSH/agent
-   provisioner. Host actual-state adapter. Topology module integration.
+Each domain beyond D1 (already in spec) needs its own design spec:
 
-2. **Periodic Operations Extensions** — credential rotation, certificate renewal,
-   backup schedule node types. Extends the staleness-based pattern from compliance.
-
-3. **GOAP Operational Actions** — pre-built action libraries for rolling updates,
-   topology migrations, complex credential rotations. Engine case definitions.
+| Spec | Domain | New Module? | Key Decisions |
+|------|--------|------------|---------------|
+| Host Configuration | D2 | `casehub-ops-hostconfig` | SSH vs agent connection model, host resolution from graph, package manager abstraction |
+| Secret & Identity | D7 | `casehub-ops-identity` | Multi-provider (Vault, AWS IAM, K8s SA), cert chain lifecycle, zero-trust integration |
+| Periodic Operations | D4 | Extends compliance pattern | Dual-credential rotation, ACME cert renewal, backup verification |
+| Data Management | D10 | `casehub-ops-data` or extend infra | Replication topology, masking rules, sovereignty enforcement |
+| Observability | D8 | `casehub-ops-observability` | Multi-provider (Prometheus, Grafana, PagerDuty), SLO tracking |
+| Application Lifecycle | D3 | Extends app module | Flyway/Liquibase integration, health check escalation |
+| GOAP Actions | D5 | Action libraries in engine | Rolling update, migration, rotation, teardown action sets |
+| Environment Lifecycle | D9 | Extends YAML frontend | Promotion gates, ephemeral lifecycle, parity enforcement |
+| Governance Extensions | D6 | Extends compliance | Cost governance, cross-domain policy, tagging enforcement |
 
 ---
 
