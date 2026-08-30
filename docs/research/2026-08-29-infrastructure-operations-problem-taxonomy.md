@@ -1413,6 +1413,128 @@ covered by Tiers 1-2.
 
 ---
 
+## 11. CaseHub Component Utilisation — Maximise Dog-Fooding
+
+### Current Utilisation vs Opportunity
+
+Every operational domain should maximise usage of CaseHub's own engine components.
+The YAML declarations that express operational desired state are also the source for
+CaseHub's visual diagramming tools — the declaration IS the diagram.
+
+| CaseHub Component | What It Does | Current Ops Usage | Opportunity Across D1-D10 |
+|---|---|---|---|
+| **DesiredState YAML** | Declare desired state as graphs | ✅ Core of everything | All 10 domains — every operational concept is a graph node |
+| **TransitionPlanner** | Diff desired vs actual → steps | ✅ Steady-state reconciliation | All declarative domains (D1, D2, D3a, D7, D8, D10) |
+| **GOAP Planner** | Multi-step planning with preconditions | ⚠️ Identified, not applied | D5 (rolling updates, migrations), D9 (promotion, teardown) |
+| **Engine Cases** | Lifecycle orchestration with stages | ⚠️ Approval workflow only | Every deployment, migration, rotation IS a case |
+| **Blocks** | Composable workflow components | ❌ Not used | Provisioning actions as blocks — install, restart, rotate, deploy |
+| **Ganglion (RAS)** | Detection → dimension routing | ⚠️ Service lifecycle only | ALL drift events should be ganglion detections feeding dimensions |
+| **Ledger** | Tamper-evident audit trail | ⚠️ Compliance evidence only | ALL operational actions across ALL domains |
+| **Eidos (agents)** | Agent registry, capabilities, trust | ⚠️ Deployment topology only | Provisioner instances as agents with trust scores and escalation |
+| **Qhorus (channels)** | Inter-agent communication | ⚠️ Deployment topology only | Operational event flow between domains |
+| **Neocortex** | AI/ML capabilities | ❌ Not used | Anomaly detection, capacity planning, root cause analysis |
+| **Work/WorkItems** | Human task management | ⚠️ Approval gates only | All high-risk operations across all 10 domains |
+
+**Current utilisation: ~40%.** The biggest under-used components:
+
+### Blocks as Provisioning Actions
+
+Every provisioning action (install package, restart service, rotate credential,
+deploy container, create DNS record) should be a **composable block**. Different
+operational workflows compose different blocks:
+
+- "Rolling update" workflow: drain block → upgrade block → health-check block → restore block
+- "Certificate rotation" workflow: generate block → deploy block → verify block → revoke block
+- "Environment promotion" workflow: test block → approve block → switch-traffic block
+
+This makes provisioning actions visible in the diagramming tools as composable units,
+and enables reuse across different operational contexts.
+
+### Ganglion for All Drift Events
+
+Currently, ganglion detections feed into the service lifecycle dimensions (Chapter 5).
+But drift detection happens across all 10 domains — package drift on a host (D2),
+secret expiry (D7), alert rule deletion (D8), replication lag threshold (D10).
+
+All of these should be ganglion detections, routed to the appropriate service
+lifecycle dimension:
+- Package drift → Configuration dimension
+- Secret expiry → Security dimension
+- Alert rule deletion → Health dimension (monitoring degraded)
+- Replication lag → Health dimension
+
+This unifies drift detection across all domains into the existing service lifecycle
+model — no new monitoring infrastructure needed.
+
+### Eidos for Provisioner Agents
+
+The provisioners themselves are agents in the CaseHub sense. A "host configuration
+agent" has:
+- **Capabilities:** packages, services, files, firewall (for a specific OS family)
+- **Trust score:** built from successful provisioning history
+- **Escalation path:** low-trust agents face additional approval gates
+
+This gives you the same governance over provisioning agents that you have over
+business process agents. A provisioner that has repeatedly failed rotations on
+production hosts has a lower trust score and faces higher approval thresholds.
+
+### Ledger for All Operational Actions
+
+The compliance domain records evidence as tamper-evident ledger entries. The same
+pattern applies to ALL operational actions:
+- "Package nginx 1.25 installed on web-server-1 at 2026-08-30T10:15:00Z"
+- "Credential rotated for catalog-db at 2026-08-30T14:00:00Z"
+- "Topology migrated from single-node to HA at 2026-08-30T16:30:00Z"
+
+Every operational action is evidence of compliance and operational integrity.
+The audit trail is complete — not just for compliance controls, but for every
+infrastructure change.
+
+### YAML as the Diagramming Source
+
+CaseHub is building diagramming tools for YAML with drill-downs. If every
+operational concept is a YAML graph node, the visual tools get:
+
+```
+Topology overview (all services, dependencies, status)
+    │
+    └──► Service detail (9-dimension status, active cases)
+              │
+              ├──► Host config (packages, services, files — drift per item)
+              ├──► Secrets (vault paths, rotation status, expiry countdown)
+              ├──► Observability (alert rules, SLO status, dashboard links)
+              ├──► Data (replication lag, backup freshness, cache hit rate)
+              └──► Certificates (expiry countdown, renewal history)
+```
+
+**The entire operational state of infrastructure is one YAML graph, viewable as one
+interactive diagram with drill-down to any level of detail.**
+
+### Design Constraint for New Chapters
+
+Every new ARC42STORIES chapter should include a **CaseHub component mapping**:
+
+```markdown
+#### CaseHub Component Utilisation
+
+| Component | How This Chapter Uses It |
+|---|---|
+| DesiredState YAML | Node types for [domain] |
+| TransitionPlanner | Drift detection for [what] |
+| GOAP Planner | [Specific planning problem] |
+| Engine Cases | [What operational case] |
+| Blocks | [Composable actions] |
+| Ganglion | [Drift events → which dimension] |
+| Ledger | [What evidence is recorded] |
+| Eidos | [Agent capabilities] |
+```
+
+If a column is empty, ask why. If a component isn't used, document the reason
+("not applicable because X"). This ensures maximum dog-fooding and maximum
+visibility in the diagramming tools.
+
+---
+
 ## 11. Sources
 
 - [Day 2 Operations: A Practical Guide (2026)](https://www.cycloid.io/blog/day-2-operations-a-practical-guide-for-managing-post-deployment-complexity/)
