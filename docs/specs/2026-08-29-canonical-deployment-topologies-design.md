@@ -614,6 +614,18 @@ module:
     zones:
       type: list
       required: true
+    cpu_request:
+      type: string
+      default: "500m"
+    cpu_limit:
+      type: string
+      default: "2"
+    memory_request:
+      type: string
+      default: "512Mi"
+    memory_limit:
+      type: string
+      default: "2Gi"
 
 nodes:
   ha-control-plane:
@@ -623,6 +635,11 @@ nodes:
       name: ha-control-plane
       image: k8s-control-plane:latest
       replicas: 3
+      resources:
+        cpuRequest: ${var.cpu_request}
+        cpuLimit: ${var.cpu_limit}
+        memoryRequest: ${var.memory_request}
+        memoryLimit: ${var.memory_limit}
       labels:
         component: control-plane
         region: ${var.region}
