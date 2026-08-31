@@ -27,12 +27,12 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-abstract class TopologyTestBase {
+public abstract class TopologyTestBase {
 
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
-    private static final DefaultDesiredStateGraphFactory FACTORY = new DefaultDesiredStateGraphFactory();
+    private static final ObjectMapper                    YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    private static final DefaultDesiredStateGraphFactory FACTORY     = new DefaultDesiredStateGraphFactory();
 
-    static Map<String, String> buildTypeRegistry() {
+    public static Map<String, String> buildTypeRegistry() {
         Map<String, String> registry = new HashMap<>();
         for (Class<?> permit : InfraNodeSpec.class.getPermittedSubclasses()) {
             NodeTypeId ann = permit.getAnnotation(NodeTypeId.class);
@@ -44,15 +44,15 @@ abstract class TopologyTestBase {
     }
 
     @SuppressWarnings("unchecked")
-    static GoalCompiler<Void> compileExemplar(String resourcePath) throws IOException {
-        Map<String, String> typeRegistry = buildTypeRegistry();
-        YamlGraph yamlGraph = parseYaml(resourcePath);
-        Map<String, YamlModule> modules = discoverModules();
+    public static GoalCompiler<Void> compileExemplar(String resourcePath) throws IOException {
+        Map<String, String>     typeRegistry = buildTypeRegistry();
+        YamlGraph               yamlGraph    = parseYaml(resourcePath);
+        Map<String, YamlModule> modules      = discoverModules();
 
         List<io.casehub.desiredstate.annotations.runtime.ResolvedInvariant> invariants = new ArrayList<>();
         for (var inv : yamlGraph.invariants().entrySet()) {
             invariants.add(io.casehub.desiredstate.yaml.YamlInvariantConverter
-                    .toDeclarativeInvariant(inv.getKey(), inv.getValue()));
+                                   .toDeclarativeInvariant(inv.getKey(), inv.getValue()));
         }
 
         YamlGraphRecorder recorder = new YamlGraphRecorder();
@@ -74,16 +74,16 @@ abstract class TopologyTestBase {
                 List.of(InfraNodeSpecFactoryProvider.class.getName())).getValue();
     }
 
-    static DesiredStateGraph compileSingleGraph(String resourcePath) throws IOException {
+    public static DesiredStateGraph compileSingleGraph(String resourcePath) throws IOException {
         GoalCompiler<Void> compiler = compileExemplar(resourcePath);
-        CompilationResult result = compiler.compile(null, FACTORY);
+        CompilationResult  result   = compiler.compile(null, FACTORY);
         assertThat(result).isInstanceOf(CompilationResult.SingleGraph.class);
         return ((CompilationResult.SingleGraph) result).graph();
     }
 
-    static CompilationResult.Lifecycle compileLifecycle(String resourcePath) throws IOException {
+    public static CompilationResult.Lifecycle compileLifecycle(String resourcePath) throws IOException {
         GoalCompiler<Void> compiler = compileExemplar(resourcePath);
-        CompilationResult result = compiler.compile(null, FACTORY);
+        CompilationResult  result   = compiler.compile(null, FACTORY);
         assertThat(result).isInstanceOf(CompilationResult.Lifecycle.class);
         return (CompilationResult.Lifecycle) result;
     }
@@ -96,8 +96,8 @@ abstract class TopologyTestBase {
     }
 
     private static Map<String, YamlModule> discoverModules() throws IOException {
-        Map<String, YamlModule> modules = new HashMap<>();
-        String[] moduleNames = {"load-balancer", "ha-multi-az", "service-mesh", "multi-region"};
+        Map<String, YamlModule> modules     = new HashMap<>();
+        String[]                moduleNames = {"load-balancer", "ha-multi-az", "service-mesh", "multi-region"};
         for (String name : moduleNames) {
             String path = "META-INF/desiredstate/modules/" + name + ".yaml";
             try (InputStream is = TopologyTestBase.class.getClassLoader().getResourceAsStream(path)) {
@@ -111,15 +111,15 @@ abstract class TopologyTestBase {
     }
 
     private static GraphDescriptor toGraphDescriptor(YamlGraph yamlGraph, Map<String, String> typeRegistry) {
-        List<NodeDescriptor> nodes = new ArrayList<>();
-        List<DependencyDescriptor> deps = new ArrayList<>();
+        List<NodeDescriptor>       nodes = new ArrayList<>();
+        List<DependencyDescriptor> deps  = new ArrayList<>();
         for (Map.Entry<String, YamlNode> entry : yamlGraph.nodes().entrySet()) {
-            String nodeId = entry.getKey();
-            YamlNode yamlNode = entry.getValue();
-            String specClassName = typeRegistry.get(yamlNode.type());
+            String   nodeId        = entry.getKey();
+            YamlNode yamlNode      = entry.getValue();
+            String   specClassName = typeRegistry.get(yamlNode.type());
             nodes.add(new NodeDescriptor.InlineNode(nodeId, specClassName,
-                    yamlNode.spec() != null ? yamlNode.spec() : Map.of(),
-                    yamlNode.humanGating()));
+                                                    yamlNode.spec() != null ? yamlNode.spec() : Map.of(),
+                                                    yamlNode.humanGating()));
             for (String dep : yamlNode.dependencyNodeIds()) {
                 deps.add(new DependencyDescriptor(nodeId, dep));
             }
