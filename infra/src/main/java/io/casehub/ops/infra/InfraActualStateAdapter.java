@@ -48,17 +48,7 @@ public class InfraActualStateAdapter implements ActualStateAdapter {
                 .collect(Collectors.toMap(InfraBackend::backendId, b -> b));
     }
 
-    public Set<NodeType> handledTypes() {
-        return Set.of(
-                NodeType.of("k8s_namespace"),
-                NodeType.of("k8s_deployment"),
-                NodeType.of("k8s_service"),
-                NodeType.of("k8s_ingress"),
-                NodeType.of("compute_instance"),
-                NodeType.of("database_cluster"),
-                NodeType.of("terraform_workspace"),
-                NodeType.of("ansible_playbook"));
-    }
+    public Set<NodeType> handledTypes() {return InfraTypeDiscovery.discoverHandledTypes();}
 
     @Override
     public ActualState readActual(DesiredStateGraph desired, String tenancyId) {

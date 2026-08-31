@@ -1,17 +1,5 @@
 package io.casehub.ops.infra;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Any;
-import jakarta.enterprise.inject.Instance;
-import jakarta.inject.Inject;
-
 import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
 import io.casehub.desiredstate.api.DesiredNode;
@@ -34,6 +22,17 @@ import io.casehub.ops.api.infra.plan.ProvisionPlan;
 import io.casehub.ops.api.infra.spi.BackendDeprovisionResult;
 import io.casehub.ops.api.infra.spi.BackendProvisionResult;
 import io.casehub.ops.api.infra.spi.InfraBackend;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Dispatches provisioning/deprovisioning to the correct {@link InfraBackend}
@@ -82,17 +81,7 @@ public class InfraNodeProvisioner implements NodeProvisioner {
     }
 
     @Override
-    public Set<NodeType> handledTypes() {
-        return Set.of(
-                NodeType.of("k8s_namespace"),
-                NodeType.of("k8s_deployment"),
-                NodeType.of("k8s_service"),
-                NodeType.of("k8s_ingress"),
-                NodeType.of("compute_instance"),
-                NodeType.of("database_cluster"),
-                NodeType.of("terraform_workspace"),
-                NodeType.of("ansible_playbook"));
-    }
+    public Set<NodeType> handledTypes() {return InfraTypeDiscovery.discoverHandledTypes();}
 
     @Override
     public Duration resyncInterval() {

@@ -27,8 +27,8 @@ public class IoTFaultPolicy implements FaultPolicy {
                                                                       .faultTypes(Set.of(FaultType.PROVISION_FAILED))
                                                                       .nodeTypes(Set.of(DEVICE_CONFIG))
                                                                       .ignoreTypes(Set.of(IOT_REVIEW))
-                                                                      .tier(ESCALATION_THRESHOLD, FaultPolicy.addReviewNode(IOT_REVIEW,
-                                                                              (event, current) -> new IoTReviewSpec(event.node(), event.detail())), IOT_REVIEW)
+                                                                      .tier(ESCALATION_THRESHOLD, FaultPolicy.addReviewNode(
+                                                                              (event, current) -> new IoTReviewSpec(event.node(), event.detail())))
                                                                       .build();
 
     @Override
