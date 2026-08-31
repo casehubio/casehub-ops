@@ -86,10 +86,14 @@ class InfraNodeSpecTest {
             case TerraformWorkspaceSpec tf -> "tf:" + tf.workspacePath();
             case AnsiblePlaybookSpec ap -> "ansible:" + ap.playbookPath();
             case GenericResourceSpec g -> "generic:" + g.resourceType();
+            case LoadBalancerSpec lb -> "lb:" + lb.name();
+            case SidecarProxySpec sp -> "sidecar:" + sp.targetService();
+            case ServiceMeshControlPlaneSpec mesh -> "mesh:" + mesh.namespace();
+            case DnsFailoverSpec dns -> "dns:" + dns.domainName();
+            case DataReplicationSpec dr -> "replication:" + dr.sourceCluster();
         };
 
-        assertThat(result).isEqualTo("namespace:test");
-    }
+        assertThat(result).isEqualTo("namespace:test");}
 
     @Test
     void labels_getAndEmpty() {
