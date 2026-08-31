@@ -27,7 +27,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-abstract class ReconciliationTestBase extends TopologyTestBase {
+public abstract class ReconciliationTestBase extends TopologyTestBase {
 
     protected FailableNodeProvisioner provisioner;
     protected TransitionPlanner planner;
