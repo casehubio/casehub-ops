@@ -1,0 +1,36 @@
+desiredState:
+  namespace: topology
+  name: ghost-blog
+
+variables:
+  replicas: "1"
+  ghost_image: "ghost:5-alpine"
+
+nodes:
+  blog-namespace:
+    type: k8s_namespace
+    spec:
+      name: ghost-blog
+
+  ghost:
+    type: k8s_deployment
+    dependsOn: [blog-namespace]
+    spec:
+      namespace: ghost-blog
+      name: ghost
+      image: ${var.ghost_image}
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "512Mi"
+
+  ghost-service:
+    type: k8s_service
+    dependsOn: [ghost]
+    spec:
+      namespace: ghost-blog
+      name: ghost
+      port: 80
+      targetPort: 2368

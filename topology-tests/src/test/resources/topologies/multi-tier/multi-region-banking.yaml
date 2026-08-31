@@ -1,0 +1,77 @@
+desiredState:
+  namespace: topology
+  name: banking-core
+
+variables:
+  namespace: "banking"
+  replicas: "3"
+
+imports:
+  - module: multi-region
+    as: dr
+    parameters:
+      primary_cluster: us-east-banking
+      dr_cluster: eu-west-banking
+      domain: banking.example.com
+      replication_mode: SEMI_SYNC
+
+lifecycle:
+  phases:
+    - id: infrastructure
+      completionCondition: allPresent
+      nodes:
+        banking-ns:
+          type: k8s_namespace
+          spec:
+            name: ${var.namespace}
+
+    - id: data
+      completionCondition: allPresent
+      nodes:
+        core-ledger-db:
+          type: k8s_deployment
+          dependsOn: [banking-ns]
+          spec:
+            namespace: ${var.namespace}
+            name: core-ledger-db
+            image: postgres:16
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "1"
+              cpuLimit: "4"
+              memoryRequest: "2Gi"
+              memoryLimit: "8Gi"
+
+    - id: application
+      completionCondition: allPresent
+      nodes:
+        transaction-engine:
+          type: k8s_deployment
+          dependsOn: [core-ledger-db]
+          spec:
+            namespace: ${var.namespace}
+            name: transaction-engine
+            image: banking-tx-engine:3.2
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "500m"
+              cpuLimit: "2"
+              memoryRequest: "1Gi"
+              memoryLimit: "4Gi"
+
+    - id: web
+      completionCondition: never
+      nodes:
+        online-banking:
+          type: k8s_deployment
+          dependsOn: [transaction-engine]
+          spec:
+            namespace: ${var.namespace}
+            name: online-banking
+            image: online-banking-ui:3.2
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "200m"
+              cpuLimit: "1"
+              memoryRequest: "512Mi"
+              memoryLimit: "1Gi"

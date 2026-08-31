@@ -1,0 +1,77 @@
+desiredState:
+  namespace: topology
+  name: hospital-records
+
+variables:
+  namespace: "hospital"
+  region: "us-east-1"
+  replicas: "3"
+
+imports:
+  - module: ha-multi-az
+    as: ha
+    parameters:
+      namespace: ${var.namespace}
+      region: ${var.region}
+      zones: "us-east-1a,us-east-1b,us-east-1c"
+
+lifecycle:
+  phases:
+    - id: infrastructure
+      completionCondition: allPresent
+      nodes:
+        hospital-ns:
+          type: k8s_namespace
+          spec:
+            name: ${var.namespace}
+
+    - id: data
+      completionCondition: allPresent
+      nodes:
+        patient-db:
+          type: k8s_deployment
+          dependsOn: [hospital-ns]
+          spec:
+            namespace: ${var.namespace}
+            name: patient-db
+            image: postgres:16
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "500m"
+              cpuLimit: "2"
+              memoryRequest: "1Gi"
+              memoryLimit: "4Gi"
+
+    - id: application
+      completionCondition: allPresent
+      nodes:
+        records-api:
+          type: k8s_deployment
+          dependsOn: [patient-db]
+          spec:
+            namespace: ${var.namespace}
+            name: records-api
+            image: hospital-records-api:2.1
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "250m"
+              cpuLimit: "1"
+              memoryRequest: "512Mi"
+              memoryLimit: "1Gi"
+
+    - id: web
+      completionCondition: never
+      nodes:
+        portal:
+          type: k8s_deployment
+          dependsOn: [records-api]
+          spec:
+            namespace: ${var.namespace}
+            name: patient-portal
+            image: patient-portal:2.1
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "100m"
+              cpuLimit: "500m"
+              memoryRequest: "256Mi"
+              memoryLimit: "512Mi"

@@ -1,0 +1,44 @@
+desiredState:
+  namespace: topology
+  name: company-website
+
+variables:
+  namespace: "company-web"
+  replicas: "3"
+
+imports:
+  - module: load-balancer
+    as: web-lb
+    parameters:
+      target_service: nginx-web
+      namespace: ${var.namespace}
+      lb_type: APPLICATION
+
+nodes:
+  web-namespace:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  nginx-web:
+    type: k8s_deployment
+    dependsOn: [web-namespace]
+    spec:
+      namespace: ${var.namespace}
+      name: nginx-web
+      image: nginx:1.25-alpine
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "50m"
+        cpuLimit: "200m"
+        memoryRequest: "64Mi"
+        memoryLimit: "256Mi"
+
+  nginx-service:
+    type: k8s_service
+    dependsOn: [nginx-web]
+    spec:
+      namespace: ${var.namespace}
+      name: nginx-web
+      port: 80
+      targetPort: 80

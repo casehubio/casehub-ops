@@ -1,0 +1,68 @@
+desiredState:
+  namespace: topology
+  name: global-payments
+
+variables:
+  namespace: "payments"
+  replicas: "3"
+
+imports:
+  - module: multi-region
+    as: dr
+    parameters:
+      primary_cluster: us-payments
+      dr_cluster: eu-payments
+      domain: payments.example.com
+  - module: load-balancer
+    as: pay-lb
+    parameters:
+      target_service: payment-gateway
+      namespace: ${var.namespace}
+
+nodes:
+  payments-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  payment-gateway:
+    type: k8s_deployment
+    dependsOn: [payments-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: payment-gateway
+      image: payment-gateway:4.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+  fraud-detection:
+    type: k8s_deployment
+    dependsOn: [payment-gateway]
+    spec:
+      namespace: ${var.namespace}
+      name: fraud-detection
+      image: fraud-ml:4.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "1"
+        cpuLimit: "4"
+        memoryRequest: "2Gi"
+        memoryLimit: "8Gi"
+
+  ledger-svc:
+    type: k8s_deployment
+    dependsOn: [payment-gateway]
+    spec:
+      namespace: ${var.namespace}
+      name: ledger-service
+      image: ledger:4.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"

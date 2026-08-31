@@ -1,0 +1,54 @@
+desiredState:
+  namespace: topology
+  name: microservices-dev
+
+variables:
+  namespace: "micro-dev"
+
+nodes:
+  dev-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  user-svc:
+    type: k8s_deployment
+    dependsOn: [dev-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: user-service
+      image: user-service:dev
+      replicas: 1
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "512Mi"
+
+  order-svc:
+    type: k8s_deployment
+    dependsOn: [dev-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: order-service
+      image: order-service:dev
+      replicas: 1
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "512Mi"
+
+  payment-svc:
+    type: k8s_deployment
+    dependsOn: [dev-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: payment-service
+      image: payment-service:dev
+      replicas: 1
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "512Mi"

@@ -1,0 +1,60 @@
+desiredState:
+  namespace: topology
+  name: event-driven-dev
+
+variables:
+  namespace: "events-dev"
+
+nodes:
+  events-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  rabbitmq:
+    type: k8s_deployment
+    dependsOn: [events-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: rabbitmq
+      image: rabbitmq:3.13-management-alpine
+      replicas: 1
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "500m"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"
+
+  producer:
+    type: k8s_deployment
+    dependsOn: [rabbitmq]
+    spec:
+      namespace: ${var.namespace}
+      name: event-producer
+      image: event-producer:dev
+      replicas: 1
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "256Mi"
+
+  consumer:
+    type: k8s_deployment
+    dependsOn: [rabbitmq]
+    spec:
+      namespace: ${var.namespace}
+      name: event-consumer
+      image: event-consumer:dev
+      replicas: 1
+      resources:
+        cpuRequest: "100m"
+        cpuLimit: "500m"
+        memoryRequest: "128Mi"
+        memoryLimit: "256Mi"
+
+invariants:
+  broker-dependency:
+    match:
+      svc: { type: k8s_deployment }
+    message: "Event-driven services should depend on broker"

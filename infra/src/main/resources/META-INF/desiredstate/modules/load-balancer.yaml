@@ -31,9 +31,9 @@ nodes:
     spec:
       namespace: ${var.namespace}
       name: "${var.target_service}-ingress"
+      host: "${var.target_service}.example.com"
       rules:
-        - host: "${var.target_service}.example.com"
-          path: /
+        - path: /
           serviceName: ${var.target_service}
           servicePort: 80
 

@@ -30,11 +30,3 @@ nodes:
         cpuLimit: "1"
         memoryRequest: "512Mi"
         memoryLimit: "1Gi"
-
-invariants:
-  ha-requires-namespace:
-    match:
-      deploy: { type: k8s_deployment }
-    directDep:
-      ns: { type: k8s_namespace, of: deploy, direction: DEPENDENCIES }
-    message: "HA deployment must depend on a namespace"

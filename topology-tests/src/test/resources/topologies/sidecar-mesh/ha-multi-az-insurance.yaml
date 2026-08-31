@@ -1,0 +1,67 @@
+desiredState:
+  namespace: topology
+  name: insurance-claims
+
+variables:
+  namespace: "insurance"
+  replicas: "3"
+
+imports:
+  - module: service-mesh
+    as: mesh
+    parameters:
+      namespace: ${var.namespace}
+  - module: ha-multi-az
+    as: ha
+    parameters:
+      namespace: ${var.namespace}
+      region: us-east-1
+      zones: "us-east-1a,us-east-1b,us-east-1c"
+
+nodes:
+  insurance-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  claims-api:
+    type: k8s_deployment
+    dependsOn: [insurance-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: claims-api
+      image: claims-api:3.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "250m"
+        cpuLimit: "1"
+        memoryRequest: "512Mi"
+        memoryLimit: "1Gi"
+
+  underwriting-engine:
+    type: k8s_deployment
+    dependsOn: [insurance-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: underwriting-engine
+      image: underwriting:3.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+  document-store:
+    type: k8s_deployment
+    dependsOn: [insurance-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: document-store
+      image: doc-store:3.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "1"
+        memoryRequest: "256Mi"
+        memoryLimit: "1Gi"
