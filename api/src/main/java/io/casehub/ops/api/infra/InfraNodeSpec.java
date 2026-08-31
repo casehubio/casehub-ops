@@ -5,7 +5,9 @@ public sealed interface InfraNodeSpec
                 K8sConfigMapSpec,
                 ComputeInstanceSpec, DatabaseClusterSpec,
                 TerraformWorkspaceSpec, AnsiblePlaybookSpec,
-                GenericResourceSpec {
+                GenericResourceSpec,
+                LoadBalancerSpec, SidecarProxySpec, ServiceMeshControlPlaneSpec,
+                DnsFailoverSpec, DataReplicationSpec {
 
     String resourceType();
 }

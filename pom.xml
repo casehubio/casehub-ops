@@ -29,6 +29,7 @@
         <module>compliance</module>
         <module>iot</module>
         <module>testing</module>
+        <module>topology-tests</module>
     </modules>
 
     <properties>

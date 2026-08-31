@@ -1,0 +1,32 @@
+module:
+  name: ha-multi-az
+  parameters:
+    namespace:
+      type: string
+      required: true
+    region:
+      type: string
+      required: true
+    zones:
+      type: string
+      required: true
+
+nodes:
+  ha-namespace:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  ha-control-plane:
+    type: k8s_deployment
+    dependsOn: [ha-namespace]
+    spec:
+      namespace: ${var.namespace}
+      name: ha-control-plane
+      image: k8s.gcr.io/kube-apiserver:v1.29
+      replicas: 3
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "1"
+        memoryRequest: "512Mi"
+        memoryLimit: "1Gi"

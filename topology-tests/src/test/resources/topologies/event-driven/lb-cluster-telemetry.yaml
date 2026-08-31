@@ -1,0 +1,82 @@
+desiredState:
+  namespace: topology
+  name: iot-telemetry
+
+variables:
+  namespace: "telemetry"
+  replicas: "3"
+
+imports:
+  - module: load-balancer
+    as: ingest-lb
+    parameters:
+      target_service: telemetry-ingest
+      namespace: ${var.namespace}
+
+nodes:
+  telemetry-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  kafka-broker:
+    type: k8s_deployment
+    dependsOn: [telemetry-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: kafka
+      image: confluentinc/cp-kafka:7.6
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+  telemetry-ingest:
+    type: k8s_deployment
+    dependsOn: [kafka-broker]
+    spec:
+      namespace: ${var.namespace}
+      name: telemetry-ingest
+      image: telemetry-ingest:1.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "250m"
+        cpuLimit: "1"
+        memoryRequest: "512Mi"
+        memoryLimit: "1Gi"
+
+  telemetry-processor:
+    type: k8s_deployment
+    dependsOn: [kafka-broker]
+    spec:
+      namespace: ${var.namespace}
+      name: telemetry-processor
+      image: telemetry-processor:1.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "2Gi"
+
+  timeseries-db:
+    type: k8s_deployment
+    dependsOn: [telemetry-processor]
+    spec:
+      namespace: ${var.namespace}
+      name: timescaledb
+      image: timescale/timescaledb:latest-pg16
+      replicas: 1
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+invariants:
+  broker-is-hub:
+    match:
+      ingest: { type: k8s_deployment }
+    message: "Event-driven services must depend on broker"

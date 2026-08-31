@@ -1,0 +1,84 @@
+desiredState:
+  namespace: topology
+  name: trading-platform
+
+variables:
+  namespace: "trading"
+  replicas: "3"
+
+imports:
+  - module: ha-multi-az
+    as: ha
+    parameters:
+      namespace: ${var.namespace}
+      region: us-east-1
+      zones: "us-east-1a,us-east-1b,us-east-1c"
+
+iterations:
+  availability-zones:
+    as: az
+    in: ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+nodes:
+  trading-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  market-data:
+    type: k8s_deployment
+    dependsOn: [trading-ns]
+    forEach: availability-zones
+    spec:
+      namespace: ${var.namespace}
+      name: "market-data-${each.az}"
+      image: market-data-feed:2.0
+      replicas: 1
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+  order-matching:
+    type: k8s_deployment
+    dependsOn: [trading-ns]
+    forEach: availability-zones
+    spec:
+      namespace: ${var.namespace}
+      name: "order-matching-${each.az}"
+      image: order-matching-engine:2.0
+      replicas: 1
+      resources:
+        cpuRequest: "1"
+        cpuLimit: "4"
+        memoryRequest: "2Gi"
+        memoryLimit: "8Gi"
+
+  risk-engine:
+    type: k8s_deployment
+    dependsOn: [trading-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: risk-engine
+      image: risk-engine:2.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "1Gi"
+        memoryLimit: "4Gi"
+
+  settlement:
+    type: k8s_deployment
+    dependsOn: [risk-engine]
+    spec:
+      namespace: ${var.namespace}
+      name: settlement-service
+      image: settlement:2.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "250m"
+        cpuLimit: "1"
+        memoryRequest: "512Mi"
+        memoryLimit: "2Gi"

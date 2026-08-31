@@ -1,0 +1,43 @@
+module:
+  name: service-mesh
+  parameters:
+    namespace:
+      type: string
+      required: true
+    control_plane_image:
+      type: string
+      default: "istio/pilot:1.20"
+    control_plane_replicas:
+      type: string
+      default: "3"
+
+nodes:
+  mesh-control-plane:
+    type: mesh_control_plane
+    spec:
+      namespace: ${var.namespace}
+      image: ${var.control_plane_image}
+      replicas: ${var.control_plane_replicas}
+
+rules:
+  sidecar-injection:
+    match:
+      app: { type: k8s_deployment }
+    notExists:
+      proxy: { type: sidecar_proxy, of: app, direction: DEPENDENTS }
+    actions:
+      - addNode:
+          id: "proxy-${match.app.flatId}"
+          type: sidecar_proxy
+          spec:
+            targetService: "${match.app.id}"
+            image: envoyproxy/envoy:v1.28
+      - addDependency:
+          from: "proxy-${match.app.flatId}"
+          to: "${match.app.id}"
+
+invariants:
+  mesh-has-control-plane:
+    match:
+      cp: { type: mesh_control_plane }
+    message: "Service mesh module requires a control plane node"

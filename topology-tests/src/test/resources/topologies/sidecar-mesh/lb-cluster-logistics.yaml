@@ -1,0 +1,66 @@
+desiredState:
+  namespace: topology
+  name: logistics-fleet
+
+variables:
+  namespace: "logistics"
+  replicas: "2"
+
+imports:
+  - module: service-mesh
+    as: mesh
+    parameters:
+      namespace: ${var.namespace}
+  - module: load-balancer
+    as: fleet-lb
+    parameters:
+      target_service: fleet-api
+      namespace: ${var.namespace}
+
+nodes:
+  logistics-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  fleet-api:
+    type: k8s_deployment
+    dependsOn: [logistics-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: fleet-api
+      image: fleet-tracking-api:2.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "1"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"
+
+  route-optimizer:
+    type: k8s_deployment
+    dependsOn: [logistics-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: route-optimizer
+      image: route-optimizer:2.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "500m"
+        cpuLimit: "2"
+        memoryRequest: "512Mi"
+        memoryLimit: "2Gi"
+
+  telemetry-collector:
+    type: k8s_deployment
+    dependsOn: [logistics-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: telemetry-collector
+      image: vehicle-telemetry:2.0
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "1"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"

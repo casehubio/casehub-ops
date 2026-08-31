@@ -1,11 +1,13 @@
 package io.casehub.ops.api.infra;
 
-import java.util.Objects;
-
+import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.ops.api.infra.types.BackupConfig;
 import io.casehub.ops.api.infra.types.ClusterSize;
 import io.casehub.ops.api.infra.types.DatabaseEngine;
 
+import java.util.Objects;
+
+@NodeTypeId("database_cluster")
 public record DatabaseClusterSpec(
         DatabaseEngine engine,
         String version,

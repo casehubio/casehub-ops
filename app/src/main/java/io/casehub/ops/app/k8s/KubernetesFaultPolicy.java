@@ -30,8 +30,8 @@ public class KubernetesFaultPolicy implements FaultPolicy {
                                                                               ApplicationNodeTypes.K8S_INGRESS,
                                                                               ApplicationNodeTypes.K8S_CONFIGMAP))
                                                                       .ignoreTypes(Set.of(K8S_REVIEW))
-                                                                      .tier(3, FaultPolicy.addReviewNode(K8S_REVIEW,
-                                                                              (event, current) -> new K8sReviewSpec(event.node(), event.detail())), K8S_REVIEW)
+                                                                      .tier(3, FaultPolicy.addReviewNode(
+                                                                              (event, current) -> new K8sReviewSpec(event.node(), event.detail())))
                                                                       .build();
 
     @Override

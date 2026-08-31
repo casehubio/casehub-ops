@@ -1,0 +1,72 @@
+desiredState:
+  namespace: topology
+  name: ecommerce-storefront
+
+variables:
+  namespace: "ecommerce"
+  replicas: "2"
+
+imports:
+  - module: load-balancer
+    as: store-lb
+    parameters:
+      target_service: storefront-nginx
+      namespace: ${var.namespace}
+
+lifecycle:
+  phases:
+    - id: data
+      completionCondition: allPresent
+      nodes:
+        product-db:
+          type: k8s_deployment
+          spec:
+            namespace: ${var.namespace}
+            name: product-db
+            image: postgres:16-alpine
+            replicas: 1
+            resources:
+              cpuRequest: "200m"
+              cpuLimit: "1"
+              memoryRequest: "256Mi"
+              memoryLimit: "1Gi"
+
+    - id: application
+      completionCondition: allPresent
+      nodes:
+        catalog-api:
+          type: k8s_deployment
+          dependsOn: [product-db]
+          spec:
+            namespace: ${var.namespace}
+            name: catalog-api
+            image: catalog-api:1.0
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "200m"
+              cpuLimit: "500m"
+              memoryRequest: "256Mi"
+              memoryLimit: "512Mi"
+
+    - id: web
+      completionCondition: never
+      nodes:
+        storefront-nginx:
+          type: k8s_deployment
+          dependsOn: [catalog-api]
+          spec:
+            namespace: ${var.namespace}
+            name: storefront-nginx
+            image: nginx:1.25
+            replicas: ${var.replicas}
+            resources:
+              cpuRequest: "100m"
+              cpuLimit: "300m"
+              memoryRequest: "128Mi"
+              memoryLimit: "256Mi"
+
+invariants:
+  multi-tier-chain:
+    match:
+      web: { type: k8s_deployment }
+    message: "Multi-tier must maintain web→app→data chain"

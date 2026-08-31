@@ -1,0 +1,64 @@
+desiredState:
+  namespace: topology
+  name: ecommerce-dev
+
+variables:
+  namespace: "ecommerce-dev"
+
+lifecycle:
+  phases:
+    - id: data
+      completionCondition: allPresent
+      nodes:
+        product-db:
+          type: k8s_deployment
+          spec:
+            namespace: ${var.namespace}
+            name: product-db
+            image: postgres:16-alpine
+            replicas: 1
+            resources:
+              cpuRequest: "100m"
+              cpuLimit: "500m"
+              memoryRequest: "256Mi"
+              memoryLimit: "512Mi"
+
+    - id: application
+      completionCondition: allPresent
+      nodes:
+        catalog-api:
+          type: k8s_deployment
+          dependsOn: [product-db]
+          spec:
+            namespace: ${var.namespace}
+            name: catalog-api
+            image: catalog-api:dev
+            replicas: 1
+            resources:
+              cpuRequest: "100m"
+              cpuLimit: "500m"
+              memoryRequest: "256Mi"
+              memoryLimit: "512Mi"
+
+    - id: web
+      completionCondition: never
+      nodes:
+        storefront:
+          type: k8s_deployment
+          dependsOn: [catalog-api]
+          spec:
+            namespace: ${var.namespace}
+            name: storefront
+            image: storefront:dev
+            replicas: 1
+            resources:
+              cpuRequest: "50m"
+              cpuLimit: "200m"
+              memoryRequest: "128Mi"
+              memoryLimit: "256Mi"
+
+invariants:
+  web-depends-on-api:
+    match:
+      web: { type: k8s_deployment }
+    message: "Multi-tier storefront requires API dependency"

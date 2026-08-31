@@ -1,10 +1,12 @@
 package io.casehub.ops.api.infra;
 
+import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.ops.api.infra.types.Labels;
 import io.casehub.ops.api.infra.types.ServiceType;
 
 import java.util.Objects;
 
+@NodeTypeId("k8s_service")
 public record K8sServiceSpec(
         String namespace,
         String name,
@@ -17,9 +19,9 @@ public record K8sServiceSpec(
     public K8sServiceSpec {
         Objects.requireNonNull(namespace, "namespace");
         Objects.requireNonNull(name, "name");
-        Objects.requireNonNull(serviceType, "serviceType");
-        Objects.requireNonNull(labels, "labels");
-        Objects.requireNonNull(selector, "selector");
+        if (serviceType == null) {serviceType = ServiceType.CLUSTER_IP;}
+        if (labels == null) {labels = Labels.empty();}
+        if (selector == null) {selector = Labels.empty();}
     }
 
     @Override

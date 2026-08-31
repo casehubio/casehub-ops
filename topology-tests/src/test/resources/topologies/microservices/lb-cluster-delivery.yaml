@@ -1,0 +1,76 @@
+desiredState:
+  namespace: topology
+  name: food-delivery
+
+variables:
+  namespace: "delivery"
+  replicas: "2"
+
+imports:
+  - module: load-balancer
+    as: api-lb
+    parameters:
+      target_service: api-gateway
+      namespace: ${var.namespace}
+
+nodes:
+  delivery-ns:
+    type: k8s_namespace
+    spec:
+      name: ${var.namespace}
+
+  api-gateway:
+    type: k8s_deployment
+    dependsOn: [delivery-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: api-gateway
+      image: api-gateway:1.5
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "1"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"
+
+  restaurant-svc:
+    type: k8s_deployment
+    dependsOn: [delivery-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: restaurant-service
+      image: restaurant-svc:1.5
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "500m"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"
+
+  rider-svc:
+    type: k8s_deployment
+    dependsOn: [delivery-ns]
+    spec:
+      namespace: ${var.namespace}
+      name: rider-service
+      image: rider-svc:1.5
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "500m"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"
+
+  order-svc:
+    type: k8s_deployment
+    dependsOn: [api-gateway, restaurant-svc, rider-svc]
+    spec:
+      namespace: ${var.namespace}
+      name: order-service
+      image: order-svc:1.5
+      replicas: ${var.replicas}
+      resources:
+        cpuRequest: "200m"
+        cpuLimit: "500m"
+        memoryRequest: "256Mi"
+        memoryLimit: "512Mi"

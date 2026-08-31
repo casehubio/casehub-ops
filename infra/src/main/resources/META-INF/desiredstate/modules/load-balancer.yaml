@@ -1,0 +1,44 @@
+module:
+  name: load-balancer
+  parameters:
+    target_service:
+      type: string
+      required: true
+    health_check_path:
+      type: string
+      default: "/health"
+    namespace:
+      type: string
+      required: true
+    lb_type:
+      type: string
+      default: "APPLICATION"
+
+nodes:
+  lb:
+    type: load_balancer
+    spec:
+      name: "${var.target_service}-lb"
+      namespace: ${var.namespace}
+      type: ${var.lb_type}
+      healthCheckPath: ${var.health_check_path}
+      healthCheckPort: 80
+      targetServices: ["${var.target_service}"]
+
+  ingress:
+    type: k8s_ingress
+    dependsOn: [lb]
+    spec:
+      namespace: ${var.namespace}
+      name: "${var.target_service}-ingress"
+      host: "${var.target_service}.example.com"
+      rules:
+        - path: /
+          serviceName: ${var.target_service}
+          servicePort: 80
+
+invariants:
+  lb-has-target:
+    match:
+      lb: { type: load_balancer }
+    message: "Load balancer must have at least one target service"

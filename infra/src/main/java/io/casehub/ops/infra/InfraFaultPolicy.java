@@ -21,18 +21,10 @@ public class InfraFaultPolicy implements FaultPolicy {
 
     private final ThresholdFaultPolicy delegate = ThresholdFaultPolicy.builder()
                                                                       .faultTypes(Set.of(FaultType.PROVISION_FAILED))
-                                                                      .nodeTypes(Set.of(
-                                                                              NodeType.of("k8s_namespace"),
-                                                                              NodeType.of("k8s_deployment"),
-                                                                              NodeType.of("k8s_service"),
-                                                                              NodeType.of("k8s_ingress"),
-                                                                              NodeType.of("compute_instance"),
-                                                                              NodeType.of("database_cluster"),
-                                                                              NodeType.of("terraform_workspace"),
-                                                                              NodeType.of("ansible_playbook")))
+                                                                      .nodeTypes(InfraTypeDiscovery.discoverHandledTypes())
                                                                       .ignoreTypes(Set.of(INFRA_REVIEW))
-                                                                      .tier(3, FaultPolicy.addReviewNode(INFRA_REVIEW,
-                                                                              (event, current) -> new InfraReviewSpec(event.node(), event.detail())), INFRA_REVIEW)
+                                                                      .tier(3, FaultPolicy.addReviewNode(
+                                                                              (event, current) -> new InfraReviewSpec(event.node(), event.detail())))
                                                                       .build();
 
     @Override
