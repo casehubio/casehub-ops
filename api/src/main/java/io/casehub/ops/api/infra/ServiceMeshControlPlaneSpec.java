@@ -2,8 +2,11 @@ package io.casehub.ops.api.infra;
 
 import io.casehub.ops.api.infra.types.Labels;
 
+import io.casehub.desiredstate.api.NodeTypeId;
+
 import java.util.Objects;
 
+@NodeTypeId("mesh_control_plane")
 public record ServiceMeshControlPlaneSpec(
         String namespace,
         String image,

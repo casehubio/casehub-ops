@@ -1,9 +1,12 @@
 package io.casehub.ops.api.infra;
 
-import java.util.Map;
-import org.junit.jupiter.api.Test;
 import io.casehub.ops.api.infra.types.Labels;
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 class K8sConfigMapSpecTest {
     @Test
@@ -42,19 +45,13 @@ class K8sConfigMapSpecTest {
 
     @Test
     void rejectsNullData() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> new K8sConfigMapSpec("default", "app-config",
-                        null, Labels.of(Map.of())))
-                .withMessageContaining("data");
-    }
+        var spec = new K8sConfigMapSpec("default", "app-config", null, Labels.of(Map.of()));
+        assertThat(spec.data()).isEmpty();}
 
     @Test
     void rejectsNullLabels() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> new K8sConfigMapSpec("default", "app-config",
-                        Map.of(), null))
-                .withMessageContaining("labels");
-    }
+        var spec = new K8sConfigMapSpec("default", "app-config", Map.of(), null);
+        assertThat(spec.labels()).isEqualTo(Labels.empty());}
 
     @Test
     void defensivelyCopiesDataMap() {

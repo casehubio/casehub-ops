@@ -1,7 +1,10 @@
 package io.casehub.ops.api.infra;
 
+import io.casehub.desiredstate.api.NodeTypeId;
+
 import java.util.Objects;
 
+@NodeTypeId("data_replication")
 public record DataReplicationSpec(
         String sourceCluster,
         String targetCluster,

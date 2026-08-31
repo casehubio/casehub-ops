@@ -1,11 +1,13 @@
 package io.casehub.ops.api.infra;
 
-import java.util.Objects;
-
+import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.ops.api.infra.types.CloudProvider;
 import io.casehub.ops.api.infra.types.InstanceType;
 import io.casehub.ops.api.infra.types.NetworkConfig;
 
+import java.util.Objects;
+
+@NodeTypeId("compute_instance")
 public record ComputeInstanceSpec(
         CloudProvider provider,
         String region,

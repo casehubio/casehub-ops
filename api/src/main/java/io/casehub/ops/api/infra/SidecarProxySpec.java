@@ -2,8 +2,11 @@ package io.casehub.ops.api.infra;
 
 import io.casehub.ops.api.infra.types.ResourceRequirements;
 
+import io.casehub.desiredstate.api.NodeTypeId;
+
 import java.util.Objects;
 
+@NodeTypeId("sidecar_proxy")
 public record SidecarProxySpec(
         String targetService,
         String image,

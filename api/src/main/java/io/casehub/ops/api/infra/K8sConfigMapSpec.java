@@ -1,10 +1,12 @@
 package io.casehub.ops.api.infra;
 
+import io.casehub.desiredstate.api.NodeTypeId;
+import io.casehub.ops.api.infra.types.Labels;
+
 import java.util.Map;
 import java.util.Objects;
 
-import io.casehub.ops.api.infra.types.Labels;
-
+@NodeTypeId("k8s_configmap")
 public record K8sConfigMapSpec(
         String namespace,
         String name,
@@ -14,9 +16,9 @@ public record K8sConfigMapSpec(
     public K8sConfigMapSpec {
         Objects.requireNonNull(namespace, "namespace");
         Objects.requireNonNull(name, "name");
-        Objects.requireNonNull(data, "data");
+        if (data == null) {data = Map.of();}
         data = Map.copyOf(data);
-        Objects.requireNonNull(labels, "labels");
+        if (labels == null) {labels = Labels.empty();}
     }
 
     @Override

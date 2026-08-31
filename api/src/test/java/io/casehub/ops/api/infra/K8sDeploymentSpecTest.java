@@ -1,13 +1,15 @@
 package io.casehub.ops.api.infra;
 
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Test;
 import io.casehub.ops.api.infra.types.HealthCheckSpec;
 import io.casehub.ops.api.infra.types.Labels;
 import io.casehub.ops.api.infra.types.PortMapping;
 import io.casehub.ops.api.infra.types.ResourceRequirements;
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class K8sDeploymentSpecTest {
 
@@ -46,36 +48,30 @@ class K8sDeploymentSpecTest {
 
     @Test
     void rejectsNullPorts() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> new K8sDeploymentSpec(
-                        "default", "my-app", "nginx:latest", 1,
-                        new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
-                        Labels.of(Map.of()),
-                        null, Map.of(), java.util.Optional.empty()))
-                .withMessageContaining("ports");
-    }
+        var spec = new K8sDeploymentSpec(
+                "default", "my-app", "nginx:latest", 1,
+                new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
+                Labels.of(Map.of()),
+                null, Map.of(), java.util.Optional.empty());
+        assertThat(spec.ports()).isEmpty();}
 
     @Test
     void rejectsNullEnv() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> new K8sDeploymentSpec(
-                        "default", "my-app", "nginx:latest", 1,
-                        new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
-                        Labels.of(Map.of()),
-                        List.of(), null, java.util.Optional.empty()))
-                .withMessageContaining("env");
-    }
+        var spec = new K8sDeploymentSpec(
+                "default", "my-app", "nginx:latest", 1,
+                new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
+                Labels.of(Map.of()),
+                List.of(), null, java.util.Optional.empty());
+        assertThat(spec.env()).isEmpty();}
 
     @Test
     void rejectsNullHealthCheck() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> new K8sDeploymentSpec(
-                        "default", "my-app", "nginx:latest", 1,
-                        new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
-                        Labels.of(Map.of()),
-                        List.of(), Map.of(), null))
-                .withMessageContaining("healthCheck");
-    }
+        var spec = new K8sDeploymentSpec(
+                "default", "my-app", "nginx:latest", 1,
+                new ResourceRequirements("100m", "500m", "128Mi", "512Mi"),
+                Labels.of(Map.of()),
+                List.of(), Map.of(), null);
+        assertThat(spec.healthCheck()).isEmpty();}
 
     @Test
     void defensivelyCopiesPortsList() {

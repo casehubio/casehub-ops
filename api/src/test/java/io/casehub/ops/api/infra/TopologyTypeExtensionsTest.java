@@ -169,4 +169,74 @@ class TopologyTypeExtensionsTest {
         assertThat(ReplicationMode.values()).containsExactly(
                 ReplicationMode.ASYNC, ReplicationMode.SEMI_SYNC);
     }
+
+// --- @NodeTypeId annotations ---
+
+    @Test
+    void allNonGenericVariants_haveNodeTypeIdMatchingResourceType() {
+        assertNodeTypeId(K8sNamespaceSpec.class, "k8s_namespace");
+        assertNodeTypeId(K8sDeploymentSpec.class, "k8s_deployment");
+        assertNodeTypeId(K8sServiceSpec.class, "k8s_service");
+        assertNodeTypeId(K8sIngressSpec.class, "k8s_ingress");
+        assertNodeTypeId(K8sConfigMapSpec.class, "k8s_configmap");
+        assertNodeTypeId(ComputeInstanceSpec.class, "compute_instance");
+        assertNodeTypeId(DatabaseClusterSpec.class, "database_cluster");
+        assertNodeTypeId(TerraformWorkspaceSpec.class, "terraform_workspace");
+        assertNodeTypeId(AnsiblePlaybookSpec.class, "ansible_playbook");
+        assertNodeTypeId(LoadBalancerSpec.class, "load_balancer");
+        assertNodeTypeId(SidecarProxySpec.class, "sidecar_proxy");
+        assertNodeTypeId(ServiceMeshControlPlaneSpec.class, "mesh_control_plane");
+        assertNodeTypeId(DnsFailoverSpec.class, "dns_failover");
+        assertNodeTypeId(DataReplicationSpec.class, "data_replication");
+    }
+
+    @Test
+    void genericResourceSpec_hasNoNodeTypeId() {
+        assertThat(GenericResourceSpec.class.getAnnotation(
+                io.casehub.desiredstate.api.NodeTypeId.class)).isNull();
+    }
+
+    // --- Null-coalescing on existing variants ---
+
+    @Test
+    void k8sNamespaceSpec_nullCoalescing() {
+        var spec = new K8sNamespaceSpec("ns", null);
+        assertThat(spec.labels()).isEqualTo(Labels.empty());
+    }
+
+    @Test
+    void k8sDeploymentSpec_nullCoalescing() {
+        var spec = new K8sDeploymentSpec("ns", "name", "img", 1, null, null, null, null, null);
+        assertThat(spec.labels()).isEqualTo(Labels.empty());
+        assertThat(spec.ports()).isEmpty();
+        assertThat(spec.env()).isEmpty();
+        assertThat(spec.healthCheck()).isEmpty();
+    }
+
+    @Test
+    void k8sServiceSpec_nullCoalescing() {
+        var spec = new K8sServiceSpec("ns", "name", 80, 8080, null, null, null);
+        assertThat(spec.serviceType()).isNotNull();
+        assertThat(spec.labels()).isEqualTo(Labels.empty());
+        assertThat(spec.selector()).isEqualTo(Labels.empty());
+    }
+
+    @Test
+    void k8sIngressSpec_nullCoalescing() {
+        var spec = new K8sIngressSpec("ns", "name", null, null, null);
+        assertThat(spec.labels()).isEqualTo(Labels.empty());
+        assertThat(spec.rules()).isEmpty();}
+
+    @Test
+    void k8sConfigMapSpec_nullCoalescing() {
+        var spec = new K8sConfigMapSpec("ns", "name", null, null);
+        assertThat(spec.labels()).isEqualTo(Labels.empty());
+        assertThat(spec.data()).isEmpty();
+    }
+
+    private static void assertNodeTypeId(Class<?> cls, String expectedValue) {
+        var ann = cls.getAnnotation(io.casehub.desiredstate.api.NodeTypeId.class);
+        assertThat(ann).as("@NodeTypeId on " + cls.getSimpleName()).isNotNull();
+        assertThat(ann.value()).as("@NodeTypeId value on " + cls.getSimpleName()).isEqualTo(expectedValue);
+    }
 }
