@@ -10,7 +10,6 @@ import io.casehub.desiredstate.api.OrderedStep;
 import io.casehub.desiredstate.api.StepOutcome;
 import io.casehub.desiredstate.api.TransitionPlan;
 import io.casehub.desiredstate.api.TransitionResult;
-import io.casehub.desiredstate.runtime.DefaultActualStateAdapterRouter;
 import io.casehub.desiredstate.runtime.DefaultNodeProvisionerRouter;
 import io.casehub.desiredstate.runtime.FaultPolicyEngine;
 import io.casehub.desiredstate.runtime.NoOpHumanNodeHandler;
@@ -21,6 +20,7 @@ import io.casehub.desiredstate.testing.MockActualStateAdapter;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,16 +88,11 @@ abstract class ReconciliationTestBase extends TopologyTestBase {
     }
 
     private static Set<NodeType> allInfraTypes() {
-        return Set.of(
-                NodeType.of("k8s_namespace"),
-                NodeType.of("k8s_deployment"),
-                NodeType.of("k8s_service"),
-                NodeType.of("k8s-ingress"),
-                NodeType.of("load_balancer"),
-                NodeType.of("dns_failover"),
-                NodeType.of("data_replication"),
-                NodeType.of("mesh_control_plane"),
-                NodeType.of("sidecar_proxy"),
-                NodeType.of("infra-review"));
+        Set<NodeType> types = new HashSet<>();
+        for (String typeId : buildTypeRegistry().keySet()) {
+            types.add(NodeType.of(typeId));
+        }
+        types.add(NodeType.of("infra-review"));
+        return Set.copyOf(types);
     }
 }
