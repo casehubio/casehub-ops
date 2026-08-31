@@ -308,17 +308,20 @@ Three SPIs in `api/approval/`:
 |---|---|---|---|
 | Desired-state ops domains | Implement desired-state management for four operational domains, validating the generic runtime | 4 | ✅ Complete |
 | Service lifecycle management | Model deployed services as long-lived cases with nine operational dimensions | 1+ | 🔲 In progress |
+| Infrastructure maturity | Prove the YAML frontend can express and manage the full range of real-world deployment architectures | 1+ | 🔲 Planned |
 
 ```mermaid
 flowchart LR
   C1["C1: Infra PoC\nL1, L2"] --> C2["C2: Deployment\nL1, L3"]
   C2 --> C3["C3: Compliance\nL1, L4"]
   C3 --> C4["C4: IoT\nL1, L5"]
+  C4 --> C6["C6: Canonical Topologies\nL1, L2"]
 
   style C1 fill:#90EE90,color:#000
   style C2 fill:#90EE90,color:#000
   style C3 fill:#90EE90,color:#000
   style C4 fill:#90EE90,color:#000
+  style C6 fill:#FFFFE0,color:#000
 ```
 
 ### §9.2 Chapter Index
@@ -330,24 +333,26 @@ flowchart LR
 | 3 | Compliance domain | Desired-state ops domains | L1, L4 | Medium, High | ✅ |
 | 4 | IoT domain | Desired-state ops domains | L1, L5 | Low, High | ✅ |
 | 5 | Service lifecycle domain model | Service lifecycle management | L1, L6 | Medium, High | 🔲 |
+| 6 | Canonical deployment topologies | Infrastructure maturity | L1, L2 | Medium, High | 🔲 |
 
 **Layer × Chapter matrix**
 
-| Layer | C1 | C2 | C3 | C4 | C5 |
-|---|---|---|---|---|---|
-| L1 Shared API | High | Medium | Medium | Low | Medium |
-| L2 Infra | High | — | — | — | — |
-| L3 Deployment | — | High | — | — | — |
-| L4 Compliance | — | — | High | — | — |
-| L5 IoT | — | — | — | High | — |
-| L6 Service Lifecycle | — | — | — | — | High |
+| Layer | C1 | C2 | C3 | C4 | C5 | C6 |
+|---|---|---|---|---|---|---|
+| L1 Shared API | High | Medium | Medium | Low | Medium | Medium |
+| L2 Infra | High | — | — | — | — | High |
+| L3 Deployment | — | High | — | — | — | — |
+| L4 Compliance | — | — | High | — | — | — |
+| L5 IoT | — | — | — | High | — | — |
+| L6 Service Lifecycle | — | — | — | — | High | — |
 
-L1 receives contributions from every chapter. L2–L5 are each single-chapter layers — additive, domain-specific, no cross-layer churn.
+L1 receives contributions from every chapter. L2–L5 are each single-chapter layers — additive, domain-specific, no cross-layer churn. C6 revisits L2 Infra with topology-level type extensions and YAML modules.
 
 **Sequencing rationale:**
 - C1 before C2: C1 validates the desiredstate SPIs against a universally understood domain (infrastructure). Lessons learned (backend abstraction overhead, typed domain context, EventSource passivity) informed C2's simpler design.
 - C2 before C3: C2 establishes sealed type dispatch and handler delegation. C3 demonstrates the alternative — generic spec with discriminator — showing when each pattern fits.
 - C3 before C4: C3 introduces ledger integration. C4 builds on casehub-iot foundation (independently developed, on 0.2-SNAPSHOT).
+- C5 independent of C6: Service lifecycle and topology verification are orthogonal — service lifecycle monitors deployed services; topology verification proves the YAML frontend can express deployment patterns. C6 depends on C1 (infra types) but not C5.
 
 ### §9.3 Chapter Entries
 
@@ -820,6 +825,31 @@ The system can model a deployed service as a long-lived case with nine operation
 |---|---|
 | L1 Shared API | Medium — lifecycle package: DimensionType, DimensionStatus, Severity, OperationalDimension, ServiceCaseContext, 9 status enums |
 | L6 Service Lifecycle | High — DimensionStatusService, ServiceCaseRegistry, ServiceCaseDescriptor (14 bindings), ServiceDetectionBridge, ApplicationLifecycleService wiring |
+
+---
+
+### Chapter 6 — Canonical Deployment Topologies
+
+**Journey:** Infrastructure maturity | **Sequence:** 1 of N | **Status:** 🔲
+**Issues:** #74 (epic), #75, #76, #77, #78, #79, #80, #81, #82 | **Design spec:** `docs/specs/2026-08-29-canonical-deployment-topologies-design.md`
+
+**What this delivers**
+The system can express 14 canonical deployment topologies across 5 application architectures (single service, multi-tier, microservices, event-driven, sidecar/service-mesh) × 4 infrastructure topologies (single node, load-balanced cluster, HA multi-AZ, multi-region active-passive) using pure YAML declarations. Each topology compiles through the existing desiredstate YAML frontend (modules, invariants, rules, forEach, lifecycle phases) into a correct DesiredStateGraph. A 3-layer test pyramid (compilation, reconciliation, live K8s) verifies correctness at each level.
+
+**Accountability gaps closed**
+- No proof that the YAML frontend can express real-world deployment patterns → 14 exemplars with real domain language (e-commerce, healthcare, banking, trading, IoT, logistics)
+- No reusable infrastructure modules → 4 topology YAML modules (load-balancer, ha-multi-az, service-mesh, multi-region) shipping in `casehub-ops-infra.jar`
+- InfraNodeSpec/NodeSpec type gap blocks YAML-native infra declarations → NodeSpecFactory SPI with InfraWrappingFactory bridge
+- Missing infrastructure types → 5 new InfraNodeSpec sealed variants (LoadBalancerSpec, ServiceMeshControlPlaneSpec, SidecarProxySpec, DnsFailoverSpec, DataReplicationSpec)
+
+**Layer Impact**
+
+| Layer | Delta |
+|---|---|
+| L1 Shared API | Medium — 5 new InfraNodeSpec sealed variants, 3 enums, @NodeTypeId on all existing variants |
+| L2 Infra | High — InfraWrappingFactory, InfraNodeSpecFactoryProvider, dynamic handledTypes(), 6 parseSpec() cases, 4 topology YAML modules |
+
+**Cross-repo prerequisite:** `casehub-desiredstate` (#75, #80) — NodeSpecFactory SPI, NodeSpecRegistry generalisation, lifecycle+module interaction fix. Must merge and release before ops work.
 
 ---
 

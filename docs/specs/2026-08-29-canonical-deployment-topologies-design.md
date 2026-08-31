@@ -1,7 +1,7 @@
 # Canonical Deployment Topologies — Design Spec
 
 **Date:** 2026-08-29
-**Issue:** TBD — to be created before Phase 1 begins
+**Issue:** #74 (epic) — children: #75, #76, #77, #78, #79, #80, #81, #82
 **Research:** `docs/research/2026-08-29-canonical-deployment-topologies.md`
 **Chapter:** C6 — Canonical Deployment Topologies (Journey: Infrastructure maturity, extends L2 Infra)
 **Status:** Design — pending review
