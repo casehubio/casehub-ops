@@ -1,0 +1,42 @@
+module:
+  name: multi-region
+  parameters:
+    primary_cluster:
+      type: string
+      required: true
+    dr_cluster:
+      type: string
+      required: true
+    domain:
+      type: string
+      required: true
+    replication_mode:
+      type: string
+      default: "ASYNC"
+
+nodes:
+  dns-failover:
+    type: dns_failover
+    spec:
+      domainName: ${var.domain}
+      primaryEndpoint: ${var.primary_cluster}
+      secondaryEndpoint: ${var.dr_cluster}
+      ttlSeconds: 60
+      policy: FAILOVER
+
+  data-replication:
+    type: data_replication
+    dependsOn: [dns-failover]
+    spec:
+      sourceCluster: ${var.primary_cluster}
+      targetCluster: ${var.dr_cluster}
+      mode: ${var.replication_mode}
+      lagToleranceSeconds: 30
+
+invariants:
+  replication-requires-failover:
+    match:
+      repl: { type: data_replication }
+    directDep:
+      dns: { type: dns_failover, of: repl, direction: DEPENDENCIES }
+    message: "Data replication must depend on DNS failover"
