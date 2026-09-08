@@ -95,6 +95,6 @@ Read `docs/guides/consumer-guide.md` for app-level work. Only read `docs/guides/
 
 ## Workspace
 
-**Project repo:** `/Users/mdproctor/claude/casehub/ops`
-**Workspace:** `/Users/mdproctor/claude/public/casehub-ops`
+**Project repo:** `/Users/mdproctor/claude/casehub/slots/184/ops`
+**Workspace:** `/Users/mdproctor/claude/casehub/slots/184/wsp-casehub-ops`
 **Workspace type:** public
