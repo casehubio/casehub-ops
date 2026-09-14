@@ -193,10 +193,6 @@ public class AdaptiveTopologyManager {
 
         List<ActiveSituation> situations = situationSource.activeSituations(tenancyId);
 
-        Set<String> activeSituationIds = situations.stream()
-            .map(ActiveSituation::situationId)
-            .collect(Collectors.toSet());
-
         DesiredStateGraph adapted = base;
         Set<NodeId> modifiedNodes = new HashSet<>();
 
@@ -221,7 +217,7 @@ public class AdaptiveTopologyManager {
             }
         }
 
-        state.clearAbsentSituations(activeSituationIds);
+        state.clearAbsentSituations();
 
         return adapted;
     }
