@@ -95,6 +95,43 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
         }
     }
 
+    @Override
+    public Optional<CompilationResult> situationResolved(
+            String tenancyId,
+            String situationId,
+            DesiredStateGraph currentGraph,
+            ActualState actualState,
+            DesiredStateGraphFactory factory) {
+
+        TenantAdaptationState state = tenantStates.get(tenancyId);
+        if (state == null) {
+            return Optional.empty();
+        }
+
+        synchronized (state) {
+            boolean hadSituation = state.clearSituation(situationId);
+            if (!hadSituation) {
+                return Optional.empty();
+            }
+
+            CompilationResult baseResult = compiler.compile(state.goals(), factory);
+            DesiredStateGraph base = ((CompilationResult.SingleGraph) baseResult).graph();
+            DesiredStateGraph adapted = base;
+
+            for (AdaptationRule rule : state.rules()) {
+                Optional<ActiveSituation> match = state.activeSituationFor(rule);
+                if (match.isPresent() && state.shouldActivate(rule, match.get())) {
+                    adapted = rule.apply(adapted, match.get());
+                }
+            }
+
+            if (graphsEqual(adapted, currentGraph)) {
+                return Optional.empty();
+            }
+            return Optional.of(CompilationResult.single(adapted));
+        }
+    }
+
     private static boolean graphsEqual(DesiredStateGraph a, DesiredStateGraph b) {
         if (a == b) return true;
         if (a == null || b == null) return false;

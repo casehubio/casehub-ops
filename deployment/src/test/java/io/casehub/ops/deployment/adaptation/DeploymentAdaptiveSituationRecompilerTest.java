@@ -155,6 +155,53 @@ class DeploymentAdaptiveSituationRecompilerTest {
         assertThat(recompiler.priority()).isEqualTo(100);
     }
 
+    @Test
+    void situationResolvedClearsSituationAndRecompilesFromBase() {
+        recompiler.register("t1", goalsWithAdaptations,
+                            Map.of("volatility-spike", Duration.ofMinutes(30),
+                                   "market-anomaly", Duration.ofMinutes(15)), graphFactory);
+
+        var volatility = new ActiveSituation("volatility-spike", "k1", "t1",
+                                             1.0, Map.of(), Instant.now(), Instant.now(), 1);
+        recompiler.recompile("t1", baseGraph, emptyActual, volatility, graphFactory);
+
+        var anomaly = new ActiveSituation("market-anomaly", "k2", "t1",
+                                          0.7, Map.of(), Instant.now(), Instant.now(), 1);
+        var adapted = extractGraph(recompiler.recompile("t1", baseGraph, emptyActual,
+                                                        anomaly, graphFactory).orElseThrow());
+
+        assertThat(adapted.nodes()).containsKey(NodeId.of("risk-agent~2"));
+        assertThat(adapted.nodes()).containsKey(NodeId.of("trade-execution"));
+
+        var afterResolve = recompiler.situationResolved("t1", "volatility-spike",
+                                                        adapted, emptyActual, graphFactory);
+
+        assertThat(afterResolve).isPresent();
+        var resolved = extractGraph(afterResolve.get());
+        assertThat(resolved.nodes()).doesNotContainKey(NodeId.of("risk-agent~2"));
+        assertThat(resolved.nodes()).containsKey(NodeId.of("trade-execution"));
+    }
+
+    @Test
+    void situationResolvedReturnsEmptyForUnknownSituation() {
+        recompiler.register("t1", goalsWithAdaptations,
+                            Map.of("volatility-spike", Duration.ofMinutes(30)), graphFactory);
+
+        var result = recompiler.situationResolved("t1", "never-tracked",
+                                                  baseGraph, emptyActual, graphFactory);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void situationResolvedReturnsEmptyForUnregisteredTenant() {
+        var result = recompiler.situationResolved("unknown", "volatility-spike",
+                                                  baseGraph, emptyActual, graphFactory);
+
+        assertThat(result).isEmpty();
+    }
+
+
     private DesiredStateGraph extractGraph(CompilationResult result) {
         if (result instanceof CompilationResult.SingleGraph single) {
             return single.graph();
