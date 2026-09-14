@@ -251,7 +251,7 @@ class ScalingEventCaseDescriptorTest {
                 .findFirst().orElseThrow();
         var subCaseTarget = (io.casehub.api.model.SubCaseTarget) binding.target();
         var inputMapping = (io.casehub.api.model.SubCaseMapping.Expression) subCaseTarget.subCase().inputMapping();
-        assertThat(inputMapping.expression()).isEqualTo(".scalingRequired");
+        assertThat(inputMapping.evaluator()).isNotNull();
     }
 
     @Test

@@ -30,6 +30,7 @@
         <module>iot</module>
         <module>testing</module>
         <module>topology-tests</module>
+        <module>examples/deployment-monitoring</module>
     </modules>
 
     <properties>
@@ -81,6 +82,13 @@
                 <artifactId>casehub-ops-testing</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- blocks summarisation (not yet in parent BOM) -->
+            <dependency>
+                <groupId>io.casehub</groupId>
+                <artifactId>casehub-blocks-summarisation-yaml</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

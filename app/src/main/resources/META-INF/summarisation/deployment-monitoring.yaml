@@ -1,0 +1,84 @@
+pipeline:
+  name: deployment-monitoring
+  source:
+    type-prefix: io.casehub.desiredstate.node.
+
+  levels:
+    - name: anomalies
+      grouping:
+        type: windowed
+        count: 10
+      summariser:
+        type: threshold-classify
+        rules:
+          - name: provision-failure
+            when: 'faultType == "PROVISION_FAILED"'
+            category: PROVISION_FAILURE
+            severity: CRITICAL
+          - name: dependency-fault
+            when: 'faultType == "DEPENDENCY_UNAVAILABLE"'
+            category: DEPENDENCY_FAULT
+            severity: CRITICAL
+          - name: node-destroyed
+            when: 'faultType == "NODE_DESTROYED"'
+            category: NODE_DESTROYED
+            severity: CRITICAL
+          - name: deprovision-failure
+            when: 'faultType == "DEPROVISION_FAILED"'
+            category: DEPROVISION_FAILURE
+            severity: HIGH
+          - name: degradation
+            when: 'faultType == "NODE_DEGRADED"'
+            category: DEGRADATION
+            severity: HIGH
+          - name: human-timeout
+            when: 'faultType == "HUMAN_NODE_TIMEOUT"'
+            category: HUMAN_TIMEOUT
+            severity: MEDIUM
+          - name: approval-rejected
+            when: 'faultType == "APPROVAL_REJECTED"'
+            category: APPROVAL_REJECTED
+            severity: MEDIUM
+          - name: stabilising
+            when: 'faultType == null'
+            category: STABILISING
+            severity: LOW
+      emit:
+        cloud-event-type: io.casehub.ops.deployment.anomaly
+
+    - name: phases
+      grouping:
+        type: windowed
+        age: 60000
+        count: 20
+      aggregate-fields:
+        - severity
+        - category
+      summariser:
+        type: phase-detect
+        initial: HEALTHY
+        states:
+          - HEALTHY
+          - DEGRADED
+          - RECOVERING
+        transitions:
+          - from: HEALTHY
+            to: DEGRADED
+            count-field: severity
+            count-value: CRITICAL
+            op: ">="
+            threshold: 2
+          - from: DEGRADED
+            to: RECOVERING
+            count-field: severity
+            count-value: CRITICAL
+            op: "=="
+            threshold: 0
+          - from: RECOVERING
+            to: HEALTHY
+            count-field: category
+            count-value: STABILISING
+            op: ">="
+            threshold: 3
+      emit:
+        cloud-event-type: io.casehub.ops.deployment.phase
