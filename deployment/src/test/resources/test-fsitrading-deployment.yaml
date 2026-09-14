@@ -1,0 +1,48 @@
+agents:
+  - spec:
+      agentId: strategy-agent
+      name: Strategy Evaluator
+      slot: worker
+  - spec:
+      agentId: risk-agent
+      name: Risk Monitor
+      slot: worker
+
+channels:
+  - spec:
+      name: fsitrading/work
+      semantic: APPEND
+
+trust:
+  - spec:
+      capability: trade-execution
+      threshold: 0.7
+      minimumObservations: 5
+  - spec:
+      capability: risk-assessment
+      threshold: 0.8
+      minimumObservations: 3
+
+adaptations:
+  - name: scale-risk-on-volatility
+    trigger:
+      situation: fsitrading.volatility-spike
+      minConfidence: 0.7
+      deactivateBelow: 0.5
+      cooldown: PT5M
+    actions:
+      - type: scale
+        target: risk-agent
+        min: 1
+        max: 5
+
+  - name: tighten-trust-on-anomaly
+    trigger:
+      situation: fsitrading.market-anomaly
+      minConfidence: 0.6
+    actions:
+      - type: update
+        target: trade-execution
+        nodeType: trust
+        fields:
+          threshold: 0.9
