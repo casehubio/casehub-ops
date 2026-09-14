@@ -316,7 +316,7 @@ class DeploymentGoalCompilerTest {
         return new AgentNodeSpec(id, "Test Agent", "worker",
                 "anthropic", "claude", "opus-4", "1.0", null,
                 null, null, null, null, null,
-                List.of(new AgentCapability("code-review", null, null, null, null, null, null, null, null, null, null)),
+                List.of(new AgentCapability("code-review", null, null, null, null, null, null, null, null, null, null, null, null)),
                 AgentDisposition.builder().delegation(false).build(),
                 null, null, null, List.of());
     }
