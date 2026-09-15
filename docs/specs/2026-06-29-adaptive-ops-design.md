@@ -1,8 +1,10 @@
+> **Superseded** by `2026-09-14-fsitrading-adaptive-ops-design.md`. Components 2-3 replaced by `DeploymentAdaptiveSituationRecompiler` implementing `SituationRecompiler` SPI.
+
 # Adaptive Ops — Desired-State Topology Adaptation via RAS Situations
 
 **Date:** 2026-06-29
 **Issue:** casehubio/casehub-ops#25, casehubio/casehub-ops#26 (driving requirements — implementation tracked by those issues, not closed by this spec)
-**Status:** Design — under review
+**Status:** Superseded
 
 ## Problem
 

@@ -22,8 +22,8 @@ mechanism is missing.
 | Blackboard path | Unified `.scalingRequired` | Spec IS the trigger — same pattern as `.driftDetected`. Eliminates ordering concern between two separate paths. |
 | Cooldown enforcement | Evaluator-level, per-service | Cooldown is tracked by the evaluator (RAS path) and checked by `ScalingResource` (REST path). Prevents wasteful child case spawning. Child cases are ephemeral and cannot track cross-invocation state. Per-service key with max-across-rules period protects the physical resource. |
 | Multi-rule conflict | Max-wins | When multiple rules match for the same service, the highest `targetReplicas` value is used. Over-provisioning is safer than under-provisioning. |
-| Relationship to AdaptiveTopologyManager | Independent systems at different levels | The deployment module's `AdaptiveTopologyManager` adapts desiredstate graph topology (adding/removing agent nodes). This spec's evaluator scales K8s service replicas (infrastructure-level pod count). Same CDI event, same formula, different abstraction levels. See §Architectural Boundary. |
-| Manual scaling behaviour | Temporary when rules are active | REST-initiated scaling is overridden by the next situation evaluation cycle. Consistent with `AdaptiveTopologyManager` (recompiles from base, discarding manual changes) and standard autoscaler semantics (K8s HPA, AWS ASG). See §ScalingResource. |
+| Relationship to DeploymentAdaptiveSituationRecompiler | Independent systems at different levels | The deployment module's `DeploymentAdaptiveSituationRecompiler` adapts desiredstate graph topology (adding/removing agent nodes). This spec's evaluator scales K8s service replicas (infrastructure-level pod count). Same CDI event, same formula, different abstraction levels. See §Architectural Boundary. |
+| Manual scaling behaviour | Temporary when rules are active | REST-initiated scaling is overridden by the next situation evaluation cycle. Consistent with `DeploymentAdaptiveSituationRecompiler` (recompiles from base, discarding manual changes) and standard autoscaler semantics (K8s HPA, AWS ASG). See §ScalingResource. |
 
 ## Data Model
 
@@ -121,7 +121,7 @@ backpressure drops, or observer exceptions. On each poll:
 2. Runs the same evaluation logic as the event-driven path
 3. Fires `ScalingRequestedEvent` only if the computed target differs from current
 
-This mirrors `AdaptiveTopologyManager.pollAllTenants()`, which uses the same
+This mirrors `DeploymentAdaptiveSituationRecompiler.pollAllTenants()`, which uses the same
 pattern and interval. The evaluator's cooldown mechanism naturally deduplicates
 poll-triggered events — if a CDI event already scaled the service within the
 cooldown window, the poll produces no new event.
@@ -138,7 +138,7 @@ compare current → fire event → record timestamp) must be atomic per
 registration to prevent duplicate events.
 
 The evaluator synchronizes on the `ScalingRegistration` object during evaluation,
-matching `AdaptiveTopologyManager`'s `synchronized(state)` per-tenant pattern.
+matching `DeploymentAdaptiveSituationRecompiler`'s `synchronized(state)` per-tenant pattern.
 This serializes concurrent evaluations for the same registration while allowing
 different registrations to evaluate in parallel.
 
@@ -149,7 +149,7 @@ transactional context. The evaluator delegates the JPA query to an injected
 `@Transactional` helper method on a separate CDI bean. This follows the existing
 codebase pattern where no `@ObservesAsync` handler performs direct JPA access:
 `DriftSignalBridge.onCloudEvent()` reads from in-memory `ConcurrentHashMap`,
-`AdaptiveTopologyManager.onSituationChange()` reads from in-memory state.
+`DeploymentAdaptiveSituationRecompiler.onSituationChange()` reads from in-memory state.
 
 ```java
 @ApplicationScoped
@@ -240,7 +240,7 @@ evaluation cycle (event-driven or periodic re-poll) recomputes the target from
 active situations and base replicas. If no situations are active, the service
 reverts to its base replica count, overriding the manual change. This is
 consistent with standard autoscaler semantics — K8s HPA, AWS ASG, and the
-platform's own `AdaptiveTopologyManager` all override manual changes on the next
+platform's own `DeploymentAdaptiveSituationRecompiler` all override manual changes on the next
 evaluation cycle. To permanently change the replica count for a service with
 active scaling rules, update the `ServiceDefinition` through the normal deployment
 pipeline (redeploy with the new `replicas` value, which becomes the new base).
@@ -314,7 +314,7 @@ and `decommission()` for consistency.
 The platform has two situation-reactive scaling systems operating at different
 abstraction levels:
 
-| Aspect | AdaptiveTopologyManager (deployment) | SituationScalingEvaluator (app) |
+| Aspect | DeploymentAdaptiveSituationRecompiler (deployment) | SituationScalingEvaluator (app) |
 |--------|--------------------------------------|----------------------------------|
 | Module | `casehub-ops-deployment` | `casehub-ops-app` |
 | What it scales | Desiredstate graph nodes (agent instances) | K8s deployment replicas (pod count) |
