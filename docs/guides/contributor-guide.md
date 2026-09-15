@@ -82,7 +82,7 @@ Five handlers routed by `DeploymentNodeProvisioner`:
 
 ### Adaptive Topology Manager
 
-`io.casehub.ops.deployment.adaptation.AdaptiveTopologyManager` -- `@ApplicationScoped`.
+`io.casehub.ops.deployment.adaptation.DeploymentAdaptiveSituationRecompiler` -- `@ApplicationScoped`.
 
 **Thread model**: `@ObservesAsync SituationChangeEvent` runs on Vert.x worker pool. Per-tenant serialization via `synchronized(state)` on the `TenantAdaptationState` instance.
 

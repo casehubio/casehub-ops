@@ -1,3 +1,5 @@
+> **Superseded** by `2026-09-14-fsitrading-adaptive-ops.md`. Components 2-3 replaced by `DeploymentAdaptiveSituationRecompiler` implementing `SituationRecompiler` SPI.
+
 # Adaptive Ops Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
