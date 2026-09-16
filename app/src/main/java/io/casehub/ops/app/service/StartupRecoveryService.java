@@ -15,6 +15,7 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import java.util.HashSet;
 import java.util.List;
@@ -76,7 +77,8 @@ public class StartupRecoveryService {
                                    K8sClientRegistry clientRegistry,
                                    ApplicationLifecycleService lifecycleService,
                                    DecommissionCompletionHandler decommissionHandler,
-                                   io.casehub.ops.app.k8s.K8sWatchManager watchManager) {
+                                   io.casehub.ops.app.k8s.K8sWatchManager watchManager,
+                                   EntityManager em) {
         this.loopStarter = reconciliationLoop::start;
         this.clusterRegistrar = clientRegistry::register;
         this.goalCompiler = goalCompiler;
@@ -85,12 +87,16 @@ public class StartupRecoveryService {
         this.decommissionRegistrar = decommissionHandler::registerDecommission;
         this.watchStarter = watchManager::startWatching;
 
-        this.allClustersSupplier = ClusterReferenceEntity::listAll;
-        this.activeAppsSupplier = () -> ApplicationEntity.list(
-                "status in (?1)",
-                List.of(ApplicationStatus.DEPLOYING, ApplicationStatus.RUNNING,
-                        ApplicationStatus.DEGRADED, ApplicationStatus.DECOMMISSIONING));
-        this.clustersByTenancyLookup = ClusterReferenceEntity::findByTenancyId;
+        this.allClustersSupplier = () -> em.createQuery(
+                "SELECT c FROM ClusterReferenceEntity c", ClusterReferenceEntity.class).getResultList();
+        this.activeAppsSupplier = () -> em.createQuery(
+                "SELECT a FROM ApplicationEntity a WHERE a.status IN :statuses", ApplicationEntity.class)
+                .setParameter("statuses", List.of(ApplicationStatus.DEPLOYING, ApplicationStatus.RUNNING,
+                        ApplicationStatus.DEGRADED, ApplicationStatus.DECOMMISSIONING))
+                .getResultList();
+        this.clustersByTenancyLookup = tenancyId -> em.createNamedQuery(
+                "ClusterReferenceEntity.findByTenancyId", ClusterReferenceEntity.class)
+                .setParameter("tenancyId", tenancyId).getResultList();
     }
 
     /**

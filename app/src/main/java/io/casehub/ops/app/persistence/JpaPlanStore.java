@@ -7,6 +7,8 @@ import io.casehub.ops.api.approval.PlanStore;
 import io.casehub.ops.api.approval.PlanStoreMapper;
 import io.casehub.ops.app.entity.ApprovalPlanEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.Optional;
@@ -16,6 +18,9 @@ import java.util.UUID;
 public class JpaPlanStore implements PlanStore {
 
     private final ObjectMapper mapper = PlanStoreMapper.mapper();
+
+    @Inject
+    EntityManager em;
 
     @Override
     @Transactional
@@ -28,13 +33,13 @@ public class JpaPlanStore implements PlanStore {
         entity.risk = plan.risk().name();
         entity.tenancyId = plan.tenancyId();
         entity.planJson = serialize(plan);
-        entity.persist();
+        em.persist(entity);
         return ref;
     }
 
     @Override
     public Optional<ApprovalPlan> retrieve(String planReference) {
-        ApprovalPlanEntity entity = ApprovalPlanEntity.findById(planReference);
+        ApprovalPlanEntity entity = em.find(ApprovalPlanEntity.class, planReference);
         if (entity == null) return Optional.empty();
         return Optional.of(deserialize(entity.planJson));
     }
@@ -42,7 +47,8 @@ public class JpaPlanStore implements PlanStore {
     @Override
     @Transactional
     public void remove(String planReference) {
-        ApprovalPlanEntity.deleteById(planReference);
+        ApprovalPlanEntity entity = em.find(ApprovalPlanEntity.class, planReference);
+        if (entity != null) em.remove(entity);
     }
 
     private String serialize(ApprovalPlan plan) {

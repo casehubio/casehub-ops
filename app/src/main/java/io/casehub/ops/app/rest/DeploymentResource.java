@@ -8,6 +8,7 @@ import io.casehub.ops.app.service.ApplicationLifecycleService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -29,6 +30,9 @@ public class DeploymentResource {
     @Inject
     ApplicationLifecycleService lifecycleService;
 
+    @Inject
+    EntityManager em;
+
     @POST
     public Response deploy(@PathParam("id") UUID id,
                            DeployRequest request,
@@ -40,13 +44,15 @@ public class DeploymentResource {
 
     @GET
     public Response listDeployments(@PathParam("id") UUID id) {
-        return Response.ok(io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id)).build();
+        return Response.ok(em.createNamedQuery("DeploymentRecordEntity.findByApplicationId", io.casehub.ops.app.entity.DeploymentRecordEntity.class)
+                .setParameter("applicationId", id).getResultList()).build();
     }
 
     @GET
     @Path("/current")
     public Response getCurrentDeployment(@PathParam("id") UUID id) {
-        var records = io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id);
+        var records = em.createNamedQuery("DeploymentRecordEntity.findByApplicationId", io.casehub.ops.app.entity.DeploymentRecordEntity.class)
+                .setParameter("applicationId", id).getResultList();
         if (records.isEmpty()) return Response.status(Response.Status.NOT_FOUND).build();
         var latest = records.stream()
                 .max(java.util.Comparator.comparing(r -> r.createdAt))
@@ -59,10 +65,11 @@ public class DeploymentResource {
     public Response rollback(@PathParam("id") UUID id,
                              @Context ContainerRequestContext ctx) {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
-        var app = io.casehub.ops.app.entity.ApplicationEntity.<io.casehub.ops.app.entity.ApplicationEntity>findById(id);
+        var app = em.find(io.casehub.ops.app.entity.ApplicationEntity.class, id);
         if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
 
-        var records = io.casehub.ops.app.entity.DeploymentRecordEntity.findByApplicationId(id);
+        var records = em.createNamedQuery("DeploymentRecordEntity.findByApplicationId", io.casehub.ops.app.entity.DeploymentRecordEntity.class)
+                .setParameter("applicationId", id).getResultList();
         var lastSuccess = records.stream()
                 .filter(r -> r.outcome == io.casehub.ops.app.model.DeploymentOutcome.SUCCESS)
                 .max(java.util.Comparator.comparing(r -> r.createdAt))

@@ -4,6 +4,8 @@ import io.casehub.ops.app.entity.CveEntity;
 import io.casehub.ops.app.model.CveRecord;
 import io.casehub.ops.app.model.CveStatus;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.Arrays;
@@ -14,23 +16,30 @@ import java.util.UUID;
 @ApplicationScoped
 public class JpaCveStore implements CveStore {
 
+    @Inject
+    EntityManager em;
+
     @Override
     @Transactional
     public void store(CveRecord record) {
         var entity = toEntity(record);
-        entity.persist();
+        em.persist(entity);
     }
 
     @Override
     public List<CveRecord> findByApplicationId(UUID applicationId) {
-        return CveEntity.findByApplicationId(applicationId).stream()
+        return em.createNamedQuery("CveEntity.findByApplicationId", CveEntity.class)
+                .setParameter("applicationId", applicationId)
+                .getResultList().stream()
                 .map(JpaCveStore::toRecord)
                 .toList();
     }
 
     @Override
     public List<CveRecord> findByServiceId(UUID applicationId, String serviceId) {
-        return CveEntity.findByApplicationId(applicationId).stream()
+        return em.createNamedQuery("CveEntity.findByApplicationId", CveEntity.class)
+                .setParameter("applicationId", applicationId)
+                .getResultList().stream()
                 .map(JpaCveStore::toRecord)
                 .filter(r -> r.affectedServices().contains(serviceId))
                 .toList();
@@ -38,14 +47,21 @@ public class JpaCveStore implements CveStore {
 
     @Override
     public Optional<CveRecord> findByCveId(UUID applicationId, String cveId) {
-        var entity = CveEntity.findByCveId(applicationId, cveId);
-        return entity != null ? Optional.of(toRecord(entity)) : Optional.empty();
+        var results = em.createNamedQuery("CveEntity.findByCveId", CveEntity.class)
+                .setParameter("applicationId", applicationId)
+                .setParameter("cveId", cveId)
+                .getResultList();
+        return results.isEmpty() ? Optional.empty() : Optional.of(toRecord(results.getFirst()));
     }
 
     @Override
     @Transactional
     public void updateStatus(UUID applicationId, String cveId, CveStatus newStatus) {
-        var entity = CveEntity.findByCveId(applicationId, cveId);
+        var results = em.createNamedQuery("CveEntity.findByCveId", CveEntity.class)
+                .setParameter("applicationId", applicationId)
+                .setParameter("cveId", cveId)
+                .getResultList();
+        var entity = results.isEmpty() ? null : results.getFirst();
         if (entity != null) {
             entity.status = newStatus;
         }

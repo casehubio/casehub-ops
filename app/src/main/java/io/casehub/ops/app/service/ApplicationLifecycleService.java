@@ -14,6 +14,7 @@ import io.casehub.ops.app.model.DeploymentTrigger;
 import io.casehub.ops.app.model.ServiceDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.HashSet;
@@ -60,6 +61,8 @@ public class ApplicationLifecycleService {
     @Inject
     io.casehub.ops.app.lifecycle.ServiceDetectionBridge serviceDetectionBridge;
     private io.casehub.ops.app.lifecycle.ras.ServiceMonitoringRegistrar serviceMonitoringRegistrar;
+    @Inject
+    EntityManager em;
 
     private io.casehub.ops.app.lifecycle.ras.ServiceMonitoringRegistrar monitoringRegistrar() {
         if (serviceMonitoringRegistrar == null) {
@@ -78,7 +81,7 @@ public class ApplicationLifecycleService {
         app.servicesJson = servicesJson;
         app.tenancyId    = tenancyId;
         app.status       = ApplicationStatus.DRAFT;
-        app.persist();
+        em.persist(app);
         return app;
     }
 
@@ -278,8 +281,9 @@ public class ApplicationLifecycleService {
         String currentImage = targetService.image();
 
         List<io.casehub.ops.app.entity.DeploymentRecordEntity> records =
-                io.casehub.ops.app.entity.DeploymentRecordEntity.list(
-                        "applicationId = ?1 order by createdAt desc", applicationId);
+                em.createQuery("SELECT d FROM DeploymentRecordEntity d WHERE d.applicationId = :appId ORDER BY d.createdAt DESC",
+                        io.casehub.ops.app.entity.DeploymentRecordEntity.class)
+                        .setParameter("appId", applicationId).getResultList();
 
         String previousImage = null;
         for (var record : records) {
@@ -515,7 +519,7 @@ public class ApplicationLifecycleService {
         record.topologyJson  = app.servicesJson;
         record.trigger       = trigger;
         record.outcome       = outcome;
-        record.persist();
+        em.persist(record);
         return record;
     }
 

@@ -1,9 +1,9 @@
 package io.casehub.ops.app.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -11,7 +11,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "approval_plan")
-public class ApprovalPlanEntity extends PanacheEntityBase {
+@NamedQuery(name = "ApprovalPlanEntity.findByRef", query = "SELECT a FROM ApprovalPlanEntity a WHERE a.ref = :ref")
+public class ApprovalPlanEntity {
 
     @Id
     @Column(length = 36)

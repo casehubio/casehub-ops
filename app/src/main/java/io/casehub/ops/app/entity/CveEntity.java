@@ -2,13 +2,13 @@ package io.casehub.ops.app.entity;
 
 import io.casehub.ops.app.model.CveSeverity;
 import io.casehub.ops.app.model.CveStatus;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -21,7 +21,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "cve_record")
 @IdClass(CveEntity.CveId.class)
-public class CveEntity extends PanacheEntityBase {
+@NamedQuery(name = "CveEntity.findByApplicationId", query = "SELECT c FROM CveEntity c WHERE c.applicationId = :applicationId")
+@NamedQuery(name = "CveEntity.findByCveId", query = "SELECT c FROM CveEntity c WHERE c.applicationId = :applicationId AND c.cveId = :cveId")
+public class CveEntity {
 
     @Id
     @Column(name = "application_id", nullable = false)
@@ -58,14 +60,6 @@ public class CveEntity extends PanacheEntityBase {
     void onPersist() {
         if (detectedAt == null) detectedAt = Instant.now();
         if (status == null) status = CveStatus.DETECTED;
-    }
-
-    public static List<CveEntity> findByApplicationId(UUID applicationId) {
-        return list("applicationId", applicationId);
-    }
-
-    public static CveEntity findByCveId(UUID applicationId, String cveId) {
-        return find("applicationId = ?1 and cveId = ?2", applicationId, cveId).firstResult();
     }
 
     public static class CveId implements Serializable {

@@ -5,19 +5,21 @@ import java.util.List;
 import java.util.UUID;
 
 import io.casehub.ops.app.model.ApplicationStatus;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "application")
-public class ApplicationEntity extends PanacheEntityBase {
+@NamedQuery(name = "ApplicationEntity.findByTenancyId", query = "SELECT a FROM ApplicationEntity a WHERE a.tenancyId = :tenancyId")
+@NamedQuery(name = "ApplicationEntity.findActiveByTenancyId", query = "SELECT a FROM ApplicationEntity a WHERE a.tenancyId = :tenancyId AND a.status NOT IN (io.casehub.ops.app.model.ApplicationStatus.DRAFT, io.casehub.ops.app.model.ApplicationStatus.DECOMMISSIONED)")
+public class ApplicationEntity {
 
     @Id
     public UUID id;
@@ -62,12 +64,4 @@ public class ApplicationEntity extends PanacheEntityBase {
         updatedAt = Instant.now();
     }
 
-    public static List<ApplicationEntity> findByTenancyId(String tenancyId) {
-        return list("tenancyId", tenancyId);
-    }
-
-    public static List<ApplicationEntity> findActiveByTenancyId(String tenancyId) {
-        return list("tenancyId = ?1 and status not in (?2)", tenancyId,
-                List.of(ApplicationStatus.DRAFT, ApplicationStatus.DECOMMISSIONED));
-    }
 }

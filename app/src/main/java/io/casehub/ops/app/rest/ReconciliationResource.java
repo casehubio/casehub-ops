@@ -8,6 +8,7 @@ import io.casehub.ops.app.service.ApplicationEventBroadcaster;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
@@ -31,16 +32,19 @@ public class ReconciliationResource {
     @Inject
     ApplicationEventBroadcaster broadcaster;
 
+    @Inject
+    EntityManager em;
+
     @GET
     @Path("/status")
     public Response getStatus(@PathParam("id") UUID id,
                               @Context ContainerRequestContext ctx) {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
-        var app = ApplicationEntity.<ApplicationEntity>findById(id);
+        var app = em.find(ApplicationEntity.class, id);
         if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
 
-        var clusters = io.casehub.ops.app.entity.ClusterReferenceEntity.list(
-                "tenancyId", tenancyId);
+        var clusters = em.createNamedQuery("ClusterReferenceEntity.findByTenancyId", io.casehub.ops.app.entity.ClusterReferenceEntity.class)
+                .setParameter("tenancyId", tenancyId).getResultList();
         var statuses = new java.util.ArrayList<Map<String, Object>>();
         for (var cluster : clusters) {
             var clusterRef = (io.casehub.ops.app.entity.ClusterReferenceEntity) cluster;

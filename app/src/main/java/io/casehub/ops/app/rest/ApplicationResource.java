@@ -8,6 +8,7 @@ import io.casehub.ops.app.service.ApplicationLifecycleService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -31,6 +32,9 @@ public class ApplicationResource {
     @Inject
     ApplicationLifecycleService lifecycleService;
 
+    @Inject
+    EntityManager em;
+
     @POST
     public Response create(CreateApplicationRequest request,
                            @Context ContainerRequestContext ctx) {
@@ -43,13 +47,14 @@ public class ApplicationResource {
     @GET
     public Response list(@Context ContainerRequestContext ctx) {
         String tenancyId = (String) ctx.getProperty(TenancyFilter.TENANCY_PROPERTY);
-        return Response.ok(ApplicationEntity.findByTenancyId(tenancyId)).build();
+        return Response.ok(em.createNamedQuery("ApplicationEntity.findByTenancyId", ApplicationEntity.class)
+                .setParameter("tenancyId", tenancyId).getResultList()).build();
     }
 
     @GET
     @Path("/{id}")
     public Response get(@PathParam("id") UUID id) {
-        var app = ApplicationEntity.findById(id);
+        var app = em.find(ApplicationEntity.class, id);
         if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(app).build();
     }
@@ -57,13 +62,13 @@ public class ApplicationResource {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") UUID id, CreateApplicationRequest request) {
-        var app = ApplicationEntity.<ApplicationEntity>findById(id);
+        var app = em.find(ApplicationEntity.class, id);
         if (app == null) return Response.status(Response.Status.NOT_FOUND).build();
 
         if (request.name() != null) app.name = request.name();
         if (request.description() != null) app.description = request.description();
         if (request.servicesJson() != null) app.servicesJson = request.servicesJson();
-        app.persist();
+        em.merge(app);
         return Response.ok(app).build();
     }
 
