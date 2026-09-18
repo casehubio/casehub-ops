@@ -9,25 +9,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 
-/**
- * Per-tenant mutable state for adaptive topology management.
- * <p>
- * Tracks the base deployment goals, parsed adaptation rules, and per-rule
- * hysteresis/cooldown state. Not thread-safe on its own — the caller
- * ({@link AdaptiveTopologyManager}) must synchronize access per tenant.
- */
 final class TenantAdaptationState {
 
     private final DeploymentGoals goals;
     private final List<AdaptationRule> rules;
     private final Map<String, Boolean> activePerRule = new HashMap<>();
     private final Map<String, Instant> lastChangePerRule = new HashMap<>();
+    private final Map<String, ActiveSituation> trackedSituations = new HashMap<>();
+    private final Map<String, Duration> situationClearanceWindows;
 
-    TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules) {
+    TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules,
+                          Map<String, Duration> situationClearanceWindows) {
         this.goals = Objects.requireNonNull(goals, "goals");
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
+        this.situationClearanceWindows = Map.copyOf(
+            Objects.requireNonNull(situationClearanceWindows, "situationClearanceWindows"));
+    }
+
+    TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules) {
+        this(goals, rules, Map.of());
     }
 
     DeploymentGoals goals() {
@@ -38,20 +40,27 @@ final class TenantAdaptationState {
         return rules;
     }
 
-    /**
-     * Determines whether a rule should be active given the current situation.
-     * <p>
-     * Implements hysteresis: when a rule is already active, it uses
-     * {@code deactivateBelow} as the threshold instead of {@code minConfidence}.
-     * This prevents churn when confidence oscillates near the activation threshold.
-     * <p>
-     * Implements cooldown: if a state change would occur but the time since the
-     * last change is less than the cooldown duration, the current state is preserved.
-     *
-     * @param rule      the adaptation rule to evaluate
-     * @param situation the active situation with current confidence
-     * @return true if the rule should be active
-     */
+    void updateSituation(ActiveSituation situation) {
+        trackedSituations.put(situation.situationId(), situation);
+    }
+
+    Optional<ActiveSituation> activeSituationFor(AdaptationRule rule) {
+        return Optional.ofNullable(
+            trackedSituations.get(rule.trigger().situation()));
+    }
+
+    boolean clearSituation(String situationId) {
+        ActiveSituation removed = trackedSituations.remove(situationId);
+        if (removed == null) return false;
+        for (AdaptationRule rule : rules) {
+            if (rule.trigger().situation().equals(situationId)) {
+                activePerRule.put(rule.name(), false);
+                lastChangePerRule.put(rule.name(), Instant.now());
+            }
+        }
+        return true;
+    }
+
     boolean shouldActivate(AdaptationRule rule, ActiveSituation situation) {
         boolean currentlyActive = activePerRule.getOrDefault(rule.name(), false);
 
@@ -82,35 +91,34 @@ final class TenantAdaptationState {
         return shouldBeActive;
     }
 
-    /**
-     * Resets activation state for rules whose trigger situation is no longer active.
-     * <p>
-     * When a situation disappears, the associated rules are deactivated so that
-     * the next recompilation produces a graph without those adaptations. Cooldown
-     * is respected — if the rule was recently activated and within the cooldown
-     * window, it stays active until the cooldown expires.
-     *
-     * @param activeSituationIds the set of currently active situation IDs
-     */
-    void clearAbsentSituations(Set<String> activeSituationIds) {
-        for (AdaptationRule rule : rules) {
-            String sit = rule.trigger().situation();
-            if (!activeSituationIds.contains(sit)) {
-                Boolean wasActive = activePerRule.get(rule.name());
-                if (wasActive != null && wasActive) {
-                    Duration cooldown = rule.trigger().effectiveCooldown();
-                    if (!cooldown.isZero()) {
-                        Instant lastChange = lastChangePerRule.get(rule.name());
-                        if (lastChange != null) {
-                            Duration elapsed = Duration.between(lastChange, Instant.now());
-                            if (elapsed.compareTo(cooldown) < 0) {
-                                continue;
+    void clearAbsentSituations() {
+        Instant now = Instant.now();
+        var iter = trackedSituations.entrySet().iterator();
+        while (iter.hasNext()) {
+            var entry = iter.next();
+            String sitId = entry.getKey();
+            ActiveSituation sit = entry.getValue();
+            Duration clearanceWindow = situationClearanceWindows.getOrDefault(
+                sitId, Duration.ofMinutes(5));
+            if (Duration.between(sit.lastSignal(), now).compareTo(clearanceWindow) > 0) {
+                for (AdaptationRule rule : rules) {
+                    if (rule.trigger().situation().equals(sitId)) {
+                        Boolean wasActive = activePerRule.get(rule.name());
+                        if (wasActive != null && wasActive) {
+                            Duration cooldown = rule.trigger().effectiveCooldown();
+                            if (!cooldown.isZero()) {
+                                Instant lastChange = lastChangePerRule.get(rule.name());
+                                if (lastChange != null &&
+                                    Duration.between(lastChange, now).compareTo(cooldown) < 0) {
+                                    continue;
+                                }
                             }
+                            activePerRule.put(rule.name(), false);
+                            lastChangePerRule.put(rule.name(), now);
                         }
                     }
-                    activePerRule.put(rule.name(), false);
-                    lastChangePerRule.put(rule.name(), Instant.now());
                 }
+                iter.remove();
             }
         }
     }

@@ -45,20 +45,22 @@ class DeploymentFaultPolicyTest {
         assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
-        var addNode = (GraphMutation.AddNode) mutations.getFirst();
+        @SuppressWarnings("unchecked")
+        var addNode = (GraphMutation.AddNode<DesiredNode>) mutations.getFirst();
         assertThat(addNode.node().id()).isEqualTo(NodeId.of("deployment-review-agent-1"));
         assertThat(addNode.node().type()).isEqualTo(DEPLOYMENT_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
         assertThat(addNode.node().spec()).isInstanceOf(DeploymentReviewSpec.class);
 
-        var spec = (DeploymentReviewSpec) addNode.node().spec();
-        assertThat(spec.faultedNode()).isEqualTo(NodeId.of("agent-1"));
-        assertThat(spec.reason()).isEqualTo("registry timeout");
+        var reviewSpec = (DeploymentReviewSpec) addNode.node().spec();
+        assertThat(reviewSpec.faultedNode()).isEqualTo(NodeId.of("agent-1"));
+        assertThat(reviewSpec.reason()).isEqualTo("registry timeout");
 
-        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
-        var addDep = (GraphMutation.AddDependency) mutations.get(1);
-        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("deployment-review-agent-1"));
-        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("agent-1"));
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddEdge.class);
+        @SuppressWarnings("unchecked")
+        var addEdge = (GraphMutation.AddEdge<DesiredNode>) mutations.get(1);
+        assertThat(addEdge.from()).isEqualTo("deployment-review-agent-1");
+        assertThat(addEdge.to()).isEqualTo("agent-1");
     }
 
     @Test

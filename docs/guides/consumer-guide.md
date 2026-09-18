@@ -143,7 +143,7 @@ Five handlers -- one per node type: `AgentProvisionHandler`, `ChannelProvisionHa
 
 ### Adaptive Topology (RAS-Driven)
 
-`AdaptiveTopologyManager` -- situation-driven topology recompilation. Connects RAS (`casehub-ras`) situations to deployment topology:
+`DeploymentAdaptiveSituationRecompiler` -- situation-driven topology recompilation. Connects RAS (`casehub-ras`) situations to deployment topology:
 
 - Observes `SituationChangeEvent` via `@ObservesAsync` for immediate recompilation
 - Periodic 5-minute safety-net poll for missed CDI events
