@@ -25,7 +25,7 @@ public class PodmanClient {
     private final SocketAddress socketAddress;
 
     @Inject
-    public PodmanClient(WebClient webClient, SocketAddress socketAddress) {
+    public PodmanClient(@Podman WebClient webClient, @Podman SocketAddress socketAddress) {
         this.webClient = webClient;
         this.socketAddress = socketAddress;
     }
