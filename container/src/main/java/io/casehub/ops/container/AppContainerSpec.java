@@ -1,10 +1,12 @@
 package io.casehub.ops.container;
 
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.NodeTypeId;
 
 import java.util.Map;
 import java.util.Objects;
 
+@NodeTypeId("container:app")
 public record AppContainerSpec(
     String name,
     String image,
