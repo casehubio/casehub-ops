@@ -1,11 +1,8 @@
 package io.casehub.ops.app.entity;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
 import io.casehub.ops.app.model.DeploymentOutcome;
 import io.casehub.ops.app.model.DeploymentTrigger;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,10 +12,14 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
 @Entity
 @Table(name = "deployment_record")
 @NamedQuery(name = "DeploymentRecordEntity.findByApplicationId", query = "SELECT d FROM DeploymentRecordEntity d WHERE d.applicationId = :applicationId")
-public class DeploymentRecordEntity {
+public class DeploymentRecordEntity extends PanacheEntityBase {
 
     @Id
     public UUID id;
@@ -45,5 +46,10 @@ public class DeploymentRecordEntity {
         if (id == null) id = UUID.randomUUID();
         if (createdAt == null) createdAt = Instant.now();
     }
+
+    public static List<DeploymentRecordEntity> findByApplicationId(UUID applicationId) {
+        return find("applicationId", applicationId).list();
+    }
+
 
 }

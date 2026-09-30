@@ -2,6 +2,7 @@ package io.casehub.ops.app.entity;
 
 import io.casehub.ops.app.model.ClusterStatus;
 import io.casehub.ops.app.model.ClusterType;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +19,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "cluster_reference")
 @NamedQuery(name = "ClusterReferenceEntity.findByTenancyId", query = "SELECT c FROM ClusterReferenceEntity c WHERE c.tenancyId = :tenancyId")
-public class ClusterReferenceEntity {
+public class ClusterReferenceEntity extends PanacheEntityBase {
 
     @Id
     public UUID id;
@@ -58,5 +59,10 @@ public class ClusterReferenceEntity {
         if (createdAt == null) createdAt = Instant.now();
         if (status == null) status = ClusterStatus.UNKNOWN;
     }
+
+    public static List<ClusterReferenceEntity> findByTenancyId(String tenancyId) {
+        return find("tenancyId", tenancyId).list();
+    }
+
 
 }
