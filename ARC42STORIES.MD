@@ -537,7 +537,7 @@ Not closed here: TerraformBackend and AnsibleBackend are designed but not implem
 
 **Backend discovery via `@Any Instance<InfraBackend>`.** All backends are `@ApplicationScoped` and coexist. The provisioner iterates the CDI instance to find the backend matching `backendId()`. Same pattern as casehub-iot's `DeviceProvider` with `providerId()`.
 
-**EventSource is passive in infra; active in app.** The `InfraEventSource` exposes `emit()` and `emitDrift()` but has no internal scheduler. The `app` module's `KubernetesEventSource` is augmented by `K8sWatchManager`, which subscribes fabric8 Watch instances per managed namespace/cluster (filtered by `managed-by=casehub-ops` label) and emits `StateEvent` on external MODIFIED/DELETED events for sub-second drift detection. The 5-minute periodic resync remains as a safety net.
+**EventSource is passive in infra; active in app.** The `InfraEventSource` exposes `emit()` and `emitDrift()` but has no internal scheduler. The `app` module's `KubernetesEventSource` is augmented by `K8sWatchManager`, which subscribes fabric8 Watch instances per managed namespace/cluster (filtered by `managed-by=casehub-ops` label) and emits `StateEvent` on external MODIFIED/DELETED events for sub-second drift detection. The 5-minute periodic resync remains as a safety net. The container domain follows the same pattern: `ContainerEventSource` is passive, and `PodmanWatchManager` (app module) subscribes to `PodmanClient.events("container")` — an NDJSON stream from Podman's `/events` endpoint — translating container lifecycle actions (start/die/stop/remove/health_status) into StateEvents with exponential-backoff reconnection.
 
 #### Gotchas
 
