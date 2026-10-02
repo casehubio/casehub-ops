@@ -16,8 +16,7 @@
 
     <name>CaseHub Ops :: Parent</name>
     <description>Domain implementations for casehub-desiredstate — CaseHub agent topology, infrastructure
-        provisioning (Terraform/Ansible adapters), compliance posture (SOC2/GDPR/EU-AI-Act), IoT desired
-        state. Research project and reference architecture. IBM/Red Hat augmentation story over Terraform
+        provisioning (Terraform/Ansible adapters), compliance posture (SOC2/GDPR/EU-AI-Act). Research project and reference architecture. IBM/Red Hat augmentation story over Terraform
         and Ansible.</description>
     <url>https://github.com/casehubio/casehub-ops</url>
 
@@ -27,8 +26,7 @@
         <module>deployment</module>
         <module>infra</module>
         <module>compliance</module>
-        <module>iot</module>
-        <module>testing</module>
+<module>testing</module>
         <module>topology-tests</module>
         <module>container</module>
         <module>examples/deployment-monitoring</module>
@@ -73,12 +71,7 @@
                 <artifactId>casehub-ops-compliance</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.casehub</groupId>
-                <artifactId>casehub-ops-iot</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
+<dependency>
                 <groupId>io.casehub</groupId>
                 <artifactId>casehub-ops-testing</artifactId>
                 <version>${project.version}</version>
