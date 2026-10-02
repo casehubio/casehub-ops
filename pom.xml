@@ -26,7 +26,7 @@
         <module>deployment</module>
         <module>infra</module>
         <module>compliance</module>
-<module>testing</module>
+        <module>testing</module>
         <module>topology-tests</module>
         <module>container</module>
         <module>examples/deployment-monitoring</module>
