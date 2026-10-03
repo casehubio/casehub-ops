@@ -35,10 +35,7 @@ class AgentDriftCheckerTest {
     @Test
     void agentPresent() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(cap), null, "US", "policy", TENANCY_ID, null, List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(cap), null, null, TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
@@ -61,10 +58,7 @@ class AgentDriftCheckerTest {
         var cap1 = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var cap2 = new AgentCapability("cap-b", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
 
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(cap1), null, "US", "policy", TENANCY_ID, null, List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(cap1), null, null, TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
@@ -86,10 +80,7 @@ class AgentDriftCheckerTest {
     void agentDrifted_dispositionMismatch() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var disp1 = AgentDisposition.builder().delegation(false).build();
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(cap), disp1, "US", "policy", TENANCY_ID, null, List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(cap), disp1, null, TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var disp2 = AgentDisposition.builder().delegation(true).build();
@@ -102,10 +93,7 @@ class AgentDriftCheckerTest {
     @Test
     void agentDrifted_briefingMismatch() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(cap), null, "US", "policy", TENANCY_ID, "Original briefing", List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(cap), null, "Original briefing", TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
@@ -118,10 +106,7 @@ class AgentDriftCheckerTest {
     void agentDrifted_capabilitySubFieldMismatch() {
         var capDesired = new AgentCapability("cap-a", null, null, 0.85, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var capActual = new AgentCapability("cap-a", null, null, 0.50, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(capActual), null, "US", "policy", TENANCY_ID, null, List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(capActual), null, null, TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
@@ -134,16 +119,24 @@ class AgentDriftCheckerTest {
     void agentPresent_allFieldsMatch() {
         var cap = new AgentCapability("cap-a", null, null, 0.85, 2000L, "medium", null, null, List.of("text"), List.of("text"), List.of("tag"), Map.of("java", 0.95), Set.of("cobol"));
         var disp = AgentDisposition.builder().delegation(false).build();
-        var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
-                "domain", "slot", "disp", null, Map.of(), "worker",
-                List.of(cap), disp, "US", "policy", TENANCY_ID, "briefing", List.of(), List.of(), List.of());
+        var descriptor = testDescriptor("agent-1", "Agent", List.of(cap), disp, "briefing", TENANCY_ID);
         agentRegistry.register(descriptor);
 
         var spec = new AgentNodeSpec("agent-1", "Agent", "worker", "anthropic", "claude", "4.6",
                 "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(cap), disp, "US", "policy", "briefing", List.of());
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
+    }
+
+    private static AgentDescriptor testDescriptor(String agentId, String name,
+            List<AgentCapability> capabilities, AgentDisposition disposition,
+            String briefing, String tenancyId) {
+        return new AgentDescriptor(
+                agentId, name, "1.0", "anthropic", "claude", "4.6",
+                "fp1", "domain", "slot", "disp", null, Map.of(), "worker",
+                null, List.of(), null,
+                capabilities, disposition, "US", "policy",
+                tenancyId, briefing, null, List.of(), List.of(), List.of(), null);
     }
 
     // Test stub
