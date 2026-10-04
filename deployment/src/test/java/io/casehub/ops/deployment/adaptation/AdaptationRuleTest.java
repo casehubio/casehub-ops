@@ -121,7 +121,7 @@ class AdaptationRuleTest {
         var addAction = new AdaptationActionSpec.AddActionSpec(
             new DeploymentGoals(
                 List.of(new GoalEntry<>(newAgent, List.of())),
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
             )
         );
         var ruleSpec = new AdaptationRuleSpec("add-capacity", trigger, List.of(addAction));

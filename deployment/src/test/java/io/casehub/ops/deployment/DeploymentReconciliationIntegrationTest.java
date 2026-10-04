@@ -70,6 +70,12 @@ class DeploymentReconciliationIntegrationTest {
                 new TrustPolicyProvisionHandler(trustProvider),
                 new EndpointProvisionHandler(endpointRegistry),
                 new DetectionProvisionHandler(situationRegistrar),
+                new io.casehub.ops.deployment.handler.PoolProvisionHandler(new io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolOperations() {
+                    @Override public java.util.Optional<io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolInfo> getPool(String name) { return java.util.Optional.empty(); }
+                    @Override public void createPool(io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolCreateRequest request) {}
+                    @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
+                    @Override public void destroyPool(String name) {}
+                }),
                 specHashStore,
                 (node, action, tenancyId) -> new io.casehub.ops.api.approval.ApprovalDecision.AutoApproved(),
                 new io.casehub.ops.api.approval.InMemoryPlanStore());
@@ -90,9 +96,9 @@ class DeploymentReconciliationIntegrationTest {
         }
 
         var plan = planner.plan(desired, actual);
-        assertThat(plan.additions()).isNotEmpty();
+        assertThat(plan.flatAdditions()).isNotEmpty();
 
-        for (var step : plan.additions()) {
+        for (var step : plan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 var result = provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, desired));
                 assertThat(result).as("provisioning %s", step.node().id()).isInstanceOf(ProvisionResult.Success.class);
@@ -105,8 +111,8 @@ class DeploymentReconciliationIntegrationTest {
         }
 
         var secondPlan = planner.plan(desired, actualAfter);
-        assertThat(secondPlan.additions()).isEmpty();
-        assertThat(secondPlan.removals()).isEmpty();
+        assertThat(secondPlan.flatAdditions()).isEmpty();
+        assertThat(secondPlan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -122,9 +128,9 @@ class DeploymentReconciliationIntegrationTest {
         assertThat(driftActual.statusOf(NodeId.of("recon-agent"))).contains(NodeStatus.DRIFTED);
 
         var remediationPlan = planner.plan(modifiedDesired, driftActual);
-        assertThat(remediationPlan.additions()).isNotEmpty();
+        assertThat(remediationPlan.flatAdditions()).isNotEmpty();
 
-        for (var step : remediationPlan.additions()) {
+        for (var step : remediationPlan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 var result = provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, modifiedDesired));
                 assertThat(result).isInstanceOf(ProvisionResult.Success.class);
@@ -137,8 +143,8 @@ class DeploymentReconciliationIntegrationTest {
         }
 
         var closurePlan = planner.plan(modifiedDesired, afterRemediation);
-        assertThat(closurePlan.additions()).isEmpty();
-        assertThat(closurePlan.removals()).isEmpty();
+        assertThat(closurePlan.flatAdditions()).isEmpty();
+        assertThat(closurePlan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -155,13 +161,13 @@ class DeploymentReconciliationIntegrationTest {
 
         var fullActual = adapter.readActual(desired, TENANCY_ID);
         var removalPlan = planner.plan(reducedDesired, fullActual);
-        assertThat(removalPlan.removals()).isNotEmpty();
-        assertThat(removalPlan.removals()).anySatisfy(step -> {
+        assertThat(removalPlan.flatRemovals()).isNotEmpty();
+        assertThat(removalPlan.flatRemovals()).anySatisfy(step -> {
             assertThat(step.node().id()).isEqualTo(NodeId.of("recon-detect"));
             assertThat(step.action()).isEqualTo(StepAction.DEPROVISION);
         });
 
-        for (var step : removalPlan.removals()) {
+        for (var step : removalPlan.flatRemovals()) {
             if (step.action() == StepAction.DEPROVISION) {
                 var originalNode = desired.nodes().get(step.node().id());
                 var result = provisioner.deprovision(originalNode, new DeprovisionContext(TENANCY_ID, reducedDesired));
@@ -189,13 +195,14 @@ class DeploymentReconciliationIntegrationTest {
                 yamlGoals.agents(), yamlGoals.channels(), yamlGoals.caseTypes(),
                 yamlGoals.trust(), yamlGoals.endpoints(),
                 List.of(new GoalEntry<>(detection, List.of())),
+                yamlGoals.pools(),
                 yamlGoals.adaptations());
     }
 
     private void provisionAll(DesiredStateGraph desired) {
         var actual = adapter.readActual(desired, TENANCY_ID);
         var plan = planner.plan(desired, actual);
-        for (var step : plan.additions()) {
+        for (var step : plan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, desired));
             }
@@ -215,12 +222,12 @@ class DeploymentReconciliationIntegrationTest {
             return new GoalEntry<>(modified, entry.dependsOn());
         }).toList();
         return new DeploymentGoals(modifiedAgents, goals.channels(), goals.caseTypes(),
-                goals.trust(), goals.endpoints(), goals.detections(), goals.adaptations());
+                goals.trust(), goals.endpoints(), goals.detections(), goals.pools(), goals.adaptations());
     }
 
     private DeploymentGoals withoutDetections(DeploymentGoals goals) {
         return new DeploymentGoals(goals.agents(), goals.channels(), goals.caseTypes(),
-                goals.trust(), goals.endpoints(), List.of(), goals.adaptations());
+                goals.trust(), goals.endpoints(), List.of(), goals.pools(), goals.adaptations());
     }
 
     static class StubSituationRegistrar implements SituationRegistrar {

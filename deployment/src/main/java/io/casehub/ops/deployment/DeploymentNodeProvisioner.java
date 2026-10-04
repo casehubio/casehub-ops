@@ -20,6 +20,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
     private final TrustPolicyProvisionHandler trustHandler;
     private final EndpointProvisionHandler endpointHandler;
     private final DetectionProvisionHandler detectionHandler;
+    private final PoolProvisionHandler poolHandler;
     private final SpecHashStore specHashStore;
     private final ApprovalEvaluator approvalEvaluator;
     private final PlanStore planStore;
@@ -33,6 +34,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             TrustPolicyProvisionHandler trustHandler,
             EndpointProvisionHandler endpointHandler,
             DetectionProvisionHandler detectionHandler,
+            PoolProvisionHandler poolHandler,
             SpecHashStore specHashStore,
             ApprovalEvaluator approvalEvaluator,
             PlanStore planStore) {
@@ -42,6 +44,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
         this.trustHandler = trustHandler;
         this.endpointHandler = endpointHandler;
         this.detectionHandler = detectionHandler;
+        this.poolHandler = poolHandler;
         this.specHashStore = specHashStore;
         this.approvalEvaluator = approvalEvaluator;
         this.planStore = planStore;
@@ -55,7 +58,8 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
                 NodeType.of("case_type"),
                 NodeType.of("trust_policy"),
                 NodeType.of("endpoint"),
-                NodeType.of("detection"));
+                NodeType.of("detection"),
+                NodeType.of("pool"));
     }
 
     @Override
@@ -165,6 +169,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case TrustPolicyNodeSpec s -> trustHandler.provision(s, context);
             case EndpointNodeSpec s -> endpointHandler.provision(s, context);
             case DetectionNodeSpec s -> detectionHandler.provision(s, context);
+            case PoolNodeSpec s -> poolHandler.provision(s, context);
         };
         if (result instanceof ProvisionResult.Success) {
             specHashStore.record(node.id(), node.spec());
@@ -180,6 +185,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case TrustPolicyNodeSpec s -> trustHandler.deprovision(s, context);
             case EndpointNodeSpec s -> endpointHandler.deprovision(s, context);
             case DetectionNodeSpec s -> detectionHandler.deprovision(s, context);
+            case PoolNodeSpec s -> poolHandler.deprovision(s, context);
         };
         if (result instanceof DeprovisionResult.Success) {
             specHashStore.remove(node.id());

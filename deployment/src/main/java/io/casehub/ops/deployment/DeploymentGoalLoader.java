@@ -11,6 +11,7 @@ import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.DetectionNodeSpec;
 import io.casehub.ops.api.deployment.EndpointNodeSpec;
 import io.casehub.ops.api.deployment.GoalEntry;
+import io.casehub.ops.api.deployment.PoolNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -65,6 +66,7 @@ public class DeploymentGoalLoader {
         var trust       = new ArrayList<GoalEntry<TrustPolicyNodeSpec>>();
         var endpoints   = new ArrayList<GoalEntry<EndpointNodeSpec>>();
         var detections  = new ArrayList<GoalEntry<DetectionNodeSpec>>();
+        var pools       = new ArrayList<GoalEntry<PoolNodeSpec>>();
         var adaptations = new ArrayList<AdaptationRuleSpec>();
         for (var f : fragments) {
             agents.addAll(f.agents());
@@ -73,9 +75,10 @@ public class DeploymentGoalLoader {
             trust.addAll(f.trust());
             endpoints.addAll(f.endpoints());
             detections.addAll(f.detections());
+            pools.addAll(f.pools());
             adaptations.addAll(f.adaptations());
         }
-        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, detections, adaptations);
+        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, detections, pools, adaptations);
     }
 
     private InputStream resolveStream(String path) {

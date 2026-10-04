@@ -4,7 +4,7 @@ import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.desiredstate.api.NodeType;
 
 public sealed interface DeploymentNodeSpec extends NodeSpec permits
-                                                            AgentNodeSpec, ChannelNodeSpec, CaseTypeNodeSpec, TrustPolicyNodeSpec, EndpointNodeSpec, DetectionNodeSpec {
+                                                            AgentNodeSpec, ChannelNodeSpec, CaseTypeNodeSpec, TrustPolicyNodeSpec, EndpointNodeSpec, DetectionNodeSpec, PoolNodeSpec {
     String nodeId();
 
     @Override

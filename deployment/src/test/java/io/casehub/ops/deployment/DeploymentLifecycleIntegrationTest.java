@@ -75,6 +75,12 @@ class DeploymentLifecycleIntegrationTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
+                new io.casehub.ops.deployment.handler.PoolProvisionHandler(new io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolOperations() {
+                    @Override public java.util.Optional<io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolInfo> getPool(String name) { return java.util.Optional.empty(); }
+                    @Override public void createPool(io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolCreateRequest request) {}
+                    @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
+                    @Override public void destroyPool(String name) {}
+                }),
                 specHashStore,
                 (node, action, tenancyId) -> new io.casehub.ops.api.approval.ApprovalDecision.AutoApproved(),
                 new io.casehub.ops.api.approval.InMemoryPlanStore());
@@ -116,6 +122,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(new GoalEntry<>(caseTypeSpec, List.of())),
                 List.of(new GoalEntry<>(trustSpec, List.of())),
                 List.of(new GoalEntry<>(endpointSpec, List.of())),
+                List.of(),
                 List.of(),
                 List.of());
 
@@ -177,6 +184,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         var desired = ((CompilationResult.SingleGraph) compiler.compile(deploymentGoals, graphFactory)).graph();
@@ -190,6 +198,7 @@ class DeploymentLifecycleIntegrationTest {
                 "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
         var modifiedGoals = new DeploymentGoals(
                 List.of(new GoalEntry<>(modifiedSpec, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -222,6 +231,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(),
                 List.of(new GoalEntry<>(endpointSpec, List.of())),
                 List.of(),
+                List.of(),
                 List.of());
 
         var desired = ((CompilationResult.SingleGraph) compiler.compile(deploymentGoals, graphFactory)).graph();
@@ -244,6 +254,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(modifiedSpec, List.of())),
+                List.of(),
                 List.of(),
                 List.of());
         var modifiedDesired = ((CompilationResult.SingleGraph) compiler.compile(modifiedGoals, graphFactory)).graph();

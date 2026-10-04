@@ -42,6 +42,7 @@ class TenantAdaptationStateTest {
                 "worker", null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null), null)),
             List.of(), List.of(), List.of(), List.of(), List.of(),
+            List.of(),
             List.of(ruleSpec));
 
         scaleRule = AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory).get(0);

@@ -1,26 +1,54 @@
 package io.casehub.ops.deployment;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.DeprovisionContext;
+import io.casehub.desiredstate.api.DeprovisionResult;
+import io.casehub.desiredstate.api.DesiredNode;
+import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.PlanApproval;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
-import io.casehub.eidos.api.*;
-import io.casehub.ops.api.approval.*;
-import io.casehub.ops.api.deployment.*;
-import io.casehub.ops.deployment.handler.*;
-import io.casehub.platform.api.endpoints.*;
+import io.casehub.eidos.api.AgentCapability;
+import io.casehub.eidos.api.AgentDescriptor;
+import io.casehub.eidos.api.AgentDisposition;
+import io.casehub.eidos.api.AgentMatch;
+import io.casehub.eidos.api.AgentQuery;
+import io.casehub.eidos.api.AgentRegistry;
+import io.casehub.ops.api.approval.InMemoryPlanStore;
+import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.ChannelNodeSpec;
+import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
+import io.casehub.ops.deployment.handler.CaseTypeProvisionHandler;
+import io.casehub.ops.deployment.handler.ChannelProvisionHandler;
+import io.casehub.ops.deployment.handler.DetectionProvisionHandler;
+import io.casehub.ops.deployment.handler.EndpointProvisionHandler;
+import io.casehub.ops.deployment.handler.PoolProvisionHandler;
+import io.casehub.ops.deployment.handler.TrustPolicyProvisionHandler;
+import io.casehub.platform.api.endpoints.EndpointDescriptor;
+import io.casehub.platform.api.endpoints.EndpointQuery;
+import io.casehub.platform.api.endpoints.EndpointRegistry;
 import io.casehub.platform.api.path.Path;
-import io.casehub.qhorus.api.channel.ChannelSemantic;
-import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.api.channel.ChannelCreateRequest;
+import io.casehub.qhorus.api.channel.ChannelSemantic;
+import io.casehub.qhorus.api.message.MessageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DeploymentNodeProvisionerTest {
 
@@ -57,6 +85,7 @@ class DeploymentNodeProvisionerTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
+                new PoolProvisionHandler(new NoOpPoolOperations()),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),
                 planStore);
@@ -332,5 +361,19 @@ class DeploymentNodeProvisionerTest {
         public void deregister(Path path, String tenancyId) {
             endpoints.remove(key(path, tenancyId));
         }
+    }
+
+    static class NoOpPoolOperations implements PoolProvisionHandler.PoolOperations {
+        @Override
+        public Optional<PoolProvisionHandler.PoolInfo> getPool(String name)                 {return Optional.empty();}
+
+        @Override
+        public void createPool(PoolProvisionHandler.PoolCreateRequest request)              {}
+
+        @Override
+        public void updatePool(String name, PoolProvisionHandler.PoolUpdateRequest request) {}
+
+        @Override
+        public void destroyPool(String name)                                                {}
     }
 }

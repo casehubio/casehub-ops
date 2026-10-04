@@ -11,6 +11,7 @@ public record DeploymentGoals(
         List<GoalEntry<TrustPolicyNodeSpec>> trust,
         List<GoalEntry<EndpointNodeSpec>> endpoints,
         List<GoalEntry<DetectionNodeSpec>> detections,
+        List<GoalEntry<PoolNodeSpec>> pools,
         List<AdaptationRuleSpec> adaptations
 ) {
     public DeploymentGoals {
@@ -20,6 +21,7 @@ public record DeploymentGoals(
         trust = trust != null ? List.copyOf(trust) : List.of();
         endpoints = endpoints != null ? List.copyOf(endpoints) : List.of();
         detections = detections != null ? List.copyOf(detections) : List.of();
+        pools = pools != null ? List.copyOf(pools) : List.of();
         adaptations = adaptations != null ? List.copyOf(adaptations) : List.of();
     }
 }

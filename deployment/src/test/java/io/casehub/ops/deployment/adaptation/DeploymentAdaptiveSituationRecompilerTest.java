@@ -60,6 +60,7 @@ class DeploymentAdaptiveSituationRecompilerTest {
             List.of(new GoalEntry<>(new TrustPolicyNodeSpec("trade-execution", 0.7, 5,
                 0.05, 0.5, Map.of(), false), null)),
             List.of(), List.of(),
+            List.of(),
             List.of(scaleRule, updateRule));
 
         baseGraph = extractGraph(compiler.compile(goalsWithAdaptations, graphFactory));
@@ -137,7 +138,7 @@ class DeploymentAdaptiveSituationRecompilerTest {
             List.of(new GoalEntry<>(new AgentNodeSpec("risk-agent", "Risk Monitor",
                 "worker", null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null), null)),
-            List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+            List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
 
         recompiler.register("t1", goalsNoAdaptations, Map.of(), graphFactory);
 

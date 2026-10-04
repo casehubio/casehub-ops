@@ -85,6 +85,12 @@ class ApprovalLifecycleIntegrationTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
+                new io.casehub.ops.deployment.handler.PoolProvisionHandler(new io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolOperations() {
+                    @Override public java.util.Optional<io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolInfo> getPool(String name) { return java.util.Optional.empty(); }
+                    @Override public void createPool(io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolCreateRequest request) {}
+                    @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
+                    @Override public void destroyPool(String name) {}
+                }),
                 new SpecHashStore(),
                 evaluator,
                 planStore);

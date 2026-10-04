@@ -20,7 +20,7 @@ Each domain module implements the full desiredstate SPI quad -- `GoalCompiler`, 
 | Module | Artifact | Purpose |
 |--------|----------|---------|
 | `api` | `casehub-ops-api` | Shared types: sealed `NodeSpec` hierarchies, SPIs (`EvidenceCollector`, `InfraBackend`, `ResourceProvisioner`, `ApprovalEvaluator`, `ApprovalAuthorizer`, `PlanStore`, `NodeDriftChecker`), goal records, and approval types used across all domain modules |
-| `deployment` | `casehub-ops-deployment` | CaseHub agent topology desired state: agents, channels, case types, trust policies, endpoints. Includes adaptive topology (RAS-driven recompilation) and per-node-type drift checkers |
+| `deployment` | `casehub-ops-deployment` | CaseHub agent topology desired state: agents, pools, channels, case types, trust policies, endpoints. Includes adaptive topology (RAS-driven recompilation) and per-node-type drift checkers |
 | `infra` | `casehub-ops-infra` | Infrastructure provisioning: Terraform/Ansible augmentation PoC with standalone backend. Three operating modes: standalone, Terraform, Ansible |
 | `compliance` | `casehub-ops-compliance` | Regulatory compliance posture: SOC2-TypeII, GDPR, EU-AI-Act Art.12, DORA, NIS2, ISO27001. Strategy-based evidence collection with tamper-evident ledger records |
 | `iot` | `casehub-ops-iot` | IoT device desired state: physical device installation (human-gated), device configuration via `DeviceProvider` (Home Assistant/OpenHAB). Capability normalization and command mapping |
@@ -35,7 +35,7 @@ The `api` module is a pure-Java library with no runtime dependencies. It defines
 
 ### Deployment Node Specs
 
-`DeploymentNodeSpec` -- sealed interface extending `NodeSpec`. Six permits:
+`DeploymentNodeSpec` -- sealed interface extending `NodeSpec`. Seven permits:
 
 | Class | Node type | Key fields |
 |-------|-----------|------------|
@@ -45,6 +45,7 @@ The `api` module is a pure-Java library with no runtime dependencies. It defines
 | `TrustPolicyNodeSpec` | `trust_policy` | trust routing policy configuration |
 | `EndpointNodeSpec` | `endpoint` | REST/service endpoint configuration |
 | `DetectionNodeSpec` | `detection` | `situationId`, `eventTypes`, `correlationWindow`, `chainMode`, `triggerAction`. `toRegistration()` converts to `SituationRegistration` for RAS |
+| `PoolNodeSpec` | `pool` | `agentId`, `backend`, `minActive`, `maxActive`, `workingDir`, `workingDirPolicy`, `scaling` (`PoolScalingSpec`), `eviction`. `nodeId()` returns `agentId + "-pool"`. Depends on agent node |
 
 All implement `nodeId()` and `nodeType()`.
 
