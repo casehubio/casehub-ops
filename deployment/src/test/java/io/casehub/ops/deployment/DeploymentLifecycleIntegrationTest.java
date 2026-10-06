@@ -97,7 +97,7 @@ class DeploymentLifecycleIntegrationTest {
         // Declare 5 nodes (one of each type including endpoint)
         var agentCap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var agentDisp = AgentDisposition.builder().delegation(false).build();
-        var claudonyConfig = new ProviderConfig("claudony", Map.of("tools", "read,write"));
+        var claudonyConfig = new io.casehub.ops.api.deployment.ProviderConfig("claudony", Map.of("tools", "read,write"));
         var agentSpec = new AgentNodeSpec("agent-1", "Worker Agent", "worker", "anthropic", "claude", "4.6",
                 "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", "Reviews code quality", List.of(claudonyConfig));
 

@@ -109,6 +109,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-graphql</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Kubernetes -->
         <dependency>
@@ -170,7 +175,6 @@
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-AdomainFilter=ops/applications,ops/approvals,ops/cases,ops/clusters,ops/deployments,ops/reconciliation,ops/security,ops/services</arg>
-                        <arg>-AgenerateGraphQL=false</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
