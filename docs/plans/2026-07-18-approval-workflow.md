@@ -119,8 +119,8 @@ WorkItems instead of ConcurrentHashMap."
 ### Task 2: K8sApprovalEvaluator
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sApprovalEvaluator.java`
-- Create: `app/src/test/java/io/casehub/ops/app/k8s/K8sApprovalEvaluatorTest.java`
+- Create: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `ApprovalEvaluator` from `io.casehub.ops.api.approval`,
@@ -131,15 +131,15 @@ WorkItems instead of ConcurrentHashMap."
 
 - [ ] **Step 1: Write failing test — namespace deprovision is CRITICAL**
 
-Create `app/src/test/java/io/casehub/ops/app/k8s/K8sApprovalEvaluatorTest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.*;
 import io.casehub.ops.api.approval.*;
 import io.casehub.ops.api.infra.*;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -154,7 +154,7 @@ class K8sApprovalEvaluatorTest {
                 new K8sNamespaceSpec("prod-billing", Labels.empty()),
                 "kubernetes:ops-prod");
         var node = new DesiredNode(NodeId.of("ns-1"),
-                ApplicationNodeTypes.K8S_NAMESPACE, spec, HumanGating.NONE);
+                                   ApplicationNodeTypes.K8S_NAMESPACE, spec, HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.DEPROVISION, "tenant-1");
 
@@ -173,15 +173,15 @@ Expected: FAIL — `K8sApprovalEvaluator` does not exist.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `app/src/main/java/io/casehub/ops/app/k8s/K8sApprovalEvaluator.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.*;
 import io.casehub.ops.api.approval.*;
 import io.casehub.ops.api.infra.*;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -211,38 +211,33 @@ public class K8sApprovalEvaluator implements ApprovalEvaluator {
     private RiskClassification classifyRisk(NodeType type, StepAction action) {
         if (type.equals(ApplicationNodeTypes.K8S_NAMESPACE)) {
             return action == StepAction.DEPROVISION
-                    ? RiskClassification.CRITICAL : RiskClassification.LOW;
+                   ? RiskClassification.CRITICAL : RiskClassification.LOW;
         }
         if (type.equals(ApplicationNodeTypes.K8S_DEPLOYMENT)) {
             return action == StepAction.DEPROVISION
-                    ? RiskClassification.HIGH : RiskClassification.MEDIUM;
+                   ? RiskClassification.HIGH : RiskClassification.MEDIUM;
         }
         if (type.equals(ApplicationNodeTypes.K8S_SERVICE)
-                || type.equals(ApplicationNodeTypes.K8S_INGRESS)
-                || type.equals(ApplicationNodeTypes.K8S_CONFIGMAP)) {
+            || type.equals(ApplicationNodeTypes.K8S_INGRESS)
+            || type.equals(ApplicationNodeTypes.K8S_CONFIGMAP)) {
             return action == StepAction.DEPROVISION
-                    ? RiskClassification.MEDIUM : RiskClassification.LOW;
+                   ? RiskClassification.MEDIUM : RiskClassification.LOW;
         }
         return RiskClassification.LOW;
     }
 
     private String generateSummary(InfraDesiredNodeSpec wrapper, StepAction action) {
-        String verb = action == StepAction.PROVISION ? "Provision" : "Deprovision";
+        String verb    = action == StepAction.PROVISION ? "Provision" : "Deprovision";
         String cluster = wrapper.backendId();
         return switch (wrapper.resourceSpec()) {
-            case K8sNamespaceSpec s ->
-                    verb + " namespace '" + s.name() + "' on " + cluster;
-            case K8sDeploymentSpec s ->
-                    verb + " deployment '" + s.namespace() + "/" + s.name()
-                            + "' (" + s.image() + ", " + s.replicas() + " replicas) on " + cluster;
-            case K8sServiceSpec s ->
-                    verb + " service '" + s.namespace() + "/" + s.name()
-                            + "' (port " + s.port() + ") on " + cluster;
-            case K8sIngressSpec s ->
-                    verb + " ingress '" + s.namespace() + "/" + s.name()
-                            + "' (host: " + s.host() + ") on " + cluster;
-            case K8sConfigMapSpec s ->
-                    verb + " configmap '" + s.namespace() + "/" + s.name() + "' on " + cluster;
+            case K8sNamespaceSpec s -> verb + " namespace '" + s.name() + "' on " + cluster;
+            case K8sDeploymentSpec s -> verb + " deployment '" + s.namespace() + "/" + s.name()
+                                        + "' (" + s.image() + ", " + s.replicas() + " replicas) on " + cluster;
+            case K8sServiceSpec s -> verb + " service '" + s.namespace() + "/" + s.name()
+                                     + "' (port " + s.port() + ") on " + cluster;
+            case K8sIngressSpec s -> verb + " ingress '" + s.namespace() + "/" + s.name()
+                                     + "' (host: " + s.host() + ") on " + cluster;
+            case K8sConfigMapSpec s -> verb + " configmap '" + s.namespace() + "/" + s.name() + "' on " + cluster;
             default -> verb + " " + wrapper.resourceSpec().resourceType() + " on " + cluster;
         };
     }
@@ -364,8 +359,8 @@ Generates human-readable summaries with cluster and resource context."
 ### Task 3: KubernetesNodeProvisioner approval integration
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesNodeProvisioner.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/k8s/KubernetesNodeProvisionerTest.java`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `K8sApprovalEvaluator` (Task 2), `PlanStore` from
@@ -701,8 +696,8 @@ return PendingApproval. Re-entry verifies plan validity and spec freshness."
 ### Task 4: ApprovalResource REST implementation
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/rest/ApprovalResource.java`
-- Create: `app/src/test/java/io/casehub/ops/app/rest/ApprovalResourceTest.java`
+- Modify: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `WorkItemService.scan()`, `WorkItemService.findById()`,
@@ -735,16 +730,16 @@ record ApprovalView(
 
 - [ ] **Step 2: Write failing test — list returns approval views**
 
-Create `app/src/test/java/io/casehub/ops/app/rest/ApprovalResourceTest.java`.
+Create `service`.
 This is a unit test with mock `WorkItemService` and `PlanStore`:
 
 ```java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import io.casehub.desiredstate.api.*;
 import io.casehub.ops.api.approval.*;
 import io.casehub.ops.api.infra.*;
-import io.casehub.ops.app.k8s.KubernetesEventSource;
+import io.casehub.ops.service.k8s.KubernetesEventSource;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -759,19 +754,19 @@ import static org.mockito.Mockito.*;
 
 class ApprovalResourceTest {
 
-    private WorkItemService workItemService;
-    private PlanStore planStore;
-    private KubernetesEventSource eventSource;
-    private ApprovalResource resource;
+    private WorkItemService         workItemService;
+    private PlanStore               planStore;
+    private KubernetesEventSource   eventSource;
+    private ApprovalResource        resource;
     private ContainerRequestContext ctx;
 
     @BeforeEach
     void setUp() {
         workItemService = mock(WorkItemService.class);
-        planStore = new InMemoryPlanStore();
-        eventSource = new KubernetesEventSource();
-        resource = new ApprovalResource(workItemService, planStore, eventSource);
-        ctx = mock(ContainerRequestContext.class);
+        planStore       = new InMemoryPlanStore();
+        eventSource     = new KubernetesEventSource();
+        resource        = new ApprovalResource(workItemService, planStore, eventSource);
+        ctx             = mock(ContainerRequestContext.class);
         when(ctx.getProperty(TenancyFilter.TENANCY_PROPERTY)).thenReturn("tenant-1");
     }
 
@@ -782,16 +777,16 @@ class ApprovalResourceTest {
                 NodeId.of("ns-1"), StepAction.DEPROVISION, RiskClassification.CRITICAL,
                 "Deprovision namespace 'prod'", "tenant-1",
                 new InfraDesiredNodeSpec(new K8sNamespaceSpec("prod", Labels.empty()),
-                        "kubernetes:ops-prod"),
+                                         "kubernetes:ops-prod"),
                 null);
         String planRef = planStore.store(plan);
 
         // Mock a WorkItem
         var workItem = new WorkItem();
-        workItem.id = UUID.randomUUID();
-        workItem.payload = planRef;
+        workItem.id        = UUID.randomUUID();
+        workItem.payload   = planRef;
         workItem.tenancyId = "tenant-1";
-        workItem.title = "Approve deprovision: ns-1";
+        workItem.title     = "Approve deprovision: ns-1";
         workItem.createdAt = Instant.now();
         when(workItemService.scan(any())).thenReturn(List.of(workItem));
 

@@ -273,7 +273,7 @@ production.
 ### ApplicationLifecycleService — deployment orchestration
 
 `ApplicationLifecycleService` is the central coordination component that bridges REST, engine,
-goal compiler, and reconciliation. Lives in `app/src/main/java/io/casehub/ops/app/service/`.
+goal compiler, and reconciliation. Lives in `service`.
 
 | Responsibility | Method | Flow |
 |---------------|--------|------|
@@ -588,7 +588,7 @@ binding evaluates → child case spawns.
 ### KubernetesBackend (in app/ module)
 
 `InfraBackend` SPI implementation using fabric8 kubernetes-client. Lives in
-`app/src/main/java/io/casehub/ops/app/k8s/`:
+`service`:
 
 | Class | Purpose |
 |-------|---------|

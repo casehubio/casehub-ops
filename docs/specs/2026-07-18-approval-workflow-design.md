@@ -67,7 +67,7 @@ every approval-gated provisioner would report failure.
 
 ### Change 3: Create `K8sApprovalEvaluator`
 
-New class at `app/src/main/java/io/casehub/ops/app/k8s/K8sApprovalEvaluator.java`.
+New class at `service`.
 `@ApplicationScoped implements ApprovalEvaluator`. Injected into
 `KubernetesNodeProvisioner` via `@Inject` — same pattern as `DeploymentNodeProvisioner`
 injecting `DeploymentApprovalEvaluator`. The app module does not load domain modules

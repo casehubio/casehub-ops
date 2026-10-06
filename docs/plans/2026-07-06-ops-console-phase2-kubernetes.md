@@ -36,52 +36,52 @@
 
 | File | Purpose |
 |------|---------|
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sResourceHandler.java` | Handler interface |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sHandlerRegistry.java` | CDI handler lookup by spec type |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java` | clusterId → KubernetesClient |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sNamespaceHandler.java` | Namespace handler |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sDeploymentHandler.java` | Deployment handler |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sServiceHandler.java` | Service handler |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sIngressHandler.java` | Ingress handler |
-| `app/src/main/java/io/casehub/ops/app/k8s/K8sConfigMapHandler.java` | ConfigMap handler |
-| `app/src/main/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapter.java` | Real ActualStateAdapter |
-| `app/src/main/java/io/casehub/ops/app/k8s/KubernetesNodeProvisioner.java` | Real NodeProvisioner |
-| `app/src/main/java/io/casehub/ops/app/k8s/KubernetesFaultPolicy.java` | Real FaultPolicy |
-| `app/src/main/java/io/casehub/ops/app/k8s/KubernetesEventSource.java` | Real EventSource (passive) |
-| `app/src/main/java/io/casehub/ops/app/service/StartupRecoveryService.java` | @Observes StartupEvent |
-| `app/src/main/java/io/casehub/ops/app/service/DeploymentOutcomeTracker.java` | Async deploy convergence |
-| `app/src/main/java/io/casehub/ops/app/service/DecommissionCompletionHandler.java` | Decommission lifecycle |
+| `service` | Handler interface |
+| `service` | CDI handler lookup by spec type |
+| `service` | clusterId → KubernetesClient |
+| `service` | Namespace handler |
+| `service` | Deployment handler |
+| `service` | Service handler |
+| `service` | Ingress handler |
+| `service` | ConfigMap handler |
+| `service` | Real ActualStateAdapter |
+| `service` | Real NodeProvisioner |
+| `service` | Real FaultPolicy |
+| `service` | Real EventSource (passive) |
+| `service` | @Observes StartupEvent |
+| `service` | Async deploy convergence |
+| `service` | Decommission lifecycle |
 | **Tests** | |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java` | Registry lifecycle |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sNamespaceHandlerTest.java` | Namespace CRUD + drift |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sDeploymentHandlerTest.java` | Deployment CRUD + drift |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sServiceHandlerTest.java` | Service CRUD + drift |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sIngressHandlerTest.java` | Ingress CRUD + drift |
-| `app/src/test/java/io/casehub/ops/app/k8s/K8sConfigMapHandlerTest.java` | ConfigMap CRUD + drift |
-| `app/src/test/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapterTest.java` | Adapter integration |
-| `app/src/test/java/io/casehub/ops/app/k8s/KubernetesNodeProvisionerTest.java` | Provisioner integration |
-| `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java` | Modified — add loop tests |
-| `app/src/test/java/io/casehub/ops/app/service/DeploymentOutcomeTrackerTest.java` | Convergence tracking |
-| `app/src/test/java/io/casehub/ops/app/service/DecommissionCompletionHandlerTest.java` | Decommission lifecycle |
-| `app/src/test/java/io/casehub/ops/app/service/StartupRecoveryServiceTest.java` | Startup recovery |
+| `service` | Registry lifecycle |
+| `service` | Namespace CRUD + drift |
+| `service` | Deployment CRUD + drift |
+| `service` | Service CRUD + drift |
+| `service` | Ingress CRUD + drift |
+| `service` | ConfigMap CRUD + drift |
+| `service` | Adapter integration |
+| `service` | Provisioner integration |
+| `service` | Modified — add loop tests |
+| `service` | Convergence tracking |
+| `service` | Decommission lifecycle |
+| `service` | Startup recovery |
 
 ### Modified files
 
 | File | Change |
 |------|--------|
-| `app/src/main/java/io/casehub/ops/app/model/DeploymentOutcome.java` | Add `PENDING` enum value |
-| `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java` | Wire ReconciliationLoop, active loop index, start-or-update |
-| `app/src/main/java/io/casehub/ops/app/service/ClusterService.java` | Add delete() rejection when loops active |
+| `service` | Add `PENDING` enum value |
+| `service` | Wire ReconciliationLoop, active loop index, start-or-update |
+| `service` | Add delete() rejection when loops active |
 
 ---
 
 ## Task 1: K8sResourceHandler interface + K8sClientRegistry + K8sHandlerRegistry
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sResourceHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sHandlerRegistry.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `io.casehub.ops.api.infra.InfraNodeSpec`, `io.fabric8.kubernetes.client.KubernetesClient`, `io.fabric8.kubernetes.api.model.HasMetadata`, `io.casehub.desiredstate.api.NodeStatus`
@@ -91,7 +91,7 @@
 
 ```java
 // app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.junit.jupiter.api.AfterEach;
@@ -159,7 +159,7 @@ Expected: compilation failure — `K8sClientRegistry` does not exist
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/K8sResourceHandler.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.infra.InfraNodeSpec;
@@ -168,9 +168,13 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 
 public interface K8sResourceHandler<S extends InfraNodeSpec> {
     Class<S> specType();
+
     HasMetadata toResource(S spec);
+
     NodeStatus readStatus(KubernetesClient client, S spec);
+
     void apply(KubernetesClient client, S spec);
+
     void delete(KubernetesClient client, S spec);
 }
 ```
@@ -179,7 +183,7 @@ public interface K8sResourceHandler<S extends InfraNodeSpec> {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -205,12 +209,12 @@ public class K8sClientRegistry {
 
     public void register(String clusterId, String apiUrl) {
         Config config = new ConfigBuilder()
-                .withMasterUrl(apiUrl)
-                .withTrustCerts(true)
-                .build();
+                                .withMasterUrl(apiUrl)
+                                .withTrustCerts(true)
+                                .build();
         KubernetesClient client = new KubernetesClientBuilder()
-                .withConfig(config)
-                .build();
+                                          .withConfig(config)
+                                          .build();
         KubernetesClient existing = clients.putIfAbsent(clusterId, client);
         if (existing != null) {
             client.close();
@@ -236,7 +240,7 @@ public class K8sClientRegistry {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/K8sHandlerRegistry.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -255,12 +259,12 @@ public class K8sHandlerRegistry {
     @Inject
     public K8sHandlerRegistry(@Any Instance<K8sResourceHandler<?>> discovered) {
         this.handlers = discovered.stream()
-                .collect(Collectors.toMap(K8sResourceHandler::specType, h -> h));
+                                  .collect(Collectors.toMap(K8sResourceHandler::specType, h -> h));
     }
 
     K8sHandlerRegistry(java.util.List<K8sResourceHandler<?>> handlerList) {
         this.handlers = handlerList.stream()
-                .collect(Collectors.toMap(K8sResourceHandler::specType, h -> h));
+                                   .collect(Collectors.toMap(K8sResourceHandler::specType, h -> h));
     }
 
     @SuppressWarnings("unchecked")
@@ -291,16 +295,16 @@ git commit -m "feat(#29): K8sResourceHandler interface, K8sClientRegistry, K8sHa
 ## Task 2: Five K8s resource handlers
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sNamespaceHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sDeploymentHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sServiceHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sIngressHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sConfigMapHandler.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sNamespaceHandlerTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sDeploymentHandlerTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sServiceHandlerTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sIngressHandlerTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/K8sConfigMapHandlerTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
+- Test: `service`
+- Test: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `K8sResourceHandler<S>` from Task 1; spec types `K8sNamespaceSpec`, `K8sDeploymentSpec`, `K8sServiceSpec`, `K8sIngressSpec`, `K8sConfigMapSpec` from `io.casehub.ops.api.infra`; fabric8 model types `Namespace`, `Deployment`, `Service`, `Ingress`, `ConfigMap`
@@ -310,7 +314,7 @@ git commit -m "feat(#29): K8sResourceHandler interface, K8sClientRegistry, K8sHa
 
 ```java
 // app/src/test/java/io/casehub/ops/app/k8s/K8sNamespaceHandlerTest.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.Map;
 
@@ -330,7 +334,7 @@ import static org.assertj.core.api.Assertions.*;
 @EnableKubernetesMockClient(crud = true)
 class K8sNamespaceHandlerTest {
 
-    KubernetesClient client;
+    KubernetesClient     client;
     KubernetesMockServer server;
     private final K8sNamespaceHandler handler = new K8sNamespaceHandler();
 
@@ -406,7 +410,7 @@ Expected: compilation failure — `K8sNamespaceHandler` does not exist
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/K8sNamespaceHandler.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.Map;
 
@@ -432,11 +436,11 @@ public class K8sNamespaceHandler implements K8sResourceHandler<K8sNamespaceSpec>
     @Override
     public HasMetadata toResource(K8sNamespaceSpec spec) {
         return new NamespaceBuilder()
-                .withNewMetadata()
-                    .withName(spec.name())
-                    .withLabels(spec.labels().entries())
-                .endMetadata()
-                .build();
+                       .withNewMetadata()
+                       .withName(spec.name())
+                       .withLabels(spec.labels().entries())
+                       .endMetadata()
+                       .build();
     }
 
     @Override
@@ -457,9 +461,9 @@ public class K8sNamespaceHandler implements K8sResourceHandler<K8sNamespaceSpec>
     public void apply(KubernetesClient client, K8sNamespaceSpec spec) {
         Namespace resource = (Namespace) toResource(spec);
         client.resource(resource)
-                .fieldManager(FIELD_MANAGER)
-                .forceConflicts()
-                .serverSideApply();
+              .fieldManager(FIELD_MANAGER)
+              .forceConflicts()
+              .serverSideApply();
     }
 
     @Override
@@ -468,11 +472,11 @@ public class K8sNamespaceHandler implements K8sResourceHandler<K8sNamespaceSpec>
     }
 
     private boolean labelsMatch(Namespace actual, Namespace desired) {
-        Map<String, String> actualLabels = actual.getMetadata().getLabels();
+        Map<String, String> actualLabels  = actual.getMetadata().getLabels();
         Map<String, String> desiredLabels = desired.getMetadata().getLabels();
         if (actualLabels == null) return desiredLabels == null || desiredLabels.isEmpty();
         return desiredLabels != null && desiredLabels.entrySet().stream()
-                .allMatch(e -> e.getValue().equals(actualLabels.get(e.getKey())));
+                                                     .allMatch(e -> e.getValue().equals(actualLabels.get(e.getKey())));
     }
 }
 ```
@@ -488,7 +492,7 @@ Note: If `serverSideApply()` is not supported by the CRUD mock server, fall back
 
 ```java
 // app/src/test/java/io/casehub/ops/app/k8s/K8sDeploymentHandlerTest.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.List;
 import java.util.Map;
@@ -513,7 +517,7 @@ import static org.assertj.core.api.Assertions.*;
 @EnableKubernetesMockClient(crud = true)
 class K8sDeploymentHandlerTest {
 
-    KubernetesClient client;
+    KubernetesClient     client;
     KubernetesMockServer server;
     private final K8sDeploymentHandler handler = new K8sDeploymentHandler();
 
@@ -522,8 +526,8 @@ class K8sDeploymentHandlerTest {
     @BeforeEach
     void setUp() {
         client.resource(new NamespaceBuilder()
-                .withNewMetadata().withName("casehub").endMetadata().build())
-                .create();
+                                .withNewMetadata().withName("casehub").endMetadata().build())
+              .create();
 
         spec = new K8sDeploymentSpec(
                 "casehub", "inventory", "quay.io/app:1.0", 2,
@@ -541,7 +545,7 @@ class K8sDeploymentHandlerTest {
 
     @Test
     void toResourceBuildsDeployment() {
-        var dep = (Deployment) handler.toResource(spec);
+        var dep       = (Deployment) handler.toResource(spec);
         var container = dep.getSpec().getTemplate().getSpec().getContainers().get(0);
         assertThat(dep.getMetadata().getName()).isEqualTo("inventory");
         assertThat(dep.getMetadata().getNamespace()).isEqualTo("casehub");
@@ -549,7 +553,7 @@ class K8sDeploymentHandlerTest {
         assertThat(container.getImage()).isEqualTo("quay.io/app:1.0");
         assertThat(container.getPorts()).hasSize(1);
         assertThat(container.getEnv()).anyMatch(e ->
-                e.getName().equals("JAVA_OPTS") && e.getValue().equals("-Xmx512m"));
+                                                        e.getName().equals("JAVA_OPTS") && e.getValue().equals("-Xmx512m"));
         assertThat(container.getLivenessProbe()).isNotNull();
         assertThat(container.getLivenessProbe().getHttpGet().getPath()).isEqualTo("/q/health");
     }
@@ -558,7 +562,7 @@ class K8sDeploymentHandlerTest {
     void applyCreatesDeployment() {
         handler.apply(client, spec);
         Deployment dep = client.apps().deployments()
-                .inNamespace("casehub").withName("inventory").get();
+                               .inNamespace("casehub").withName("inventory").get();
         assertThat(dep).isNotNull();
         assertThat(dep.getSpec().getReplicas()).isEqualTo(2);
     }
@@ -578,9 +582,9 @@ class K8sDeploymentHandlerTest {
     void readStatusDriftedWhenImageChanged() {
         handler.apply(client, spec);
         Deployment dep = client.apps().deployments()
-                .inNamespace("casehub").withName("inventory").get();
+                               .inNamespace("casehub").withName("inventory").get();
         dep.getSpec().getTemplate().getSpec().getContainers().get(0)
-                .setImage("quay.io/app:2.0");
+           .setImage("quay.io/app:2.0");
         client.apps().deployments().inNamespace("casehub").resource(dep).update();
         assertThat(handler.readStatus(client, spec)).isEqualTo(NodeStatus.DRIFTED);
     }
@@ -589,7 +593,7 @@ class K8sDeploymentHandlerTest {
     void readStatusDriftedWhenReplicasChanged() {
         handler.apply(client, spec);
         Deployment dep = client.apps().deployments()
-                .inNamespace("casehub").withName("inventory").get();
+                               .inNamespace("casehub").withName("inventory").get();
         dep.getSpec().setReplicas(5);
         client.apps().deployments().inNamespace("casehub").resource(dep).update();
         assertThat(handler.readStatus(client, spec)).isEqualTo(NodeStatus.DRIFTED);
@@ -600,7 +604,7 @@ class K8sDeploymentHandlerTest {
         handler.apply(client, spec);
         handler.delete(client, spec);
         assertThat(client.apps().deployments()
-                .inNamespace("casehub").withName("inventory").get()).isNull();
+                         .inNamespace("casehub").withName("inventory").get()).isNull();
     }
 }
 ```
@@ -609,7 +613,7 @@ class K8sDeploymentHandlerTest {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/K8sDeploymentHandler.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.Map;
 import java.util.Objects;
@@ -647,68 +651,68 @@ public class K8sDeploymentHandler implements K8sResourceHandler<K8sDeploymentSpe
     @Override
     public HasMetadata toResource(K8sDeploymentSpec spec) {
         var containerBuilder = new ContainerBuilder()
-                .withName(spec.name())
-                .withImage(spec.image())
-                .withResources(new ResourceRequirementsBuilder()
-                        .addToRequests("cpu", new Quantity(spec.resources().cpuRequest()))
-                        .addToRequests("memory", new Quantity(spec.resources().memoryRequest()))
-                        .addToLimits("cpu", new Quantity(spec.resources().cpuLimit()))
-                        .addToLimits("memory", new Quantity(spec.resources().memoryLimit()))
-                        .build())
-                .withPorts(spec.ports().stream()
-                        .map(p -> new ContainerPortBuilder()
-                                .withContainerPort(p.containerPort())
-                                .withProtocol(p.protocol())
-                                .build())
-                        .toList())
-                .withEnv(spec.env().entrySet().stream()
-                        .map(e -> new EnvVarBuilder()
-                                .withName(e.getKey())
-                                .withValue(e.getValue())
-                                .build())
-                        .toList());
+                                       .withName(spec.name())
+                                       .withImage(spec.image())
+                                       .withResources(new ResourceRequirementsBuilder()
+                                                              .addToRequests("cpu", new Quantity(spec.resources().cpuRequest()))
+                                                              .addToRequests("memory", new Quantity(spec.resources().memoryRequest()))
+                                                              .addToLimits("cpu", new Quantity(spec.resources().cpuLimit()))
+                                                              .addToLimits("memory", new Quantity(spec.resources().memoryLimit()))
+                                                              .build())
+                                       .withPorts(spec.ports().stream()
+                                                      .map(p -> new ContainerPortBuilder()
+                                                                        .withContainerPort(p.containerPort())
+                                                                        .withProtocol(p.protocol())
+                                                                        .build())
+                                                      .toList())
+                                       .withEnv(spec.env().entrySet().stream()
+                                                    .map(e -> new EnvVarBuilder()
+                                                                      .withName(e.getKey())
+                                                                      .withValue(e.getValue())
+                                                                      .build())
+                                                    .toList());
 
         spec.healthCheck().ifPresent(hc -> {
             Probe probe = new ProbeBuilder()
-                    .withNewHttpGet()
-                        .withPath(hc.path())
-                        .withPort(new IntOrString(hc.port()))
-                    .endHttpGet()
-                    .withInitialDelaySeconds(hc.initialDelaySeconds())
-                    .withPeriodSeconds(hc.periodSeconds())
-                    .build();
+                                  .withNewHttpGet()
+                                  .withPath(hc.path())
+                                  .withPort(new IntOrString(hc.port()))
+                                  .endHttpGet()
+                                  .withInitialDelaySeconds(hc.initialDelaySeconds())
+                                  .withPeriodSeconds(hc.periodSeconds())
+                                  .build();
             containerBuilder.withLivenessProbe(probe);
             containerBuilder.withReadinessProbe(probe);
         });
 
         return new DeploymentBuilder()
-                .withNewMetadata()
-                    .withName(spec.name())
-                    .withNamespace(spec.namespace())
-                    .withLabels(spec.labels().entries())
-                .endMetadata()
-                .withNewSpec()
-                    .withReplicas(spec.replicas())
-                    .withNewSelector()
-                        .withMatchLabels(Map.of("app", spec.name()))
-                    .endSelector()
-                    .withNewTemplate()
-                        .withNewMetadata()
-                            .withLabels(Map.of("app", spec.name()))
-                        .endMetadata()
-                        .withNewSpec()
-                            .withContainers(containerBuilder.build())
-                        .endSpec()
-                    .endTemplate()
-                .endSpec()
-                .build();
+                       .withNewMetadata()
+                       .withName(spec.name())
+                       .withNamespace(spec.namespace())
+                       .withLabels(spec.labels().entries())
+                       .endMetadata()
+                       .withNewSpec()
+                       .withReplicas(spec.replicas())
+                       .withNewSelector()
+                       .withMatchLabels(Map.of("app", spec.name()))
+                       .endSelector()
+                       .withNewTemplate()
+                       .withNewMetadata()
+                       .withLabels(Map.of("app", spec.name()))
+                       .endMetadata()
+                       .withNewSpec()
+                       .withContainers(containerBuilder.build())
+                       .endSpec()
+                       .endTemplate()
+                       .endSpec()
+                       .build();
     }
 
     @Override
     public NodeStatus readStatus(KubernetesClient client, K8sDeploymentSpec spec) {
         try {
             Deployment actual = client.apps().deployments()
-                    .inNamespace(spec.namespace()).withName(spec.name()).get();
+                                      .inNamespace(spec.namespace()).withName(spec.name()).get();
             if (actual == null) return NodeStatus.ABSENT;
 
             Deployment desired = (Deployment) toResource(spec);
@@ -722,32 +726,32 @@ public class K8sDeploymentHandler implements K8sResourceHandler<K8sDeploymentSpe
     public void apply(KubernetesClient client, K8sDeploymentSpec spec) {
         Deployment resource = (Deployment) toResource(spec);
         client.resource(resource)
-                .fieldManager(FIELD_MANAGER)
-                .forceConflicts()
-                .serverSideApply();
+              .fieldManager(FIELD_MANAGER)
+              .forceConflicts()
+              .serverSideApply();
     }
 
     @Override
     public void delete(KubernetesClient client, K8sDeploymentSpec spec) {
         client.apps().deployments()
-                .inNamespace(spec.namespace()).withName(spec.name()).delete();
+              .inNamespace(spec.namespace()).withName(spec.name()).delete();
     }
 
     private boolean managedFieldsMatch(Deployment actual, Deployment desired) {
-        var actualContainer = actual.getSpec().getTemplate().getSpec().getContainers().get(0);
+        var actualContainer  = actual.getSpec().getTemplate().getSpec().getContainers().get(0);
         var desiredContainer = desired.getSpec().getTemplate().getSpec().getContainers().get(0);
 
         if (!Objects.equals(actual.getSpec().getReplicas(), desired.getSpec().getReplicas())) return false;
         if (!Objects.equals(actualContainer.getImage(), desiredContainer.getImage())) return false;
 
         Map<String, String> actualEnv = actualContainer.getEnv() == null
-                ? Map.of()
-                : actualContainer.getEnv().stream()
-                    .collect(Collectors.toMap(EnvVar::getName, EnvVar::getValue));
+                                        ? Map.of()
+                                        : actualContainer.getEnv().stream()
+                                                         .collect(Collectors.toMap(EnvVar::getName, EnvVar::getValue));
         Map<String, String> desiredEnv = desiredContainer.getEnv() == null
-                ? Map.of()
-                : desiredContainer.getEnv().stream()
-                    .collect(Collectors.toMap(EnvVar::getName, EnvVar::getValue));
+                                         ? Map.of()
+                                         : desiredContainer.getEnv().stream()
+                                                           .collect(Collectors.toMap(EnvVar::getName, EnvVar::getValue));
         if (!actualEnv.equals(desiredEnv)) return false;
 
         return true;
@@ -789,12 +793,12 @@ git commit -m "feat(#29): K8s resource handlers — Namespace, Deployment, Servi
 ## Task 3: Four SPI implementations
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapter.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesNodeProvisioner.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesFaultPolicy.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesEventSource.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapterTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/k8s/KubernetesNodeProvisionerTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `K8sHandlerRegistry` and `K8sClientRegistry` from Task 1; handlers from Task 2; `ActualStateAdapter`, `NodeProvisioner`, `FaultPolicy`, `EventSource` from `io.casehub.desiredstate.api`; `InfraDesiredNodeSpec` from `io.casehub.ops.api.infra`; `ApplicationNodeTypes` from `io.casehub.ops.app.goal`
@@ -804,7 +808,7 @@ git commit -m "feat(#29): K8s resource handlers — Namespace, Deployment, Servi
 
 ```java
 // app/src/test/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapterTest.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.List;
 import java.util.Map;
@@ -818,7 +822,7 @@ import io.casehub.desiredstate.api.NodeType;
 import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import io.casehub.ops.api.infra.types.Labels;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
@@ -828,22 +832,22 @@ class KubernetesActualStateAdapterTest {
 
     @Test
     void readActualDelegatesToHandlerPerNode() {
-        var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
+        var nsSpec      = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
-        var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
-        var graph = new DesiredStateGraph(Map.of(nodeId, node), List.of());
+        var nodeId      = NodeId.of("ops-prod:namespace");
+        var node        = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
+        var graph       = new DesiredStateGraph(Map.of(nodeId, node), List.of());
 
         var handler = mock(K8sResourceHandler.class);
         when(handler.specType()).thenReturn((Class) K8sNamespaceSpec.class);
         when(handler.readStatus(any(), eq(nsSpec))).thenReturn(NodeStatus.PRESENT);
 
         var handlerRegistry = new K8sHandlerRegistry(List.of(handler));
-        var clientRegistry = new K8sClientRegistry();
+        var clientRegistry  = new K8sClientRegistry();
         clientRegistry.register("ops-prod", "https://localhost:6443");
 
         var adapter = new KubernetesActualStateAdapter(handlerRegistry, clientRegistry);
-        var actual = adapter.readActual(graph, "default");
+        var actual  = adapter.readActual(graph, "default");
 
         assertThat(actual.statusOf(nodeId)).contains(NodeStatus.PRESENT);
         verify(handler).readStatus(any(), eq(nsSpec));
@@ -851,20 +855,20 @@ class KubernetesActualStateAdapterTest {
 
     @Test
     void returnsUnknownWhenClusterNotRegistered() {
-        var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
+        var nsSpec      = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:unknown-cluster");
-        var nodeId = NodeId.of("unknown-cluster:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
-        var graph = new DesiredStateGraph(Map.of(nodeId, node), List.of());
+        var nodeId      = NodeId.of("unknown-cluster:namespace");
+        var node        = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
+        var graph       = new DesiredStateGraph(Map.of(nodeId, node), List.of());
 
         var handler = mock(K8sResourceHandler.class);
         when(handler.specType()).thenReturn((Class) K8sNamespaceSpec.class);
 
         var handlerRegistry = new K8sHandlerRegistry(List.of(handler));
-        var clientRegistry = new K8sClientRegistry();
+        var clientRegistry  = new K8sClientRegistry();
 
         var adapter = new KubernetesActualStateAdapter(handlerRegistry, clientRegistry);
-        var actual = adapter.readActual(graph, "default");
+        var actual  = adapter.readActual(graph, "default");
 
         assertThat(actual.statusOf(nodeId)).contains(NodeStatus.UNKNOWN);
     }
@@ -880,7 +884,7 @@ Expected: compilation failure — `KubernetesActualStateAdapter` does not exist
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/KubernetesActualStateAdapter.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -900,13 +904,13 @@ import jakarta.inject.Inject;
 public class KubernetesActualStateAdapter implements ActualStateAdapter {
 
     private final K8sHandlerRegistry handlerRegistry;
-    private final K8sClientRegistry clientRegistry;
+    private final K8sClientRegistry  clientRegistry;
 
     @Inject
     public KubernetesActualStateAdapter(K8sHandlerRegistry handlerRegistry,
-                                         K8sClientRegistry clientRegistry) {
+                                        K8sClientRegistry clientRegistry) {
         this.handlerRegistry = handlerRegistry;
-        this.clientRegistry = clientRegistry;
+        this.clientRegistry  = clientRegistry;
     }
 
     @Override
@@ -925,9 +929,9 @@ public class KubernetesActualStateAdapter implements ActualStateAdapter {
         }
         String clusterId = extractClusterId(wrapper.backendId());
         try {
-            var client = clientRegistry.clientFor(clusterId);
+            var           client       = clientRegistry.clientFor(clusterId);
             InfraNodeSpec resourceSpec = wrapper.resourceSpec();
-            var handler = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
+            var           handler      = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
             return handler.readStatus(client, resourceSpec);
         } catch (IllegalArgumentException e) {
             return NodeStatus.UNKNOWN;
@@ -950,7 +954,7 @@ Expected: PASS
 
 ```java
 // app/src/test/java/io/casehub/ops/app/k8s/KubernetesNodeProvisionerTest.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.List;
 import java.util.Map;
@@ -965,7 +969,7 @@ import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import io.casehub.ops.api.infra.types.Labels;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
@@ -975,21 +979,21 @@ class KubernetesNodeProvisionerTest {
 
     @Test
     void provisionDelegatesToHandler() {
-        var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
+        var nsSpec      = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
-        var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
-        var graph = new DesiredStateGraph(Map.of(nodeId, node), List.of());
+        var nodeId      = NodeId.of("ops-prod:namespace");
+        var node        = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
+        var graph       = new DesiredStateGraph(Map.of(nodeId, node), List.of());
 
         var handler = mock(K8sResourceHandler.class);
         when(handler.specType()).thenReturn((Class) K8sNamespaceSpec.class);
 
         var handlerRegistry = new K8sHandlerRegistry(List.of(handler));
-        var clientRegistry = new K8sClientRegistry();
+        var clientRegistry  = new K8sClientRegistry();
         clientRegistry.register("ops-prod", "https://localhost:6443");
 
         var provisioner = new KubernetesNodeProvisioner(handlerRegistry, clientRegistry);
-        var context = new ProvisionContext("default", graph);
+        var context     = new ProvisionContext("default", graph);
 
         ProvisionResult result = provisioner.provision(node, context);
         assertThat(result).isInstanceOf(ProvisionResult.Success.class);
@@ -998,21 +1002,21 @@ class KubernetesNodeProvisionerTest {
 
     @Test
     void deprovisionDelegatesToHandler() {
-        var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
+        var nsSpec      = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
-        var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
-        var graph = new DesiredStateGraph(Map.of(nodeId, node), List.of());
+        var nodeId      = NodeId.of("ops-prod:namespace");
+        var node        = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
+        var graph       = new DesiredStateGraph(Map.of(nodeId, node), List.of());
 
         var handler = mock(K8sResourceHandler.class);
         when(handler.specType()).thenReturn((Class) K8sNamespaceSpec.class);
 
         var handlerRegistry = new K8sHandlerRegistry(List.of(handler));
-        var clientRegistry = new K8sClientRegistry();
+        var clientRegistry  = new K8sClientRegistry();
         clientRegistry.register("ops-prod", "https://localhost:6443");
 
         var provisioner = new KubernetesNodeProvisioner(handlerRegistry, clientRegistry);
-        var context = new DeprovisionContext("default", graph);
+        var context     = new DeprovisionContext("default", graph);
 
         DeprovisionResult result = provisioner.deprovision(node, context);
         assertThat(result).isInstanceOf(DeprovisionResult.Success.class);
@@ -1021,22 +1025,22 @@ class KubernetesNodeProvisionerTest {
 
     @Test
     void provisionFailsWhenHandlerThrows() {
-        var nsSpec = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
+        var nsSpec      = new K8sNamespaceSpec("casehub", Labels.of(Map.of()));
         var wrappedSpec = new InfraDesiredNodeSpec(nsSpec, "kubernetes:ops-prod");
-        var nodeId = NodeId.of("ops-prod:namespace");
-        var node = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
-        var graph = new DesiredStateGraph(Map.of(nodeId, node), List.of());
+        var nodeId      = NodeId.of("ops-prod:namespace");
+        var node        = new DesiredNode(nodeId, ApplicationNodeTypes.K8S_NAMESPACE, wrappedSpec, false);
+        var graph       = new DesiredStateGraph(Map.of(nodeId, node), List.of());
 
         var handler = mock(K8sResourceHandler.class);
         when(handler.specType()).thenReturn((Class) K8sNamespaceSpec.class);
         doThrow(new RuntimeException("cluster down")).when(handler).apply(any(), any());
 
         var handlerRegistry = new K8sHandlerRegistry(List.of(handler));
-        var clientRegistry = new K8sClientRegistry();
+        var clientRegistry  = new K8sClientRegistry();
         clientRegistry.register("ops-prod", "https://localhost:6443");
 
         var provisioner = new KubernetesNodeProvisioner(handlerRegistry, clientRegistry);
-        var context = new ProvisionContext("default", graph);
+        var context     = new ProvisionContext("default", graph);
 
         ProvisionResult result = provisioner.provision(node, context);
         assertThat(result).isInstanceOf(ProvisionResult.Failed.class);
@@ -1045,8 +1049,8 @@ class KubernetesNodeProvisionerTest {
     @Test
     void handledTypesReturnsFiveK8sTypes() {
         var handlerRegistry = mock(K8sHandlerRegistry.class);
-        var clientRegistry = new K8sClientRegistry();
-        var provisioner = new KubernetesNodeProvisioner(handlerRegistry, clientRegistry);
+        var clientRegistry  = new K8sClientRegistry();
+        var provisioner     = new KubernetesNodeProvisioner(handlerRegistry, clientRegistry);
         assertThat(provisioner.handledTypes()).hasSize(5);
     }
 }
@@ -1056,7 +1060,7 @@ class KubernetesNodeProvisionerTest {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/KubernetesNodeProvisioner.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.time.Duration;
 import java.util.Set;
@@ -1070,7 +1074,7 @@ import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.InfraNodeSpec;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -1078,13 +1082,13 @@ import jakarta.inject.Inject;
 public class KubernetesNodeProvisioner implements NodeProvisioner {
 
     private final K8sHandlerRegistry handlerRegistry;
-    private final K8sClientRegistry clientRegistry;
+    private final K8sClientRegistry  clientRegistry;
 
     @Inject
     public KubernetesNodeProvisioner(K8sHandlerRegistry handlerRegistry,
-                                      K8sClientRegistry clientRegistry) {
+                                     K8sClientRegistry clientRegistry) {
         this.handlerRegistry = handlerRegistry;
-        this.clientRegistry = clientRegistry;
+        this.clientRegistry  = clientRegistry;
     }
 
     @Override
@@ -1109,10 +1113,10 @@ public class KubernetesNodeProvisioner implements NodeProvisioner {
             return new ProvisionResult.Failed("spec is not InfraDesiredNodeSpec");
         }
         try {
-            String clusterId = KubernetesActualStateAdapter.extractClusterId(wrapper.backendId());
-            var client = clientRegistry.clientFor(clusterId);
+            String        clusterId    = KubernetesActualStateAdapter.extractClusterId(wrapper.backendId());
+            var           client       = clientRegistry.clientFor(clusterId);
             InfraNodeSpec resourceSpec = wrapper.resourceSpec();
-            var handler = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
+            var           handler      = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
             handler.apply(client, resourceSpec);
             return new ProvisionResult.Success();
         } catch (Exception e) {
@@ -1127,10 +1131,10 @@ public class KubernetesNodeProvisioner implements NodeProvisioner {
             return new DeprovisionResult.Failed("spec is not InfraDesiredNodeSpec");
         }
         try {
-            String clusterId = KubernetesActualStateAdapter.extractClusterId(wrapper.backendId());
-            var client = clientRegistry.clientFor(clusterId);
+            String        clusterId    = KubernetesActualStateAdapter.extractClusterId(wrapper.backendId());
+            var           client       = clientRegistry.clientFor(clusterId);
             InfraNodeSpec resourceSpec = wrapper.resourceSpec();
-            var handler = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
+            var           handler      = (K8sResourceHandler<InfraNodeSpec>) handlerRegistry.handlerFor(resourceSpec.getClass());
             handler.delete(client, resourceSpec);
             return new DeprovisionResult.Success();
         } catch (Exception e) {
@@ -1144,7 +1148,7 @@ public class KubernetesNodeProvisioner implements NodeProvisioner {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/KubernetesFaultPolicy.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.List;
 
@@ -1169,7 +1173,7 @@ public class KubernetesFaultPolicy implements FaultPolicy {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/KubernetesEventSource.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.EventSource;
 import io.casehub.desiredstate.api.NodeId;
@@ -1183,13 +1187,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class KubernetesEventSource implements EventSource {
 
-    private final Multi<StateEvent> stream;
+    private final    Multi<StateEvent>                stream;
     private volatile MultiEmitter<? super StateEvent> emitter;
 
     public KubernetesEventSource() {
         this.stream = Multi.createFrom()
-                .<StateEvent>emitter(e -> this.emitter = e, BackPressureStrategy.BUFFER)
-                .broadcast().toAllSubscribers();
+                           .<StateEvent>emitter(e -> this.emitter = e, BackPressureStrategy.BUFFER)
+                           .broadcast().toAllSubscribers();
     }
 
     @Override
@@ -1227,9 +1231,9 @@ git commit -m "feat(#29): KubernetesActualStateAdapter, KubernetesNodeProvisione
 ## Task 4: DeploymentOutcome.PENDING + ApplicationLifecycleService rewiring
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/model/DeploymentOutcome.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `ReconciliationLoop` from `io.casehub.desiredstate.runtime`, `ApplicationGoalCompiler`, `DesiredStateGraphFactory`, `ClusterService`, `K8sClientRegistry` from Tasks 1-3
@@ -1237,10 +1241,10 @@ git commit -m "feat(#29): KubernetesActualStateAdapter, KubernetesNodeProvisione
 
 - [ ] **Step 1: Add PENDING to DeploymentOutcome**
 
-Modify `app/src/main/java/io/casehub/ops/app/model/DeploymentOutcome.java`:
+Modify `service`:
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 public enum DeploymentOutcome {
     PENDING, SUCCESS, PARTIAL, FAILED, PENDING_APPROVAL
@@ -1316,10 +1320,10 @@ git commit -m "feat(#29): wire ReconciliationLoop in ApplicationLifecycleService
 ## Task 5: DeploymentOutcomeTracker + DecommissionCompletionHandler
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/DeploymentOutcomeTracker.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/DecommissionCompletionHandler.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/DeploymentOutcomeTrackerTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/DecommissionCompletionHandlerTest.java`
+- Create: `service`
+- Create: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `CloudEvent` via `@ObservesAsync`, `ReconciliationCompletedData` (deserialized from CloudEvent data), `ReconciliationLoop.stop()`, `ApplicationLifecycleService.removeLoopKey()`, `DeploymentRecordEntity`, `ApplicationEntity`
@@ -1329,7 +1333,7 @@ git commit -m "feat(#29): wire ReconciliationLoop in ApplicationLifecycleService
 
 ```java
 // app/src/test/java/io/casehub/ops/app/service/DeploymentOutcomeTrackerTest.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.time.Instant;
 import java.util.Set;
@@ -1350,9 +1354,9 @@ import static org.assertj.core.api.Assertions.*;
 
 class DeploymentOutcomeTrackerTest {
 
-    private DeploymentOutcomeTracker tracker;
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule());
+    private              DeploymentOutcomeTracker tracker;
+    private static final ObjectMapper             MAPPER = new ObjectMapper()
+                                                                   .registerModule(new JavaTimeModule());
 
     @BeforeEach
     void setUp() {
@@ -1369,8 +1373,8 @@ class DeploymentOutcomeTrackerTest {
     @Test
     void marksClusterConvergedOnCleanReconciliation() {
         var deploymentId = UUID.randomUUID();
-        var appId = UUID.randomUUID();
-        var key = "default:" + appId + ":c1";
+        var appId        = UUID.randomUUID();
+        var key          = "default:" + appId + ":c1";
         tracker.registerDeployment(deploymentId, Set.of("c1"));
         tracker.associateKey(deploymentId, "c1", key);
 
@@ -1383,8 +1387,8 @@ class DeploymentOutcomeTrackerTest {
     @Test
     void doesNotConvergeOnFaults() {
         var deploymentId = UUID.randomUUID();
-        var appId = UUID.randomUUID();
-        var key = "default:" + appId + ":c1";
+        var appId        = UUID.randomUUID();
+        var key          = "default:" + appId + ":c1";
         tracker.registerDeployment(deploymentId, Set.of("c1"));
         tracker.associateKey(deploymentId, "c1", key);
 
@@ -1399,12 +1403,12 @@ class DeploymentOutcomeTrackerTest {
                 tenancyId, 1, 3, additionsCount, 0, faultCount, Instant.now());
         try {
             return CloudEventBuilder.v1()
-                    .withId(UUID.randomUUID().toString())
-                    .withSource(URI.create("urn:io.casehub:desiredstate"))
-                    .withType("io.casehub.desiredstate.reconciliation.completed")
-                    .withTime(OffsetDateTime.now())
-                    .withData("application/json", MAPPER.writeValueAsBytes(data))
-                    .build();
+                                    .withId(UUID.randomUUID().toString())
+                                    .withSource(URI.create("urn:io.casehub:desiredstate"))
+                                    .withType("io.casehub.desiredstate.reconciliation.completed")
+                                    .withTime(OffsetDateTime.now())
+                                    .withData("application/json", MAPPER.writeValueAsBytes(data))
+                                    .build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1430,7 +1434,7 @@ Core structure per design spec §DeploymentOutcomeTracker. Key methods:
 
 ```java
 // app/src/test/java/io/casehub/ops/app/service/DecommissionCompletionHandlerTest.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.Set;
 import java.util.UUID;
@@ -1445,14 +1449,14 @@ import static org.mockito.Mockito.*;
 class DecommissionCompletionHandlerTest {
 
     private DecommissionCompletionHandler handler;
-    private ReconciliationLoop reconciliationLoop;
-    private ApplicationLifecycleService lifecycleService;
+    private ReconciliationLoop            reconciliationLoop;
+    private ApplicationLifecycleService   lifecycleService;
 
     @BeforeEach
     void setUp() {
         reconciliationLoop = mock(ReconciliationLoop.class);
-        lifecycleService = mock(ApplicationLifecycleService.class);
-        handler = new DecommissionCompletionHandler(reconciliationLoop, lifecycleService);
+        lifecycleService   = mock(ApplicationLifecycleService.class);
+        handler            = new DecommissionCompletionHandler(reconciliationLoop, lifecycleService);
     }
 
     @Test
@@ -1473,7 +1477,7 @@ class DecommissionCompletionHandlerTest {
     @Test
     void convergenceStopsLoopAndRemovesKey() {
         var appId = UUID.randomUUID();
-        var key = "default:" + appId + ":c1";
+        var key   = "default:" + appId + ":c1";
         handler.registerDecommission(appId, Set.of(key));
 
         handler.onKeyConverged(key);
@@ -1510,10 +1514,10 @@ git commit -m "feat(#29): DeploymentOutcomeTracker + DecommissionCompletionHandl
 ## Task 6: StartupRecoveryService + ClusterService.delete() guard
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/StartupRecoveryService.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ClusterService.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/StartupRecoveryServiceTest.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/ClusterServiceTest.java`
+- Create: `service`
+- Modify: `service`
+- Test: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `ReconciliationLoop`, `ApplicationGoalCompiler`, `DesiredStateGraphFactory`, `ClusterService`, `K8sClientRegistry`, `ApplicationLifecycleService.trackLoopKey()`, `DecommissionCompletionHandler.registerDecommission()`, `ApplicationEntity`, `ClusterReferenceEntity`
@@ -1523,12 +1527,12 @@ git commit -m "feat(#29): DeploymentOutcomeTracker + DecommissionCompletionHandl
 
 ```java
 // app/src/test/java/io/casehub/ops/app/service/StartupRecoveryServiceTest.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.entity.ApplicationEntity;
-import io.casehub.ops.app.entity.ClusterReferenceEntity;
-import io.casehub.ops.app.model.ApplicationStatus;
-import io.casehub.ops.app.model.ClusterType;
+import io.casehub.ops.service.entity.ApplicationEntity;
+import io.casehub.ops.service.entity.ClusterReferenceEntity;
+import io.casehub.ops.service.model.ApplicationStatus;
+import io.casehub.ops.service.model.ClusterType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -1549,18 +1553,18 @@ class StartupRecoveryServiceTest {
     @Transactional
     void recoversRunningApplications() {
         var cluster = new ClusterReferenceEntity();
-        cluster.name = "recovery-cluster";
-        cluster.apiUrl = "https://localhost:6443";
-        cluster.namespace = "default";
+        cluster.name        = "recovery-cluster";
+        cluster.apiUrl      = "https://localhost:6443";
+        cluster.namespace   = "default";
         cluster.clusterType = ClusterType.KUBERNETES;
-        cluster.tenancyId = "recovery-tenant";
+        cluster.tenancyId   = "recovery-tenant";
         cluster.persist();
 
         var app = new ApplicationEntity();
-        app.name = "recovery-app";
-        app.tenancyId = "recovery-tenant";
+        app.name         = "recovery-app";
+        app.tenancyId    = "recovery-tenant";
         app.servicesJson = "[]";
-        app.status = ApplicationStatus.RUNNING;
+        app.status       = ApplicationStatus.RUNNING;
         app.persist();
 
         startupRecoveryService.recover();

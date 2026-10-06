@@ -53,12 +53,12 @@ gh issue close 42 --repo casehubio/casehub-ops --comment "Already complete — a
 ### Task 2: Credential resolver wiring (#44)
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/entity/ClusterReferenceEntity.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/StartupRecoveryService.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/StartupRecoveryServiceTest.java`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
 - Create: `app/src/main/resources/db/app/migration/V4__cluster_trust_certs.sql`
 
 **Interfaces:**
@@ -338,10 +338,10 @@ Closes #44"
 ### Task 3: Drift model records
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/model/FieldDrift.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/NodeDrift.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/DriftReport.java`
-- Create: `app/src/test/java/io/casehub/ops/app/model/DriftReportTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
 
 **Interfaces:**
 - Produces: `FieldDrift(String fieldName, String expectedValue, String actualValue)`,
@@ -354,11 +354,13 @@ Closes #44"
 - [ ] **Write tests**
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.time.Instant;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.*;
 
 class DriftReportTest {
@@ -422,7 +424,7 @@ mvn --batch-mode -o test -pl app -Dtest=DriftReportTest
 - [ ] **Create FieldDrift.java**
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 public record FieldDrift(String fieldName, String expectedValue, String actualValue) {}
 ```
@@ -430,7 +432,7 @@ public record FieldDrift(String fieldName, String expectedValue, String actualVa
 - [ ] **Create NodeDrift.java**
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.List;
 
@@ -440,7 +442,7 @@ public record NodeDrift(String nodeId, List<FieldDrift> fields) {}
 - [ ] **Create DriftReport.java**
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.time.Instant;
 import java.util.List;
@@ -462,8 +464,8 @@ public record DriftReport(
 
     public boolean hasSecuritySensitiveFields() {
         return driftDetails.stream()
-                .flatMap(nd -> nd.fields().stream())
-                .anyMatch(f -> SECURITY_FIELDS.contains(f.fieldName()));
+                           .flatMap(nd -> nd.fields().stream())
+                           .anyMatch(f -> SECURITY_FIELDS.contains(f.fieldName()));
     }
 }
 ```
@@ -490,11 +492,11 @@ security-sensitive field detection."
 ### Task 4: K8sResourceHandler.readDiff() and K8sDriftDiffService
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sResourceHandler.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sDeploymentHandler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/K8sDriftDiffService.java`
-- Create: `app/src/test/java/io/casehub/ops/app/k8s/K8sDeploymentHandlerDiffTest.java`
-- Create: `app/src/test/java/io/casehub/ops/app/k8s/K8sDriftDiffServiceTest.java`
+- Modify: `service`
+- Modify: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `FieldDrift`, `NodeDrift` from Task 3
@@ -521,10 +523,10 @@ Add import for `io.casehub.ops.app.model.FieldDrift` and `java.util.List`.
 - [ ] **Write diff tests**
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.ops.api.infra.K8sDeploymentSpec;
-import io.casehub.ops.app.model.FieldDrift;
+import io.casehub.ops.service.model.FieldDrift;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
@@ -539,8 +541,8 @@ import static org.assertj.core.api.Assertions.*;
 
 class K8sDeploymentHandlerDiffTest {
 
-    private KubernetesMockServer mockServer;
-    private KubernetesClient client;
+    private       KubernetesMockServer mockServer;
+    private       KubernetesClient     client;
     private final K8sDeploymentHandler handler = new K8sDeploymentHandler();
 
     @BeforeEach
@@ -558,7 +560,7 @@ class K8sDeploymentHandlerDiffTest {
 
     @Test
     void noDriftReturnsEmptyList() {
-        var spec = makeSpec("my-deploy", "ns", "nginx:1.25", 3);
+        var spec     = makeSpec("my-deploy", "ns", "nginx:1.25", 3);
         var resource = handler.toResource(spec);
         client.resource(resource).createOrReplace();
 
@@ -568,7 +570,7 @@ class K8sDeploymentHandlerDiffTest {
 
     @Test
     void replicasDriftReturnsFieldDrift() {
-        var spec = makeSpec("my-deploy", "ns", "nginx:1.25", 3);
+        var spec     = makeSpec("my-deploy", "ns", "nginx:1.25", 3);
         var resource = handler.toResource(spec);
         // Deploy with different replicas
         var modified = new DeploymentBuilder(resource).editSpec().withReplicas(5).endSpec().build();
@@ -583,12 +585,12 @@ class K8sDeploymentHandlerDiffTest {
 
     @Test
     void imageDriftReturnsFieldDrift() {
-        var spec = makeSpec("my-deploy", "ns", "nginx:1.25", 2);
+        var spec     = makeSpec("my-deploy", "ns", "nginx:1.25", 2);
         var resource = handler.toResource(spec);
         var modified = new DeploymentBuilder(resource)
-                .editSpec().editTemplate().editSpec()
-                .editFirstContainer().withImage("nginx:1.24").endContainer()
-                .endSpec().endTemplate().endSpec().build();
+                               .editSpec().editTemplate().editSpec()
+                               .editFirstContainer().withImage("nginx:1.24").endContainer()
+                               .endSpec().endTemplate().endSpec().build();
         client.resource(modified).createOrReplace();
 
         List<FieldDrift> diffs = handler.readDiff(client, spec);
@@ -597,16 +599,16 @@ class K8sDeploymentHandlerDiffTest {
 
     @Test
     void absentResourceReturnsEmptyList() {
-        var spec = makeSpec("nonexistent", "ns", "nginx:1.25", 1);
+        var              spec  = makeSpec("nonexistent", "ns", "nginx:1.25", 1);
         List<FieldDrift> diffs = handler.readDiff(client, spec);
         assertThat(diffs).isEmpty();
     }
 
     private K8sDeploymentSpec makeSpec(String name, String ns, String image, int replicas) {
         return new K8sDeploymentSpec(ns, name, image, replicas,
-                new io.casehub.ops.api.infra.K8sResourceRequirements("100m", "128Mi", "500m", "256Mi"),
-                new io.casehub.ops.api.infra.K8sLabels(Map.of("app", name)),
-                List.of(), Map.of(), java.util.Optional.empty());
+                                     new io.casehub.ops.api.infra.K8sResourceRequirements("100m", "128Mi", "500m", "256Mi"),
+                                     new io.casehub.ops.api.infra.K8sLabels(Map.of("app", name)),
+                                     List.of(), Map.of(), java.util.Optional.empty());
     }
 }
 ```
@@ -748,11 +750,11 @@ for replicas, image, env, resources, ports, and probes."
 ### Task 5: Case descriptors
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/case_/ApplicationCaseDescriptor.java`
-- Create: `app/src/main/java/io/casehub/ops/app/case_/StubChildCaseDescriptor.java`
-- Create: `app/src/main/java/io/casehub/ops/app/case_/DriftRemediationCaseDescriptor.java`
-- Create: `app/src/test/java/io/casehub/ops/app/case_/ApplicationCaseDescriptorTest.java`
-- Create: `app/src/test/java/io/casehub/ops/app/case_/DriftRemediationCaseDescriptorTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `DriftReport`, `FieldDrift`, `NodeDrift` from Task 3; engine APIs
@@ -768,7 +770,7 @@ for replicas, image, env, resources, ports, and probes."
 - [ ] **Write tests**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
@@ -798,8 +800,8 @@ class ApplicationCaseDescriptorTest {
     void driftBindingHasCorrectTriggerAndTarget() {
         CaseDefinition def = ApplicationCaseDescriptor.build();
         Binding driftBinding = def.getBindings().stream()
-                .filter(b -> b.getName().equals("on-drift-detected"))
-                .findFirst().orElseThrow();
+                                  .filter(b -> b.getName().equals("on-drift-detected"))
+                                  .findFirst().orElseThrow();
 
         assertThat(driftBinding.getOn()).isInstanceOf(ContextChangeTrigger.class);
         var trigger = (ContextChangeTrigger) driftBinding.getOn();
@@ -835,7 +837,7 @@ mvn --batch-mode -o test -pl app -Dtest=ApplicationCaseDescriptorTest
 - [ ] **Create ApplicationCaseDescriptor.java**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
@@ -850,45 +852,45 @@ public final class ApplicationCaseDescriptor {
 
     public static CaseDefinition build() {
         return CaseDefinition.builder()
-                .namespace("ops")
-                .name("application-lifecycle")
-                .version("1.0")
-                .title("Application Lifecycle")
-                .summary("Long-lived case managing a deployed application")
-                .bindings(bindings())
-                .build();
+                             .namespace("ops")
+                             .name("application-lifecycle")
+                             .version("1.0")
+                             .title("Application Lifecycle")
+                             .summary("Long-lived case managing a deployed application")
+                             .bindings(bindings())
+                             .build();
     }
 
     private static List<Binding> bindings() {
         return List.of(
                 childCaseBinding("on-drift-detected", ".driftDetected",
-                        "ops", "drift-remediation", "1.0", ".driftDetected"),
+                                 "ops", "drift-remediation", "1.0", ".driftDetected"),
                 childCaseBinding("on-cve-detected", ".cveDetected",
-                        "ops", "cve-response", "1.0", ".cveData"),
+                                 "ops", "cve-response", "1.0", ".cveData"),
                 childCaseBinding("on-upgrade-requested", ".upgradeRequested",
-                        "ops", "service-upgrade", "1.0", ".upgradeSpec"),
+                                 "ops", "service-upgrade", "1.0", ".upgradeSpec"),
                 childCaseBinding("on-incident-detected", ".incidentDetected",
-                        "ops", "incident-response", "1.0", ".incidentData"),
+                                 "ops", "incident-response", "1.0", ".incidentData"),
                 childCaseBinding("on-scaling-required", ".scalingRequired",
-                        "ops", "scaling-event", "1.0", ".scalingSpec"),
+                                 "ops", "scaling-event", "1.0", ".scalingSpec"),
                 childCaseBinding("on-compliance-violation", ".complianceViolation",
-                        "ops", "compliance-remediation", "1.0", ".violationData"));
+                                 "ops", "compliance-remediation", "1.0", ".violationData"));
     }
 
     private static Binding childCaseBinding(String name, String triggerFilter,
-                                             String childNs, String childName,
-                                             String childVersion, String inputMapping) {
+                                            String childNs, String childName,
+                                            String childVersion, String inputMapping) {
         return Binding.builder()
-                .name(name)
-                .on(new ContextChangeTrigger(triggerFilter))
-                .subCase(SubCase.builder()
-                        .namespace(childNs)
-                        .name(childName)
-                        .version(childVersion)
-                        .inputMapping(inputMapping)
-                        .waitForCompletion(false)
-                        .build())
-                .build();
+                      .name(name)
+                      .on(new ContextChangeTrigger(triggerFilter))
+                      .subCase(SubCase.builder()
+                                      .namespace(childNs)
+                                      .name(childName)
+                                      .version(childVersion)
+                                      .inputMapping(inputMapping)
+                                      .waitForCompletion(false)
+                                      .build())
+                      .build();
     }
 }
 ```
@@ -904,7 +906,7 @@ mvn --batch-mode -o test -pl app -Dtest=ApplicationCaseDescriptorTest
 - [ ] **Create StubChildCaseDescriptor.java**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.worker.api.Capability;
@@ -921,18 +923,18 @@ public final class StubChildCaseDescriptor {
     public static CaseDefinition build(String namespace, String name, String version) {
         String capabilityName = name + "-stub";
         return CaseDefinition.builder()
-                .namespace(namespace)
-                .name(name)
-                .version(version)
-                .title(name + " (stub)")
-                .capabilities(Capability.of(capabilityName, "any", "any"))
-                .workers(Worker.builder()
-                        .name(name + "-stub-worker")
-                        .capabilityName(capabilityName)
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                input -> WorkerResult.of(Map.of("status", "stub"))))
-                        .build())
-                .build();
+                             .namespace(namespace)
+                             .name(name)
+                             .version(version)
+                             .title(name + " (stub)")
+                             .capabilities(Capability.of(capabilityName, "any", "any"))
+                             .workers(Worker.builder()
+                                            .name(name + "-stub-worker")
+                                            .capabilityName(capabilityName)
+                                            .function(new WorkerFunction.Sync<>(Map.class,
+                                                                                input -> WorkerResult.of(Map.of("status", "stub"))))
+                                            .build())
+                             .build();
     }
 }
 ```
@@ -942,7 +944,7 @@ public final class StubChildCaseDescriptor {
 - [ ] **Write tests**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
@@ -966,7 +968,7 @@ class DriftRemediationCaseDescriptorTest {
         CaseDefinition def = DriftRemediationCaseDescriptor.build();
         assertThat(def.getCapabilities()).hasSize(3);
         assertThat(def.getCapabilities()).extracting("name")
-                .containsExactlyInAnyOrder("classify-drift", "remediate-drift", "escalate-drift");
+                                         .containsExactlyInAnyOrder("classify-drift", "remediate-drift", "escalate-drift");
     }
 
     @Test
@@ -985,8 +987,8 @@ class DriftRemediationCaseDescriptorTest {
     void classificationBindingTriggersOnDriftClassification() {
         CaseDefinition def = DriftRemediationCaseDescriptor.build();
         Binding binding = def.getBindings().stream()
-                .filter(b -> b.getName().equals("on-classification-complete"))
-                .findFirst().orElseThrow();
+                             .filter(b -> b.getName().equals("on-classification-complete"))
+                             .findFirst().orElseThrow();
         var trigger = (ContextChangeTrigger) binding.getOn();
         assertThat(trigger.getFilter().toString()).contains(".driftClassification");
     }
@@ -995,8 +997,8 @@ class DriftRemediationCaseDescriptorTest {
     void escalationBindingTriggersOnEscalationRequired() {
         CaseDefinition def = DriftRemediationCaseDescriptor.build();
         Binding binding = def.getBindings().stream()
-                .filter(b -> b.getName().equals("on-escalation-required"))
-                .findFirst().orElseThrow();
+                             .filter(b -> b.getName().equals("on-escalation-required"))
+                             .findFirst().orElseThrow();
         var trigger = (ContextChangeTrigger) binding.getOn();
         assertThat(trigger.getFilter().toString()).contains(".escalationRequired");
     }
@@ -1020,12 +1022,12 @@ mvn --batch-mode -o test -pl app -Dtest=DriftRemediationCaseDescriptorTest
 - [ ] **Create DriftRemediationCaseDescriptor.java**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
-import io.casehub.ops.app.model.DriftReport;
+import io.casehub.ops.service.model.DriftReport;
 import io.casehub.worker.api.Capability;
 import io.casehub.worker.api.Worker;
 import io.casehub.worker.api.WorkerFunction;
@@ -1041,16 +1043,16 @@ public final class DriftRemediationCaseDescriptor {
 
     public static CaseDefinition build() {
         return CaseDefinition.builder()
-                .namespace("ops")
-                .name("drift-remediation")
-                .version("1.0")
-                .title("Drift Remediation")
-                .summary("Classifies, remediates, and optionally escalates detected drift")
-                .capabilities(capabilities())
-                .workers(workers())
-                .bindings(bindings())
-                .completion(".remediationStatus == \"converged\"")
-                .build();
+                             .namespace("ops")
+                             .name("drift-remediation")
+                             .version("1.0")
+                             .title("Drift Remediation")
+                             .summary("Classifies, remediates, and optionally escalates detected drift")
+                             .capabilities(capabilities())
+                             .workers(workers())
+                             .bindings(bindings())
+                             .completion(".remediationStatus == \"converged\"")
+                             .build();
     }
 
     private static List<Capability> capabilities() {
@@ -1064,59 +1066,59 @@ public final class DriftRemediationCaseDescriptor {
     private static List<Worker> workers() {
         return List.of(
                 Worker.builder()
-                        .name("drift-classify-worker")
-                        .capabilityName("classify-drift")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                DriftRemediationCaseDescriptor::classifyDrift))
-                        .build(),
+                      .name("drift-classify-worker")
+                      .capabilityName("classify-drift")
+                      .function(new WorkerFunction.Sync<>(Map.class,
+                                                          DriftRemediationCaseDescriptor::classifyDrift))
+                      .build(),
                 Worker.builder()
-                        .name("drift-remediate-worker")
-                        .capabilityName("remediate-drift")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                DriftRemediationCaseDescriptor::remediateDrift))
-                        .build(),
+                      .name("drift-remediate-worker")
+                      .capabilityName("remediate-drift")
+                      .function(new WorkerFunction.Sync<>(Map.class,
+                                                          DriftRemediationCaseDescriptor::remediateDrift))
+                      .build(),
                 Worker.builder()
-                        .name("drift-escalate-worker")
-                        .capabilityName("escalate-drift")
-                        .function(new WorkerFunction.Sync<>(Map.class,
-                                DriftRemediationCaseDescriptor::escalateDrift))
-                        .build());
+                      .name("drift-escalate-worker")
+                      .capabilityName("escalate-drift")
+                      .function(new WorkerFunction.Sync<>(Map.class,
+                                                          DriftRemediationCaseDescriptor::escalateDrift))
+                      .build());
     }
 
     private static List<Binding> bindings() {
         return List.of(
                 Binding.builder()
-                        .name("on-classification-complete")
-                        .on(new ContextChangeTrigger(".driftClassification"))
-                        .capability(Capability.of("remediate-drift", "any", "any"))
-                        .build(),
+                       .name("on-classification-complete")
+                       .on(new ContextChangeTrigger(".driftClassification"))
+                       .capability(Capability.of("remediate-drift", "any", "any"))
+                       .build(),
                 Binding.builder()
-                        .name("on-escalation-required")
-                        .on(new ContextChangeTrigger(".escalationRequired"))
-                        .capability(Capability.of("escalate-drift", "any", "any"))
-                        .build());
+                       .name("on-escalation-required")
+                       .on(new ContextChangeTrigger(".escalationRequired"))
+                       .capability(Capability.of("escalate-drift", "any", "any"))
+                       .build());
     }
 
     static WorkerResult classifyDrift(Map<String, Object> input) {
         int consecutiveDriftCount = input.containsKey("consecutiveDriftCount")
-                ? ((Number) input.get("consecutiveDriftCount")).intValue() : 1;
+                                    ? ((Number) input.get("consecutiveDriftCount")).intValue() : 1;
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> driftDetails = (List<Map<String, Object>>) input.getOrDefault("driftDetails", List.of());
 
         boolean persistent = consecutiveDriftCount > 1;
-        boolean multiNode = driftDetails.size() > 1;
+        boolean multiNode  = driftDetails.size() > 1;
         boolean securitySensitive = driftDetails.stream()
-                .flatMap(nd -> {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> fields = (List<Map<String, Object>>) nd.getOrDefault("fields", List.of());
-                    return fields.stream();
-                })
-                .anyMatch(f -> List.of("image", "serviceAccount", "rbac", "secrets")
-                        .contains(f.get("fieldName")));
+                                                .flatMap(nd -> {
+                                                    @SuppressWarnings("unchecked")
+                                                    List<Map<String, Object>> fields = (List<Map<String, Object>>) nd.getOrDefault("fields", List.of());
+                                                    return fields.stream();
+                                                })
+                                                .anyMatch(f -> List.of("image", "serviceAccount", "rbac", "secrets")
+                                                                   .contains(f.get("fieldName")));
 
         boolean critical = persistent || securitySensitive || multiNode;
-        String severity = critical ? "critical" : "benign";
+        String  severity = critical ? "critical" : "benign";
 
         var reasons = new java.util.ArrayList<String>();
         if (persistent) reasons.add("persistent drift (consecutive count: " + consecutiveDriftCount + ")");
@@ -1125,8 +1127,8 @@ public final class DriftRemediationCaseDescriptor {
         if (reasons.isEmpty()) reasons.add("single-node, first occurrence, non-security fields");
 
         List<String> nodeIds = driftDetails.stream()
-                .map(nd -> (String) nd.get("nodeId"))
-                .toList();
+                                           .map(nd -> (String) nd.get("nodeId"))
+                                           .toList();
 
         var classification = new LinkedHashMap<String, Object>();
         classification.put("severity", severity);
@@ -1175,12 +1177,14 @@ mvn --batch-mode -o test -pl app -Dtest=DriftRemediationCaseDescriptorTest
 - [ ] **Create DriftClassifyWorkerTest.java**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.worker.api.WorkerResult;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
 import java.util.Map;
+
 import static org.assertj.core.api.Assertions.*;
 
 class DriftClassifyWorkerTest {
@@ -1190,7 +1194,7 @@ class DriftClassifyWorkerTest {
         var input = Map.<String, Object>of(
                 "consecutiveDriftCount", 1,
                 "driftDetails", List.of(Map.of("nodeId", "n1",
-                        "fields", List.of(Map.of("fieldName", "replicas", "expectedValue", "3", "actualValue", "2")))));
+                                               "fields", List.of(Map.of("fieldName", "replicas", "expectedValue", "3", "actualValue", "2")))));
 
         WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
@@ -1218,7 +1222,7 @@ class DriftClassifyWorkerTest {
         var input = Map.<String, Object>of(
                 "consecutiveDriftCount", 1,
                 "driftDetails", List.of(Map.of("nodeId", "n1",
-                        "fields", List.of(Map.of("fieldName", "image", "expectedValue", "v1", "actualValue", "v2")))));
+                                               "fields", List.of(Map.of("fieldName", "image", "expectedValue", "v1", "actualValue", "v2")))));
 
         WorkerResult result = DriftRemediationCaseDescriptor.classifyDrift(input);
 
@@ -1315,9 +1319,9 @@ StubChildCaseDescriptor provides no-op CaseDefinition for non-drift child cases.
 ### Task 6: CaseDefinitionRegistrar
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/case_/CaseDefinitionRegistrar.java`
-- Create: `app/src/test/java/io/casehub/ops/app/case_/CaseDefinitionRegistrarTest.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/StartupRecoveryService.java` (add `@Priority(20)`)
+- Create: `service`
+- Create: `service`
+- Modify: `service` (add `@Priority(20)`)
 
 **Interfaces:**
 - Consumes: `ApplicationCaseDescriptor.build()`, `DriftRemediationCaseDescriptor.build()`,
@@ -1329,7 +1333,7 @@ StubChildCaseDescriptor provides no-op CaseDefinition for non-drift child cases.
 - [ ] **Write test**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.engine.common.internal.model.CaseMetaModel;
@@ -1346,7 +1350,7 @@ class CaseDefinitionRegistrarTest {
 
     @Test
     void registersSevenCaseDefinitions() {
-        var registry = new RecordingRegistry();
+        var registry  = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry);
 
         registrar.onStartup(null);
@@ -1356,37 +1360,37 @@ class CaseDefinitionRegistrarTest {
 
     @Test
     void registersApplicationLifecycleDefinition() {
-        var registry = new RecordingRegistry();
+        var registry  = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry);
 
         registrar.onStartup(null);
 
         assertThat(registry.registered).anyMatch(d ->
-                "ops".equals(d.getNamespace()) && "application-lifecycle".equals(d.getName()));
+                                                         "ops".equals(d.getNamespace()) && "application-lifecycle".equals(d.getName()));
     }
 
     @Test
     void registersDriftRemediationDefinition() {
-        var registry = new RecordingRegistry();
+        var registry  = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry);
 
         registrar.onStartup(null);
 
         assertThat(registry.registered).anyMatch(d ->
-                "ops".equals(d.getNamespace()) && "drift-remediation".equals(d.getName()));
+                                                         "ops".equals(d.getNamespace()) && "drift-remediation".equals(d.getName()));
     }
 
     @Test
     void registersFiveStubDefinitions() {
-        var registry = new RecordingRegistry();
+        var registry  = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry);
 
         registrar.onStartup(null);
 
         List<String> stubNames = registry.registered.stream()
-                .filter(d -> d.getTitle() != null && d.getTitle().contains("stub"))
-                .map(CaseDefinition::getName)
-                .toList();
+                                                    .filter(d -> d.getTitle() != null && d.getTitle().contains("stub"))
+                                                    .map(CaseDefinition::getName)
+                                                    .toList();
         assertThat(stubNames).containsExactlyInAnyOrder(
                 "cve-response", "service-upgrade", "incident-response",
                 "scaling-event", "compliance-remediation");
@@ -1402,10 +1406,10 @@ class CaseDefinitionRegistrarTest {
         }
 
         @Override
-        public CaseDefinition getCaseDefinition(CaseMetaModel definition) { return null; }
+        public CaseDefinition getCaseDefinition(CaseMetaModel definition) {return null;}
 
         @Override
-        public CaseMetaModel getCaseMetaModel(CaseDefinition caseDefinition) { return null; }
+        public CaseMetaModel getCaseMetaModel(CaseDefinition caseDefinition) {return null;}
     }
 }
 ```
@@ -1421,7 +1425,7 @@ mvn --batch-mode -o test -pl app -Dtest=CaseDefinitionRegistrarTest
 - [ ] **Create CaseDefinitionRegistrar.java**
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -1507,8 +1511,8 @@ Registers: application-lifecycle, drift-remediation, and 5 stub child cases."
 ### Task 7: Drift signal bridge
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `DesiredStateEventTypes.NODE_DRIFTED`, `NodeDriftedData`, `CaseHubRuntime.signal()`,
@@ -1521,7 +1525,7 @@ Registers: application-lifecycle, drift-remediation, and 5 stub child cases."
 - [ ] **Write tests** in a new test class (to keep existing tests untouched)
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import io.casehub.desiredstate.api.DesiredStateEventTypes;
 import io.casehub.desiredstate.api.NodeDriftedData;
@@ -1531,12 +1535,6 @@ import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -1601,8 +1599,8 @@ signals the application case to trigger drift-remediation child case binding."
 ### Task 8: DriftConvergenceHandler
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/DriftConvergenceHandler.java`
-- Create: `app/src/test/java/io/casehub/ops/app/service/DriftConvergenceHandlerTest.java`
+- Create: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `DesiredStateEventTypes.NODE_RECOVERED`, `NodeRecoveredData`,
@@ -1614,7 +1612,7 @@ signals the application case to trigger drift-remediation child case binding."
 - [ ] **Write tests**
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -1626,7 +1624,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -1636,12 +1633,12 @@ import static org.assertj.core.api.Assertions.*;
 class DriftConvergenceHandlerTest {
 
     private DriftConvergenceHandler handler;
-    private RecordingSignaler signaler;
+    private RecordingSignaler       signaler;
 
     @BeforeEach
     void setUp() {
         signaler = new RecordingSignaler();
-        handler = new DriftConvergenceHandler(signaler::signal);
+        handler  = new DriftConvergenceHandler(signaler::signal);
     }
 
     @Test
@@ -1679,11 +1676,11 @@ class DriftConvergenceHandlerTest {
         handler.registerDriftCase(caseId, Set.of("node-1"));
 
         var event = CloudEventBuilder.v1()
-                .withId(UUID.randomUUID().toString())
-                .withSource(URI.create("/test"))
-                .withType(DesiredStateEventTypes.NODE_FAULTED)
-                .withData("application/json", "{}".getBytes())
-                .build();
+                                     .withId(UUID.randomUUID().toString())
+                                     .withSource(URI.create("/test"))
+                                     .withType(DesiredStateEventTypes.NODE_FAULTED)
+                                     .withData("application/json", "{}".getBytes())
+                                     .build();
         handler.onCloudEvent(event);
 
         assertThat(signaler.signals).isEmpty();
@@ -1715,15 +1712,15 @@ class DriftConvergenceHandlerTest {
 
     private CloudEvent recoveredEvent(String nodeId) {
         try {
-            var data = new NodeRecoveredData("tenant:app:cluster", nodeId, "K8S_DEPLOYMENT", 1, null);
+            var data   = new NodeRecoveredData("tenant:app:cluster", nodeId, "K8S_DEPLOYMENT", 1, null);
             var mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             return CloudEventBuilder.v1()
-                    .withId(UUID.randomUUID().toString())
-                    .withSource(URI.create("/reconciliation"))
-                    .withType(DesiredStateEventTypes.NODE_RECOVERED)
-                    .withData("application/json", mapper.writeValueAsBytes(data))
-                    .build();
+                                    .withId(UUID.randomUUID().toString())
+                                    .withSource(URI.create("/reconciliation"))
+                                    .withType(DesiredStateEventTypes.NODE_RECOVERED)
+                                    .withData("application/json", mapper.writeValueAsBytes(data))
+                                    .build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1752,7 +1749,7 @@ mvn --batch-mode -o test -pl app -Dtest=DriftConvergenceHandlerTest
 - [ ] **Create DriftConvergenceHandler.java**
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.Map;
 import java.util.Set;
@@ -1775,7 +1772,7 @@ public class DriftConvergenceHandler {
     private static final Logger LOG = Logger.getLogger(DriftConvergenceHandler.class.getName());
 
     private final ConcurrentHashMap<UUID, Set<String>> pendingNodes = new ConcurrentHashMap<>();
-    private final ConvergenceSignaler signaler;
+    private final ConvergenceSignaler                  signaler;
 
     @Inject
     ObjectMapper objectMapper;
@@ -1788,7 +1785,7 @@ public class DriftConvergenceHandler {
     @Inject
     public DriftConvergenceHandler(io.casehub.api.engine.CaseHubRuntime runtime) {
         this.signaler = (caseId, path, value) ->
-                runtime.signal(caseId, path, value);
+                                runtime.signal(caseId, path, value);
     }
 
     DriftConvergenceHandler(ConvergenceSignaler signaler) {
@@ -1817,7 +1814,7 @@ public class DriftConvergenceHandler {
         String recoveredNodeId = data.nodeId();
 
         for (var entry : pendingNodes.entrySet()) {
-            UUID caseId = entry.getKey();
+            UUID        caseId  = entry.getKey();
             Set<String> pending = entry.getValue();
             if (pending.remove(recoveredNodeId) && pending.isEmpty()) {
                 pendingNodes.remove(caseId);

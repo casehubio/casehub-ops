@@ -33,13 +33,13 @@ mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
 | Module | Artifact | Root package | Purpose |
 |--------|----------|-------------|---------|
 | `api/` | `casehub-ops-api` | `io.casehub.ops.api` | Shared types across all domain implementations |
+| `service/` | `casehub-ops-service` | `io.casehub.ops.service` | Service layer library — APIs, entities, CDI services, K8s, SPI stubs, case descriptors, Flyway migrations. Embeddable by any Quarkus app. |
 | `deployment/` | `casehub-ops-deployment` | `io.casehub.ops.deployment` | CaseHub agent topology domain — PRIMARY target |
 | `infra/` | `casehub-ops-infra` | `io.casehub.ops.infra` | Infrastructure provisioning — Terraform/Ansible augmentation |
 | `compliance/` | `casehub-ops-compliance` | `io.casehub.ops.compliance` | Compliance posture — SOC2/GDPR/EU-AI-Act/DORA/NIS2 |
-| `iot/` | `casehub-ops-iot` | `io.casehub.ops.iot` | IoT desired state — physical + logical node provisioning |
 | `testing/` | `casehub-ops-testing` | `io.casehub.ops.testing` | Shared test fixtures. **Test scope only.** |
 | `container/` | `casehub-ops-container` | `io.casehub.ops.container` | Container provisioning — Podman REST API for app containers, databases, networks, volumes |
-| `app/` | `casehub-ops-app` | `io.casehub.ops.app` | Operational console — Quarkus application embedding engine + desiredstate. NOT a domain module. |
+| `app/` | `casehub-ops-app` | `io.casehub.ops.service` | Thin Quarkus shell — application.properties + quarkus-maven-plugin only. Depends solely on casehub-ops-service. |
 
 ## Domain Priority
 
@@ -56,7 +56,7 @@ mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
 - All reconciliation events flow through `EventSource.stream()` → ReconciliationLoop in the runtime
 - Pruning always before growing — dependency-aware ordering guaranteed by the runtime TransitionPlanner
 - tenancyId propagated through all calls — bind in repository/adapter layer only
-- `app/` implements the desiredstate SPI quad directly — NOT a domain module. Multiple domain modules may coexist on the classpath via `CrossDomainCompositionEngine` (desiredstate#140)
+- `service/` implements the desiredstate SPI quad directly — NOT a domain module. `app/` is a thin Quarkus shell depending solely on `service/`. Multiple domain modules may coexist on the classpath via `CrossDomainCompositionEngine` (desiredstate#140)
 
 ## Architecture Record
 

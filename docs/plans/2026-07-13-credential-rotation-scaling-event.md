@@ -30,8 +30,8 @@
 ### Task 1: K8sClientRegistry — ClientEntry and enriched register()
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Produces: `ClientEntry` record (package-private), `register()` now stores `credentialRef`, `apiUrl`, `trustCerts`, `expiresAt` per entry. Re-registration via `compute()` updates metadata without replacing client. `clientFor(String)` returns `KubernetesClient`.
@@ -175,9 +175,9 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#51): K8sClientRegist
 ### Task 2: K8sClientRegistry — refreshClient() with coalescing and proactive scan
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sClientRegistry.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/CredentialRefreshedEvent.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/k8s/K8sClientRegistryTest.java`
+- Modify: `service`
+- Create: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `ClientEntry` record from Task 1
@@ -284,10 +284,10 @@ Expected: Compilation failure — `refreshClient`, `checkExpiring` methods do no
 
 - [ ] **Step 3: Create CredentialRefreshedEvent**
 
-Create new file `app/src/main/java/io/casehub/ops/app/k8s/CredentialRefreshedEvent.java`:
+Create new file `service`:
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 public record CredentialRefreshedEvent(String clusterId) {}
 ```
@@ -397,8 +397,8 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#51): refreshClient w
 ### Task 3: K8sWatchManager — credential refresh watch restart
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/K8sWatchManager.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/k8s/K8sWatchManagerTest.java`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `CredentialRefreshedEvent(String clusterId)` from Task 2
@@ -494,10 +494,10 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#51): K8sWatchManager
 ### Task 4: NodeConvergenceTracker — generic convergence tracking replacing DriftConvergenceHandler
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/NodeConvergenceTracker.java`
-- Create: `app/src/test/java/io/casehub/ops/app/service/NodeConvergenceTrackerTest.java`
-- Delete: `app/src/main/java/io/casehub/ops/app/service/DriftConvergenceHandler.java` (use `ide_refactor_safe_delete`)
-- Delete: `app/src/test/java/io/casehub/ops/app/service/DriftConvergenceHandlerTest.java`
+- Create: `service`
+- Create: `service`
+- Delete: `service` (use `ide_refactor_safe_delete`)
+- Delete: `service`
 
 **Interfaces:**
 - Consumes: `CaseHubRuntime.signal(UUID, String, Object)`, `NodeRecoveredData`, `DesiredStateEventTypes.NODE_RECOVERED`, `CloudEvent`
@@ -505,10 +505,10 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#51): K8sWatchManager
 
 - [ ] **Step 1: Write NodeConvergenceTrackerTest**
 
-Create `app/src/test/java/io/casehub/ops/app/service/NodeConvergenceTrackerTest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.net.URI;
 import java.util.Map;
@@ -529,7 +529,7 @@ import static org.assertj.core.api.Assertions.*;
 
 class NodeConvergenceTrackerTest {
 
-    private NodeConvergenceTracker tracker;
+    private NodeConvergenceTracker             tracker;
     private CopyOnWriteArrayList<SignalRecord> signals;
 
     @BeforeEach
@@ -544,7 +544,7 @@ class NodeConvergenceTrackerTest {
     void signalsConvergedWhenAllNodesRecovered() {
         UUID caseId = UUID.randomUUID();
         tracker.register(caseId, Set.of("node-1"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         tracker.onCloudEvent(recoveredEvent("node-1"));
 
@@ -558,7 +558,7 @@ class NodeConvergenceTrackerTest {
     void doesNotSignalUntilAllNodesRecovered() {
         UUID caseId = UUID.randomUUID();
         tracker.register(caseId, Set.of("node-1", "node-2"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         tracker.onCloudEvent(recoveredEvent("node-1"));
         assertThat(signals).isEmpty();
@@ -575,12 +575,12 @@ class NodeConvergenceTrackerTest {
 
     @Test
     void tracksMultipleCasesWithDifferentSignalPaths() {
-        UUID driftCase = UUID.randomUUID();
+        UUID driftCase   = UUID.randomUUID();
         UUID scalingCase = UUID.randomUUID();
         tracker.register(driftCase, Set.of("node-d"),
-                "remediationStatus", Map.of("remediationStatus", "converged"));
+                         "remediationStatus", Map.of("remediationStatus", "converged"));
         tracker.register(scalingCase, Set.of("node-s"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         tracker.onCloudEvent(recoveredEvent("node-d"));
         assertThat(signals).hasSize(1);
@@ -595,7 +595,7 @@ class NodeConvergenceTrackerTest {
     void convergenceDeregistersCase() {
         UUID caseId = UUID.randomUUID();
         tracker.register(caseId, Set.of("node-1"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         tracker.onCloudEvent(recoveredEvent("node-1"));
 
@@ -606,7 +606,7 @@ class NodeConvergenceTrackerTest {
     void duplicateRecoveryEventIgnored() {
         UUID caseId = UUID.randomUUID();
         tracker.register(caseId, Set.of("node-1"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         tracker.onCloudEvent(recoveredEvent("node-1"));
         tracker.onCloudEvent(recoveredEvent("node-1"));
@@ -618,14 +618,14 @@ class NodeConvergenceTrackerTest {
     void nonRecoveredEventIgnored() {
         UUID caseId = UUID.randomUUID();
         tracker.register(caseId, Set.of("node-1"),
-                "scalingStatus", Map.of("scalingStatus", "converged"));
+                         "scalingStatus", Map.of("scalingStatus", "converged"));
 
         var event = CloudEventBuilder.v1()
-                .withId(UUID.randomUUID().toString())
-                .withSource(URI.create("/test"))
-                .withType(DesiredStateEventTypes.NODE_FAULTED)
-                .withData("application/json", "{}".getBytes())
-                .build();
+                                     .withId(UUID.randomUUID().toString())
+                                     .withSource(URI.create("/test"))
+                                     .withType(DesiredStateEventTypes.NODE_FAULTED)
+                                     .withData("application/json", "{}".getBytes())
+                                     .build();
         tracker.onCloudEvent(event);
 
         assertThat(signals).isEmpty();
@@ -633,14 +633,14 @@ class NodeConvergenceTrackerTest {
 
     private CloudEvent recoveredEvent(String nodeId) {
         try {
-            var data = new NodeRecoveredData("tenant:app:cluster", nodeId, "K8S_DEPLOYMENT", 1, null);
+            var data   = new NodeRecoveredData("tenant:app:cluster", nodeId, "K8S_DEPLOYMENT", 1, null);
             var mapper = new ObjectMapper().registerModule(new JavaTimeModule());
             return CloudEventBuilder.v1()
-                    .withId(UUID.randomUUID().toString())
-                    .withSource(URI.create("/reconciliation"))
-                    .withType(DesiredStateEventTypes.NODE_RECOVERED)
-                    .withData("application/json", mapper.writeValueAsBytes(data))
-                    .build();
+                                    .withId(UUID.randomUUID().toString())
+                                    .withSource(URI.create("/reconciliation"))
+                                    .withType(DesiredStateEventTypes.NODE_RECOVERED)
+                                    .withData("application/json", mapper.writeValueAsBytes(data))
+                                    .build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -657,10 +657,10 @@ Expected: Compilation failure — `NodeConvergenceTracker` does not exist.
 
 - [ ] **Step 3: Implement NodeConvergenceTracker**
 
-Create `app/src/main/java/io/casehub/ops/app/service/NodeConvergenceTracker.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.Map;
 import java.util.Set;
@@ -691,22 +691,22 @@ public class NodeConvergenceTracker {
                         String signalPath, Map<String, Object> signalValue) {}
 
     private final ConcurrentHashMap<UUID, CaseTracking> tracked = new ConcurrentHashMap<>();
-    private final ConvergenceSignaler signaler;
-    private final ObjectMapper objectMapper;
+    private final ConvergenceSignaler                   signaler;
+    private final ObjectMapper                          objectMapper;
 
     @Inject
     public NodeConvergenceTracker(io.casehub.api.engine.CaseHubRuntime runtime, ObjectMapper objectMapper) {
-        this.signaler = (caseId, path, value) -> runtime.signal(caseId, path, value);
+        this.signaler     = (caseId, path, value) -> runtime.signal(caseId, path, value);
         this.objectMapper = objectMapper;
     }
 
     NodeConvergenceTracker(ConvergenceSignaler signaler, ObjectMapper objectMapper) {
-        this.signaler = signaler;
+        this.signaler     = signaler;
         this.objectMapper = objectMapper;
     }
 
     public void register(UUID caseId, Set<String> nodeIds,
-                          String signalPath, Map<String, Object> signalValue) {
+                         String signalPath, Map<String, Object> signalValue) {
         var pending = ConcurrentHashMap.<String>newKeySet();
         pending.addAll(nodeIds);
         tracked.put(caseId, new CaseTracking(pending, signalPath, signalValue));
@@ -729,7 +729,7 @@ public class NodeConvergenceTracker {
         String recoveredNodeId = data.nodeId();
 
         for (var entry : tracked.entrySet()) {
-            UUID caseId = entry.getKey();
+            UUID         caseId   = entry.getKey();
             CaseTracking tracking = entry.getValue();
             if (tracking.pendingNodeIds().remove(recoveredNodeId) && tracking.pendingNodeIds().isEmpty()) {
                 tracked.remove(caseId);
@@ -780,9 +780,9 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#35): NodeConvergence
 ### Task 5: DriftRemediationCaseDescriptor — wire convergence tracking via NodeConvergenceTracker
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/case_/DriftRemediationCaseDescriptor.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/case_/DriftRemediationCaseDescriptorTest.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/case_/CaseDefinitionRegistrar.java`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `NodeConvergenceTracker.register(UUID, Set<String>, String, Map<String, Object>)` from Task 4, `WorkerExecutionContext.current().caseId()` from engine API
@@ -873,8 +873,8 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#35): wire DriftRemed
 ### Task 6: ApplicationLifecycleService.updateServiceReplicas
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java` (or create if it doesn't exist)
+- Modify: `service`
+- Modify: `service` (or create if it doesn't exist)
 
 **Interfaces:**
 - Consumes: `ApplicationEntity`, `ServiceDefinitionParser`, `ApplicationGoalCompiler`, `ClusterService`, `ReconciliationLoop.updateDesired()`, `ObjectMapper`
@@ -984,9 +984,9 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#35): ApplicationLife
 ### Task 7: ScalingEventCaseDescriptor — full implementation
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptor.java`
-- Create: `app/src/test/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptorTest.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/case_/CaseDefinitionRegistrar.java`
+- Create: `service`
+- Create: `service`
+- Modify: `service`
 
 **Interfaces:**
 - Consumes: `ApplicationLifecycleService.updateServiceReplicas()` from Task 6, `NodeConvergenceTracker.register()` from Task 4, `WorkerExecutionContext.current().caseId()` from engine API
@@ -994,23 +994,22 @@ git -C /Users/mdproctor/claude/casehub/ops commit -m "feat(#35): ApplicationLife
 
 - [ ] **Step 1: Write ScalingEventCaseDescriptorTest**
 
-Create `app/src/test/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptorTest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.case_;
+package io.casehub.ops.service.case_;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
-import io.casehub.ops.app.service.ApplicationLifecycleService;
-import io.casehub.ops.app.service.NodeConvergenceTracker;
+import io.casehub.ops.service.service.ApplicationLifecycleService;
+import io.casehub.ops.service.service.NodeConvergenceTracker;
 import io.casehub.worker.api.WorkerResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -1031,7 +1030,7 @@ class ScalingEventCaseDescriptorTest {
         CaseDefinition def = ScalingEventCaseDescriptor.build(null, null);
         assertThat(def.getCapabilities()).hasSize(3);
         assertThat(def.getCapabilities()).extracting("name")
-                .containsExactlyInAnyOrder("evaluate-scaling", "execute-scaling", "verify-convergence");
+                                         .containsExactlyInAnyOrder("evaluate-scaling", "execute-scaling", "verify-convergence");
     }
 
     @Test
@@ -1147,7 +1146,7 @@ class ScalingEventCaseDescriptorTest {
 
 - [ ] **Step 2: Implement ScalingEventCaseDescriptor**
 
-Create `app/src/main/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptor.java` with:
+Create `service` with:
 - `build(ApplicationLifecycleService, NodeConvergenceTracker)` returning `CaseDefinition`
 - Three capabilities: `evaluate-scaling`, `execute-scaling`, `verify-convergence`
 - `evaluateScaling(Map<String, Object>)` — package-private static, validates spec, returns decision or no-change-needed

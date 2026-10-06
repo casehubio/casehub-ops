@@ -106,7 +106,7 @@ Phase 3. No case-related code exists yet. This branch builds the foundation.
 
 ### A. ApplicationCaseDescriptor
 
-New package: `app/src/main/java/io/casehub/ops/app/case_/`
+New package: `service`
 
 `ApplicationCaseDescriptor` builds a `CaseDefinition` for the parent application case:
 
@@ -240,7 +240,7 @@ cancelled externally if the application is decommissioned.
 
 ### D. DriftReport Model
 
-New records in `app/src/main/java/io/casehub/ops/app/model/`:
+New records in `service`:
 
 ```java
 public record FieldDrift(

@@ -68,13 +68,17 @@ Multi-cluster routing: `InfraDesiredNodeSpec.backendId()` encodes the cluster
 ### K8sResourceHandler
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 public interface K8sResourceHandler<S extends InfraNodeSpec> {
     Class<S> specType();
+
     HasMetadata toResource(S spec);
+
     NodeStatus readStatus(KubernetesClient client, S spec);
+
     void apply(KubernetesClient client, S spec);
+
     void delete(KubernetesClient client, S spec);
 }
 ```

@@ -60,49 +60,49 @@ This plan covers Phase 1 only. Subsequent phases get their own plans:
 | `app/pom.xml` | Create | Maven module with all dependencies |
 | `pom.xml` (parent) | Modify | Add `<module>app</module>` |
 | **Models** | | |
-| `app/src/main/java/io/casehub/ops/app/model/ApplicationStatus.java` | Create | Enum: DRAFT, DEPLOYING, RUNNING, DEGRADED, DECOMMISSIONING, DECOMMISSIONED |
-| `app/src/main/java/io/casehub/ops/app/model/ClusterType.java` | Create | Enum: KUBERNETES, OPENSHIFT |
-| `app/src/main/java/io/casehub/ops/app/model/ClusterStatus.java` | Create | Enum: CONNECTED, UNREACHABLE, UNKNOWN |
-| `app/src/main/java/io/casehub/ops/app/model/DeploymentTrigger.java` | Create | Enum: INITIAL, UPGRADE, CVE_RESPONSE, ROLLBACK, SCALE |
-| `app/src/main/java/io/casehub/ops/app/model/DeploymentOutcome.java` | Create | Enum: SUCCESS, PARTIAL, FAILED, PENDING_APPROVAL |
-| `app/src/main/java/io/casehub/ops/app/model/CveSeverity.java` | Create | Enum: CRITICAL, HIGH, MEDIUM, LOW |
-| `app/src/main/java/io/casehub/ops/app/model/ServiceDefinition.java` | Create | Record: one microservice in topology |
-| `app/src/main/java/io/casehub/ops/app/model/CveEvent.java` | Create | Record: inbound CVE detection |
-| `app/src/main/java/io/casehub/ops/app/model/ServiceVersion.java` | Create | Record: image reference snapshot |
+| `service` | Create | Enum: DRAFT, DEPLOYING, RUNNING, DEGRADED, DECOMMISSIONING, DECOMMISSIONED |
+| `service` | Create | Enum: KUBERNETES, OPENSHIFT |
+| `service` | Create | Enum: CONNECTED, UNREACHABLE, UNKNOWN |
+| `service` | Create | Enum: INITIAL, UPGRADE, CVE_RESPONSE, ROLLBACK, SCALE |
+| `service` | Create | Enum: SUCCESS, PARTIAL, FAILED, PENDING_APPROVAL |
+| `service` | Create | Enum: CRITICAL, HIGH, MEDIUM, LOW |
+| `service` | Create | Record: one microservice in topology |
+| `service` | Create | Record: inbound CVE detection |
+| `service` | Create | Record: image reference snapshot |
 | **JPA Entities** | | |
-| `app/src/main/java/io/casehub/ops/app/entity/ApplicationEntity.java` | Create | JPA entity for Application |
-| `app/src/main/java/io/casehub/ops/app/entity/ClusterReferenceEntity.java` | Create | JPA entity for cluster registration |
-| `app/src/main/java/io/casehub/ops/app/entity/DeploymentRecordEntity.java` | Create | JPA entity for deployment snapshots |
+| `service` | Create | JPA entity for Application |
+| `service` | Create | JPA entity for cluster registration |
+| `service` | Create | JPA entity for deployment snapshots |
 | **Flyway** | | |
 | `app/src/main/resources/db/app/migration/V1__application.sql` | Create | Application + service_definition tables |
 | `app/src/main/resources/db/app/migration/V2__cluster_reference.sql` | Create | Cluster reference table |
 | `app/src/main/resources/db/app/migration/V3__deployment_record.sql` | Create | Deployment record table |
 | **Services** | | |
-| `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java` | Create | Central coordination: deploy, update, rollback, decommission, status |
-| `app/src/main/java/io/casehub/ops/app/service/ClusterService.java` | Create | Cluster registration and connectivity |
+| `service` | Create | Central coordination: deploy, update, rollback, decommission, status |
+| `service` | Create | Cluster registration and connectivity |
 | **Goal Compiler** | | |
-| `app/src/main/java/io/casehub/ops/app/goal/ApplicationGoalCompiler.java` | Create | Application → DesiredStateGraph |
-| `app/src/main/java/io/casehub/ops/app/goal/ApplicationNodeTypes.java` | Create | NodeType constants for K8s resources |
+| `service` | Create | Application → DesiredStateGraph |
+| `service` | Create | NodeType constants for K8s resources |
 | **REST** | | |
-| `app/src/main/java/io/casehub/ops/app/rest/TenancyFilter.java` | Create | JAX-RS filter: X-Tenancy-ID → request context |
-| `app/src/main/java/io/casehub/ops/app/rest/ApplicationResource.java` | Create | /api/applications CRUD |
-| `app/src/main/java/io/casehub/ops/app/rest/DeploymentResource.java` | Create | /api/applications/{id}/deployments |
-| `app/src/main/java/io/casehub/ops/app/rest/ServiceOperationResource.java` | Create | /api/applications/{id}/services/{serviceId} |
-| `app/src/main/java/io/casehub/ops/app/rest/ClusterResource.java` | Create | /api/clusters |
-| `app/src/main/java/io/casehub/ops/app/rest/CaseResource.java` | Create | /api/applications/{id}/cases |
-| `app/src/main/java/io/casehub/ops/app/rest/ApprovalResource.java` | Create | /api/approvals |
-| `app/src/main/java/io/casehub/ops/app/rest/SecurityResource.java` | Create | /api/applications/{id}/security |
-| `app/src/main/java/io/casehub/ops/app/rest/ReconciliationResource.java` | Create | /api/applications/{id}/reconciliation |
-| `app/src/main/java/io/casehub/ops/app/rest/dto/*.java` | Create | Request/response DTOs for all endpoints |
+| `service` | Create | JAX-RS filter: X-Tenancy-ID → request context |
+| `service` | Create | /api/applications CRUD |
+| `service` | Create | /api/applications/{id}/deployments |
+| `service` | Create | /api/applications/{id}/services/{serviceId} |
+| `service` | Create | /api/clusters |
+| `service` | Create | /api/applications/{id}/cases |
+| `service` | Create | /api/approvals |
+| `service` | Create | /api/applications/{id}/security |
+| `service` | Create | /api/applications/{id}/reconciliation |
+| `service` | Create | Request/response DTOs for all endpoints |
 | **Engine** | | |
-| `app/src/main/java/io/casehub/ops/app/case_/ApplicationCaseDescriptor.java` | Create | CaseDescriptor for ops:application-lifecycle |
-| `app/src/main/java/io/casehub/ops/app/case_/ApplicationCaseHub.java` | Create | YamlCaseHub subclass |
+| `service` | Create | CaseDescriptor for ops:application-lifecycle |
+| `service` | Create | YamlCaseHub subclass |
 | `app/src/main/resources/ops/application-lifecycle.yaml` | Create | YAML case definition |
 | **Desiredstate SPI stubs** | | |
-| `app/src/main/java/io/casehub/ops/app/k8s/StubActualStateAdapter.java` | Create | Returns all ABSENT — Phase 2 replaces |
-| `app/src/main/java/io/casehub/ops/app/k8s/StubNodeProvisioner.java` | Create | Returns Success — Phase 2 replaces |
-| `app/src/main/java/io/casehub/ops/app/k8s/StubFaultPolicy.java` | Create | Returns empty — Phase 2 replaces |
-| `app/src/main/java/io/casehub/ops/app/k8s/StubEventSource.java` | Create | Empty Multi — Phase 2 replaces |
+| `service` | Create | Returns all ABSENT — Phase 2 replaces |
+| `service` | Create | Returns Success — Phase 2 replaces |
+| `service` | Create | Returns empty — Phase 2 replaces |
+| `service` | Create | Empty Multi — Phase 2 replaces |
 | **Config** | | |
 | `app/src/main/resources/application.properties` | Create | Datasource, Flyway, engine config |
 
@@ -110,16 +110,16 @@ This plan covers Phase 1 only. Subsequent phases get their own plans:
 
 | File | Purpose |
 |------|---------|
-| `app/src/test/java/io/casehub/ops/app/model/ServiceDefinitionTest.java` | Model validation |
-| `app/src/test/java/io/casehub/ops/app/entity/ApplicationEntityTest.java` | Entity persistence |
-| `app/src/test/java/io/casehub/ops/app/entity/ClusterReferenceEntityTest.java` | Entity persistence |
-| `app/src/test/java/io/casehub/ops/app/entity/DeploymentRecordEntityTest.java` | Entity persistence |
-| `app/src/test/java/io/casehub/ops/app/goal/ApplicationGoalCompilerTest.java` | Goal compilation |
-| `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java` | Lifecycle orchestration |
-| `app/src/test/java/io/casehub/ops/app/service/ClusterServiceTest.java` | Cluster management |
-| `app/src/test/java/io/casehub/ops/app/rest/ApplicationResourceTest.java` | REST integration |
-| `app/src/test/java/io/casehub/ops/app/rest/ClusterResourceTest.java` | REST integration |
-| `app/src/test/java/io/casehub/ops/app/rest/DeploymentResourceTest.java` | REST integration |
+| `service` | Model validation |
+| `service` | Entity persistence |
+| `service` | Entity persistence |
+| `service` | Entity persistence |
+| `service` | Goal compilation |
+| `service` | Lifecycle orchestration |
+| `service` | Cluster management |
+| `service` | REST integration |
+| `service` | REST integration |
+| `service` | REST integration |
 | `app/src/test/resources/application.properties` | Test datasource config |
 
 ---
@@ -662,17 +662,17 @@ git commit -m "feat(#29): scaffold app/ module — Maven, Quarkus config, engine
 ## Task 3: Domain models + enums
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/model/ApplicationStatus.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/ClusterType.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/ClusterStatus.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/DeploymentTrigger.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/DeploymentOutcome.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/CveSeverity.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/ServiceDefinition.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/ServiceVersion.java`
-- Create: `app/src/main/java/io/casehub/ops/app/model/CveEvent.java`
-- Test: `app/src/test/java/io/casehub/ops/app/model/ServiceDefinitionTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/model/CveEventTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: nothing
@@ -682,7 +682,7 @@ git commit -m "feat(#29): scaffold app/ module — Maven, Quarkus config, engine
 
 ```java
 // app/src/test/java/io/casehub/ops/app/model/ServiceDefinitionTest.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.List;
 import java.util.Map;
@@ -763,37 +763,43 @@ Create all six enums (simple enums, no behavior):
 
 ```java
 // ApplicationStatus.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
+
 public enum ApplicationStatus {
     DRAFT, DEPLOYING, RUNNING, DEGRADED, DECOMMISSIONING, DECOMMISSIONED
 }
 
 // ClusterType.java
-package io.casehub.ops.app.model;
-public enum ClusterType { KUBERNETES, OPENSHIFT }
+package io.casehub.ops.service.model;
+
+public enum ClusterType {KUBERNETES, OPENSHIFT}
 
 // ClusterStatus.java
-package io.casehub.ops.app.model;
-public enum ClusterStatus { CONNECTED, UNREACHABLE, UNKNOWN }
+package io.casehub.ops.service.model;
+
+public enum ClusterStatus {CONNECTED, UNREACHABLE, UNKNOWN}
 
 // DeploymentTrigger.java
-package io.casehub.ops.app.model;
-public enum DeploymentTrigger { INITIAL, UPGRADE, CVE_RESPONSE, ROLLBACK, SCALE }
+package io.casehub.ops.service.model;
+
+public enum DeploymentTrigger {INITIAL, UPGRADE, CVE_RESPONSE, ROLLBACK, SCALE}
 
 // DeploymentOutcome.java
-package io.casehub.ops.app.model;
-public enum DeploymentOutcome { SUCCESS, PARTIAL, FAILED, PENDING_APPROVAL }
+package io.casehub.ops.service.model;
+
+public enum DeploymentOutcome {SUCCESS, PARTIAL, FAILED, PENDING_APPROVAL}
 
 // CveSeverity.java
-package io.casehub.ops.app.model;
-public enum CveSeverity { CRITICAL, HIGH, MEDIUM, LOW }
+package io.casehub.ops.service.model;
+
+public enum CveSeverity {CRITICAL, HIGH, MEDIUM, LOW}
 ```
 
 Create records:
 
 ```java
 // ServiceDefinition.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.List;
 import java.util.Map;
@@ -834,7 +840,7 @@ public record ServiceDefinition(
 }
 
 // ServiceVersion.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.Objects;
 
@@ -846,7 +852,7 @@ public record ServiceVersion(String serviceId, String image) {
 }
 
 // CveEvent.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.List;
 import java.util.Objects;
@@ -879,17 +885,19 @@ Expected: PASS
 
 ```java
 // app/src/test/java/io/casehub/ops/app/model/CveEventTest.java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.*;
 
 class CveEventTest {
     @Test
     void createsValidCveEvent() {
         var cve = new CveEvent("CVE-2024-1234", CveSeverity.CRITICAL,
-                "quay.io/app:1.0", List.of("inventory"), "1.0.1", "trivy");
+                               "quay.io/app:1.0", List.of("inventory"), "1.0.1", "trivy");
         assertThat(cve.cveId()).isEqualTo("CVE-2024-1234");
         assertThat(cve.severity()).isEqualTo(CveSeverity.CRITICAL);
         assertThat(cve.affectedServices()).containsExactly("inventory");
@@ -898,7 +906,7 @@ class CveEventTest {
     @Test
     void allowsNullFixedInTag() {
         var cve = new CveEvent("CVE-2024-1234", CveSeverity.HIGH,
-                "quay.io/app:1.0", List.of(), null, "grype");
+                               "quay.io/app:1.0", List.of(), null, "grype");
         assertThat(cve.fixedInTag()).isNull();
     }
 }
@@ -919,15 +927,15 @@ git commit -m "feat(#29): domain models — enums, ServiceDefinition, CveEvent, 
 ## Task 4: JPA entities + Flyway migrations
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/entity/ApplicationEntity.java`
-- Create: `app/src/main/java/io/casehub/ops/app/entity/ClusterReferenceEntity.java`
-- Create: `app/src/main/java/io/casehub/ops/app/entity/DeploymentRecordEntity.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
 - Create: `app/src/main/resources/db/app/migration/V1__application.sql`
 - Create: `app/src/main/resources/db/app/migration/V2__cluster_reference.sql`
 - Create: `app/src/main/resources/db/app/migration/V3__deployment_record.sql`
-- Test: `app/src/test/java/io/casehub/ops/app/entity/ApplicationEntityTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/entity/ClusterReferenceEntityTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/entity/DeploymentRecordEntityTest.java`
+- Test: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ApplicationStatus`, `ClusterType`, `ClusterStatus`, `DeploymentTrigger`, `DeploymentOutcome`, `ServiceDefinition` from Task 3
@@ -995,9 +1003,9 @@ CREATE INDEX idx_deployment_created ON deployment_record(created_at);
 
 ```java
 // app/src/test/java/io/casehub/ops/app/entity/ApplicationEntityTest.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
-import io.casehub.ops.app.model.ApplicationStatus;
+import io.casehub.ops.service.model.ApplicationStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
@@ -1011,11 +1019,11 @@ class ApplicationEntityTest {
     @Transactional
     void persistsAndFindsApplication() {
         var app = new ApplicationEntity();
-        app.name = "online-store";
-        app.description = "Demo application";
-        app.tenancyId = "default";
+        app.name         = "online-store";
+        app.description  = "Demo application";
+        app.tenancyId    = "default";
         app.servicesJson = "[]";
-        app.status = ApplicationStatus.DRAFT;
+        app.status       = ApplicationStatus.DRAFT;
         app.persist();
 
         assertThat(app.id).isNotNull();
@@ -1029,10 +1037,10 @@ class ApplicationEntityTest {
     @Transactional
     void findsByTenancyIdAndStatus() {
         var app = new ApplicationEntity();
-        app.name = "test-app";
-        app.tenancyId = "tenant-1";
+        app.name         = "test-app";
+        app.tenancyId    = "tenant-1";
         app.servicesJson = "[]";
-        app.status = ApplicationStatus.RUNNING;
+        app.status       = ApplicationStatus.RUNNING;
         app.persist();
 
         var results = ApplicationEntity.findByTenancyId("tenant-1");
@@ -1045,13 +1053,13 @@ class ApplicationEntityTest {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/entity/ApplicationEntity.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import io.casehub.ops.app.model.ApplicationStatus;
+import io.casehub.ops.service.model.ApplicationStatus;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -1115,7 +1123,7 @@ public class ApplicationEntity extends PanacheEntityBase {
 
     public static List<ApplicationEntity> findActiveByTenancyId(String tenancyId) {
         return list("tenancyId = ?1 and status not in (?2)", tenancyId,
-                List.of(ApplicationStatus.DRAFT, ApplicationStatus.DECOMMISSIONED));
+                    List.of(ApplicationStatus.DRAFT, ApplicationStatus.DECOMMISSIONED));
     }
 }
 ```
@@ -1129,14 +1137,14 @@ Expected: PASS
 
 ```java
 // app/src/main/java/io/casehub/ops/app/entity/ClusterReferenceEntity.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import io.casehub.ops.app.model.ClusterStatus;
-import io.casehub.ops.app.model.ClusterType;
+import io.casehub.ops.service.model.ClusterStatus;
+import io.casehub.ops.service.model.ClusterType;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -1196,14 +1204,14 @@ Test and entity for DeploymentRecordEntity follow the same Panache pattern — `
 
 ```java
 // app/src/main/java/io/casehub/ops/app/entity/DeploymentRecordEntity.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import io.casehub.ops.app.model.DeploymentOutcome;
-import io.casehub.ops.app.model.DeploymentTrigger;
+import io.casehub.ops.service.model.DeploymentOutcome;
+import io.casehub.ops.service.model.DeploymentTrigger;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -1253,12 +1261,13 @@ public class DeploymentRecordEntity extends PanacheEntityBase {
 
 ```java
 // app/src/test/java/io/casehub/ops/app/entity/ClusterReferenceEntityTest.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
-import io.casehub.ops.app.model.ClusterType;
+import io.casehub.ops.service.model.ClusterType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
+
 import static org.assertj.core.api.Assertions.*;
 
 @QuarkusTest
@@ -1268,11 +1277,11 @@ class ClusterReferenceEntityTest {
     @Transactional
     void persistsAndFindsCluster() {
         var cluster = new ClusterReferenceEntity();
-        cluster.name = "ops-prod";
-        cluster.apiUrl = "https://k8s.example.com:6443";
-        cluster.namespace = "casehub";
+        cluster.name        = "ops-prod";
+        cluster.apiUrl      = "https://k8s.example.com:6443";
+        cluster.namespace   = "casehub";
         cluster.clusterType = ClusterType.KUBERNETES;
-        cluster.tenancyId = "default";
+        cluster.tenancyId   = "default";
         cluster.persist();
 
         assertThat(cluster.id).isNotNull();
@@ -1284,14 +1293,16 @@ class ClusterReferenceEntityTest {
 
 ```java
 // app/src/test/java/io/casehub/ops/app/entity/DeploymentRecordEntityTest.java
-package io.casehub.ops.app.entity;
+package io.casehub.ops.service.entity;
 
-import io.casehub.ops.app.model.DeploymentOutcome;
-import io.casehub.ops.app.model.DeploymentTrigger;
+import io.casehub.ops.service.model.DeploymentOutcome;
+import io.casehub.ops.service.model.DeploymentTrigger;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
+
 import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.*;
 
 @QuarkusTest
@@ -1304,17 +1315,17 @@ class DeploymentRecordEntityTest {
 
         // Create application first (FK constraint)
         var app = new ApplicationEntity();
-        app.id = appId;
-        app.name = "test";
-        app.tenancyId = "default";
+        app.id           = appId;
+        app.name         = "test";
+        app.tenancyId    = "default";
         app.servicesJson = "[]";
         app.persist();
 
         var record = new DeploymentRecordEntity();
         record.applicationId = appId;
-        record.topologyJson = "{\"gateway\": \"img:1.0\"}";
-        record.trigger = DeploymentTrigger.INITIAL;
-        record.outcome = DeploymentOutcome.SUCCESS;
+        record.topologyJson  = "{\"gateway\": \"img:1.0\"}";
+        record.trigger       = DeploymentTrigger.INITIAL;
+        record.outcome       = DeploymentOutcome.SUCCESS;
         record.persist();
 
         assertThat(record.id).isNotNull();
@@ -1339,9 +1350,9 @@ git commit -m "feat(#29): JPA entities + Flyway migrations — Application, Clus
 ## Task 5: ApplicationGoalCompiler
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/goal/ApplicationGoalCompiler.java`
-- Create: `app/src/main/java/io/casehub/ops/app/goal/ApplicationNodeTypes.java`
-- Test: `app/src/test/java/io/casehub/ops/app/goal/ApplicationGoalCompilerTest.java`
+- Create: `service`
+- Create: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ServiceDefinition` from Task 3, `K8sDeploymentSpec`, `K8sServiceSpec`, `K8sNamespaceSpec`, `K8sIngressSpec`, `InfraDesiredNodeSpec`, `DesiredStateGraphFactory` from casehub-desiredstate-api, `PortMapping`, `HealthCheckSpec`, `ResourceRequirements` from casehub-ops-api
@@ -1351,7 +1362,7 @@ git commit -m "feat(#29): JPA entities + Flyway migrations — Application, Clus
 
 ```java
 // app/src/test/java/io/casehub/ops/app/goal/ApplicationGoalCompilerTest.java
-package io.casehub.ops.app.goal;
+package io.casehub.ops.service.goal;
 
 import java.util.List;
 import java.util.Map;
@@ -1363,7 +1374,7 @@ import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.K8sDeploymentSpec;
 import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import io.casehub.ops.api.infra.K8sServiceSpec;
-import io.casehub.ops.app.model.ServiceDefinition;
+import io.casehub.ops.service.model.ServiceDefinition;
 import io.casehub.ops.api.infra.types.PortMapping;
 import io.casehub.ops.api.infra.types.ResourceRequirements;
 import org.junit.jupiter.api.BeforeEach;
@@ -1373,40 +1384,40 @@ import static org.assertj.core.api.Assertions.*;
 
 class ApplicationGoalCompilerTest {
 
-    private ApplicationGoalCompiler compiler;
+    private ApplicationGoalCompiler  compiler;
     private DesiredStateGraphFactory factory;
 
     @BeforeEach
     void setUp() {
         compiler = new ApplicationGoalCompiler();
-        factory = new DefaultDesiredStateGraphFactory();
+        factory  = new DefaultDesiredStateGraphFactory();
     }
 
     @Test
     void compilesServiceToDeploymentAndServiceNodes() {
         var services = List.of(service("inventory", "quay.io/app:1.0", 2,
-                List.of(new PortMapping(8080, 80, "TCP")), List.of(), List.of()));
+                                       List.of(new PortMapping(8080, 80, "TCP")), List.of(), List.of()));
 
         var graph = compiler.compileForCluster(services, "ops-prod", "casehub", factory);
 
         assertThat(graph.nodes()).hasSize(3);
 
         var nsNode = graph.nodes().values().stream()
-                .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_namespace"))
-                .findFirst().orElseThrow();
+                          .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_namespace"))
+                          .findFirst().orElseThrow();
         assertThat(((K8sNamespaceSpec) unwrap(nsNode.spec())).name()).isEqualTo("casehub");
 
         var deployNode = graph.nodes().values().stream()
-                .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_deployment"))
-                .findFirst().orElseThrow();
+                              .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_deployment"))
+                              .findFirst().orElseThrow();
         var deploySpec = (K8sDeploymentSpec) unwrap(deployNode.spec());
         assertThat(deploySpec.name()).isEqualTo("inventory");
         assertThat(deploySpec.image()).isEqualTo("quay.io/app:1.0");
         assertThat(deploySpec.replicas()).isEqualTo(2);
 
         var svcNode = graph.nodes().values().stream()
-                .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_service"))
-                .findFirst().orElseThrow();
+                           .filter(n -> unwrap(n.spec()).resourceType().equals("k8s_service"))
+                           .findFirst().orElseThrow();
         var svcSpec = (K8sServiceSpec) unwrap(svcNode.spec());
         assertThat(svcSpec.port()).isEqualTo(80);
         assertThat(svcSpec.targetPort()).isEqualTo(8080);
@@ -1423,14 +1434,14 @@ class ApplicationGoalCompilerTest {
         var graph = compiler.compileForCluster(services, "ops-prod", "casehub", factory);
 
         var gatewayDeploy = graph.nodes().keySet().stream()
-                .filter(id -> id.value().equals("ops-prod:gateway:deployment"))
-                .findFirst().orElseThrow();
+                                 .filter(id -> id.value().equals("ops-prod:gateway:deployment"))
+                                 .findFirst().orElseThrow();
         var ordersDeploy = graph.nodes().keySet().stream()
-                .filter(id -> id.value().equals("ops-prod:orders:deployment"))
-                .findFirst().orElseThrow();
+                                .filter(id -> id.value().equals("ops-prod:orders:deployment"))
+                                .findFirst().orElseThrow();
 
         assertThat(graph.dependencies()).anyMatch(dep ->
-                dep.from().equals(gatewayDeploy) && dep.to().equals(ordersDeploy));
+                                                          dep.from().equals(gatewayDeploy) && dep.to().equals(ordersDeploy));
     }
 
     @Test
@@ -1444,17 +1455,17 @@ class ApplicationGoalCompilerTest {
         var stagingGraph = compiler.compileForCluster(services, "ops-staging", "casehub", factory);
 
         assertThat(stagingGraph.nodes().keySet().stream()
-                .filter(id -> id.value().contains("orders"))
-                .toList()).isEmpty();
+                               .filter(id -> id.value().contains("orders"))
+                               .toList()).isEmpty();
         assertThat(stagingGraph.nodes().keySet().stream()
-                .filter(id -> id.value().contains("gateway"))
-                .toList()).isNotEmpty();
+                               .filter(id -> id.value().contains("gateway"))
+                               .toList()).isNotEmpty();
     }
 
     @Test
     void setsBackendIdWithClusterId() {
         var services = List.of(service("svc", "img:1.0", 1,
-                List.of(new PortMapping(8080, 80, "TCP")), List.of(), List.of()));
+                                       List.of(new PortMapping(8080, 80, "TCP")), List.of(), List.of()));
         var graph = compiler.compileForCluster(services, "ops-prod", "casehub", factory);
 
         graph.nodes().values().forEach(node -> {
@@ -1464,11 +1475,11 @@ class ApplicationGoalCompilerTest {
     }
 
     private ServiceDefinition service(String id, String image, int replicas,
-                                       List<PortMapping> ports, List<String> dependsOn,
-                                       List<String> targetClusters) {
+                                      List<PortMapping> ports, List<String> dependsOn,
+                                      List<String> targetClusters) {
         return new ServiceDefinition(id, id, image, replicas, ports, Map.of(),
-                new ResourceRequirements("500m", "1Gi", "250m", "512Mi"),
-                dependsOn, Optional.empty(), targetClusters);
+                                     new ResourceRequirements("500m", "1Gi", "250m", "512Mi"),
+                                     dependsOn, Optional.empty(), targetClusters);
     }
 
     private io.casehub.ops.api.infra.InfraNodeSpec unwrap(io.casehub.desiredstate.api.NodeSpec spec) {
@@ -1486,16 +1497,16 @@ Expected: compilation failure — `ApplicationGoalCompiler` does not exist
 
 ```java
 // app/src/main/java/io/casehub/ops/app/goal/ApplicationNodeTypes.java
-package io.casehub.ops.app.goal;
+package io.casehub.ops.service.goal;
 
 import io.casehub.desiredstate.api.NodeType;
 
 public final class ApplicationNodeTypes {
-    public static final NodeType K8S_NAMESPACE = NodeType.of("k8s_namespace");
+    public static final NodeType K8S_NAMESPACE  = NodeType.of("k8s_namespace");
     public static final NodeType K8S_DEPLOYMENT = NodeType.of("k8s_deployment");
-    public static final NodeType K8S_SERVICE = NodeType.of("k8s_service");
-    public static final NodeType K8S_INGRESS = NodeType.of("k8s_ingress");
-    public static final NodeType K8S_CONFIGMAP = NodeType.of("k8s_configmap");
+    public static final NodeType K8S_SERVICE    = NodeType.of("k8s_service");
+    public static final NodeType K8S_INGRESS    = NodeType.of("k8s_ingress");
+    public static final NodeType K8S_CONFIGMAP  = NodeType.of("k8s_configmap");
 
     private ApplicationNodeTypes() {}
 }
@@ -1505,7 +1516,7 @@ public final class ApplicationNodeTypes {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/goal/ApplicationGoalCompiler.java
-package io.casehub.ops.app.goal;
+package io.casehub.ops.service.goal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -1523,7 +1534,7 @@ import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import io.casehub.ops.api.infra.K8sServiceSpec;
 import io.casehub.ops.api.infra.types.Labels;
 import io.casehub.ops.api.infra.types.ServiceType;
-import io.casehub.ops.app.model.ServiceDefinition;
+import io.casehub.ops.service.model.ServiceDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
@@ -1536,22 +1547,22 @@ public class ApplicationGoalCompiler {
         String backendId = "kubernetes:" + clusterId;
         Labels appLabels = Labels.of(Map.of("managed-by", "casehub-ops"));
 
-        List<DesiredNode> nodes = new ArrayList<>();
-        List<Dependency> dependencies = new ArrayList<>();
+        List<DesiredNode> nodes        = new ArrayList<>();
+        List<Dependency>  dependencies = new ArrayList<>();
 
         NodeId nsNodeId = NodeId.of(clusterId + ":namespace");
         nodes.add(new DesiredNode(nsNodeId, ApplicationNodeTypes.K8S_NAMESPACE,
-                new InfraDesiredNodeSpec(new K8sNamespaceSpec(namespace, appLabels), backendId),
-                false));
+                                  new InfraDesiredNodeSpec(new K8sNamespaceSpec(namespace, appLabels), backendId),
+                                  false));
 
         List<ServiceDefinition> clusterServices = services.stream()
-                .filter(sd -> sd.targetClusters().isEmpty() || sd.targetClusters().contains(clusterId))
-                .toList();
+                                                          .filter(sd -> sd.targetClusters().isEmpty() || sd.targetClusters().contains(clusterId))
+                                                          .toList();
 
         Map<String, NodeId> deploymentNodeIds = clusterServices.stream()
-                .collect(Collectors.toMap(
-                        ServiceDefinition::serviceId,
-                        sd -> NodeId.of(clusterId + ":" + sd.serviceId() + ":deployment")));
+                                                               .collect(Collectors.toMap(
+                                                                       ServiceDefinition::serviceId,
+                                                                       sd -> NodeId.of(clusterId + ":" + sd.serviceId() + ":deployment")));
 
         for (ServiceDefinition sd : clusterServices) {
             Labels svcLabels = Labels.of(Map.of("app", sd.serviceId(), "managed-by", "casehub-ops"));
@@ -1561,18 +1572,18 @@ public class ApplicationGoalCompiler {
                     namespace, sd.serviceId(), sd.image(), sd.replicas(),
                     sd.resources(), svcLabels, sd.ports(), sd.env(), sd.healthCheck());
             nodes.add(new DesiredNode(deployId, ApplicationNodeTypes.K8S_DEPLOYMENT,
-                    new InfraDesiredNodeSpec(deploySpec, backendId), false));
+                                      new InfraDesiredNodeSpec(deploySpec, backendId), false));
             dependencies.add(new Dependency(deployId, nsNodeId));
 
             if (!sd.ports().isEmpty()) {
-                var firstPort = sd.ports().get(0);
-                NodeId svcId = NodeId.of(clusterId + ":" + sd.serviceId() + ":service");
+                var    firstPort = sd.ports().get(0);
+                NodeId svcId     = NodeId.of(clusterId + ":" + sd.serviceId() + ":service");
                 var svcSpec = new K8sServiceSpec(
                         namespace, sd.serviceId(),
                         firstPort.servicePort(), firstPort.containerPort(),
                         ServiceType.CLUSTER_IP, svcLabels);
                 nodes.add(new DesiredNode(svcId, ApplicationNodeTypes.K8S_SERVICE,
-                        new InfraDesiredNodeSpec(svcSpec, backendId), false));
+                                          new InfraDesiredNodeSpec(svcSpec, backendId), false));
                 dependencies.add(new Dependency(svcId, deployId));
             }
 
@@ -1606,14 +1617,14 @@ git commit -m "feat(#29): ApplicationGoalCompiler — ServiceDefinition → K8s 
 ## Task 6: Desiredstate SPI stubs + ApplicationLifecycleService
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/StubActualStateAdapter.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/StubNodeProvisioner.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/StubFaultPolicy.java`
-- Create: `app/src/main/java/io/casehub/ops/app/k8s/StubEventSource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/ClusterService.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/ClusterServiceTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ApplicationEntity`, `ClusterReferenceEntity`, `DeploymentRecordEntity` from Task 4; `ApplicationGoalCompiler` from Task 5; `ReconciliationLoop`, `DesiredStateGraphFactory` from casehub-desiredstate; `ObjectMapper` for JSON serialization
@@ -1625,9 +1636,8 @@ All four stubs are minimal `@DefaultBean @ApplicationScoped` implementations tha
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/StubActualStateAdapter.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.casehub.desiredstate.api.ActualState;
@@ -1643,14 +1653,14 @@ public class StubActualStateAdapter implements ActualStateAdapter {
     @Override
     public ActualState readActual(DesiredStateGraph desired, String tenancyId) {
         return new ActualState(desired.nodes().keySet().stream()
-                .collect(Collectors.toMap(id -> id, id -> NodeStatus.ABSENT)));
+                                      .collect(Collectors.toMap(id -> id, id -> NodeStatus.ABSENT)));
     }
 }
 ```
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/StubNodeProvisioner.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.Set;
 
@@ -1661,7 +1671,7 @@ import io.casehub.desiredstate.api.NodeProvisioner;
 import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -1692,7 +1702,7 @@ public class StubNodeProvisioner implements NodeProvisioner {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/StubFaultPolicy.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import java.util.List;
 
@@ -1716,7 +1726,7 @@ public class StubFaultPolicy implements FaultPolicy {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/k8s/StubEventSource.java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.EventSource;
 import io.casehub.desiredstate.api.StateEvent;
@@ -1745,11 +1755,11 @@ public class StubEventSource implements EventSource {
 
 ```java
 // app/src/test/java/io/casehub/ops/app/service/ClusterServiceTest.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.entity.ClusterReferenceEntity;
-import io.casehub.ops.app.model.ClusterStatus;
-import io.casehub.ops.app.model.ClusterType;
+import io.casehub.ops.service.entity.ClusterReferenceEntity;
+import io.casehub.ops.service.model.ClusterStatus;
+import io.casehub.ops.service.model.ClusterType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -1767,11 +1777,11 @@ class ClusterServiceTest {
     @Transactional
     void registersCluster() {
         var cluster = new ClusterReferenceEntity();
-        cluster.name = "test-cluster";
-        cluster.apiUrl = "https://localhost:6443";
-        cluster.namespace = "default";
+        cluster.name        = "test-cluster";
+        cluster.apiUrl      = "https://localhost:6443";
+        cluster.namespace   = "default";
         cluster.clusterType = ClusterType.KUBERNETES;
-        cluster.tenancyId = "default";
+        cluster.tenancyId   = "default";
 
         var result = clusterService.register(cluster, "default");
         assertThat(result.id).isNotNull();
@@ -1782,11 +1792,11 @@ class ClusterServiceTest {
     @Transactional
     void listsClustersByTenancy() {
         var cluster = new ClusterReferenceEntity();
-        cluster.name = "list-test";
-        cluster.apiUrl = "https://localhost:6443";
-        cluster.namespace = "default";
+        cluster.name        = "list-test";
+        cluster.apiUrl      = "https://localhost:6443";
+        cluster.namespace   = "default";
         cluster.clusterType = ClusterType.KUBERNETES;
-        cluster.tenancyId = "list-tenant";
+        cluster.tenancyId   = "list-tenant";
         clusterService.register(cluster, "list-tenant");
 
         var results = clusterService.list("list-tenant");
@@ -1799,13 +1809,13 @@ class ClusterServiceTest {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/service/ClusterService.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.List;
 import java.util.UUID;
 
-import io.casehub.ops.app.entity.ClusterReferenceEntity;
-import io.casehub.ops.app.model.ClusterStatus;
+import io.casehub.ops.service.entity.ClusterReferenceEntity;
+import io.casehub.ops.service.model.ClusterStatus;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
@@ -1847,10 +1857,10 @@ Expected: PASS
 
 ```java
 // app/src/test/java/io/casehub/ops/app/service/ApplicationLifecycleServiceTest.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.entity.ApplicationEntity;
-import io.casehub.ops.app.model.ApplicationStatus;
+import io.casehub.ops.service.entity.ApplicationEntity;
+import io.casehub.ops.service.model.ApplicationStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -1875,7 +1885,7 @@ class ApplicationLifecycleServiceTest {
     @Test
     @Transactional
     void derivesStatusForDraft() {
-        var app = lifecycleService.createDraft("status-test", "Test", "[]", "default");
+        var app    = lifecycleService.createDraft("status-test", "Test", "[]", "default");
         var status = lifecycleService.deriveStatus(app);
         assertThat(status).isEqualTo(ApplicationStatus.DRAFT);
     }
@@ -1886,7 +1896,7 @@ class ApplicationLifecycleServiceTest {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.List;
 import java.util.UUID;
@@ -1896,14 +1906,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.ReconciliationLoop;
-import io.casehub.ops.app.entity.ApplicationEntity;
-import io.casehub.ops.app.entity.ClusterReferenceEntity;
-import io.casehub.ops.app.entity.DeploymentRecordEntity;
-import io.casehub.ops.app.goal.ApplicationGoalCompiler;
-import io.casehub.ops.app.model.ApplicationStatus;
-import io.casehub.ops.app.model.DeploymentOutcome;
-import io.casehub.ops.app.model.DeploymentTrigger;
-import io.casehub.ops.app.model.ServiceDefinition;
+import io.casehub.ops.service.entity.ApplicationEntity;
+import io.casehub.ops.service.entity.ClusterReferenceEntity;
+import io.casehub.ops.service.entity.DeploymentRecordEntity;
+import io.casehub.ops.service.goal.ApplicationGoalCompiler;
+import io.casehub.ops.service.model.ApplicationStatus;
+import io.casehub.ops.service.model.DeploymentOutcome;
+import io.casehub.ops.service.model.DeploymentTrigger;
+import io.casehub.ops.service.model.ServiceDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -1928,13 +1938,13 @@ public class ApplicationLifecycleService {
 
     @Transactional
     public ApplicationEntity createDraft(String name, String description,
-                                          String servicesJson, String tenancyId) {
+                                         String servicesJson, String tenancyId) {
         var app = new ApplicationEntity();
-        app.name = name;
-        app.description = description;
+        app.name         = name;
+        app.description  = description;
         app.servicesJson = servicesJson;
-        app.tenancyId = tenancyId;
-        app.status = ApplicationStatus.DRAFT;
+        app.tenancyId    = tenancyId;
+        app.status       = ApplicationStatus.DRAFT;
         app.persist();
         return app;
     }
@@ -1943,13 +1953,13 @@ public class ApplicationLifecycleService {
         var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
         if (app == null) throw new IllegalArgumentException("Application not found: " + applicationId);
 
-        List<ServiceDefinition> services = parseServices(app.servicesJson);
+        List<ServiceDefinition>      services = parseServices(app.servicesJson);
         List<ClusterReferenceEntity> clusters = clusterService.list(tenancyId);
 
         for (ClusterReferenceEntity cluster : clusters) {
             String compositeKey = tenancyId + ":" + cluster.id;
             var graph = goalCompiler.compileForCluster(services, cluster.id.toString(),
-                    cluster.namespace, graphFactory);
+                                                       cluster.namespace, graphFactory);
             reconciliationLoop.start(compositeKey, graph);
         }
 
@@ -1964,7 +1974,7 @@ public class ApplicationLifecycleService {
         List<ClusterReferenceEntity> clusters = clusterService.list(tenancyId);
         for (ClusterReferenceEntity cluster : clusters) {
             String compositeKey = tenancyId + ":" + cluster.id;
-            var emptyGraph = graphFactory.of(List.of(), List.of());
+            var    emptyGraph   = graphFactory.of(List.of(), List.of());
             reconciliationLoop.updateDesired(compositeKey, emptyGraph);
         }
 
@@ -1987,9 +1997,9 @@ public class ApplicationLifecycleService {
     void recordDeployment(ApplicationEntity app, DeploymentTrigger trigger, DeploymentOutcome outcome) {
         var record = new DeploymentRecordEntity();
         record.applicationId = app.id;
-        record.topologyJson = app.servicesJson;
-        record.trigger = trigger;
-        record.outcome = outcome;
+        record.topologyJson  = app.servicesJson;
+        record.trigger       = trigger;
+        record.outcome       = outcome;
         record.persist();
     }
 
@@ -2020,18 +2030,18 @@ git commit -m "feat(#29): SPI stubs + ApplicationLifecycleService + ClusterServi
 ## Task 7: REST endpoints (all, stubbed where needed)
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/rest/TenancyFilter.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ApplicationResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/DeploymentResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ServiceOperationResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ClusterResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/CaseResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ApprovalResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/SecurityResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ReconciliationResource.java`
-- Create: DTO records in `app/src/main/java/io/casehub/ops/app/rest/dto/`
-- Test: `app/src/test/java/io/casehub/ops/app/rest/ApplicationResourceTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/rest/ClusterResourceTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: DTO records in `service`
+- Test: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ApplicationLifecycleService`, `ClusterService` from Task 6
@@ -2053,7 +2063,7 @@ Stubbed endpoints return realistic JSON structures with HTTP 200/201 but don't p
 
 ```java
 // app/src/main/java/io/casehub/ops/app/rest/TenancyFilter.java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -2064,9 +2074,9 @@ import jakarta.ws.rs.ext.Provider;
 @PreMatching
 public class TenancyFilter implements ContainerRequestFilter {
 
-    public static final String TENANCY_HEADER = "X-Tenancy-ID";
+    public static final String TENANCY_HEADER   = "X-Tenancy-ID";
     public static final String TENANCY_PROPERTY = "casehub.tenancyId";
-    public static final String DEFAULT_TENANCY = "default";
+    public static final String DEFAULT_TENANCY  = "default";
 
     @Override
     public void filter(ContainerRequestContext ctx) {
@@ -2083,13 +2093,13 @@ public class TenancyFilter implements ContainerRequestFilter {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/rest/ApplicationResource.java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import java.util.UUID;
 
-import io.casehub.ops.app.entity.ApplicationEntity;
-import io.casehub.ops.app.rest.dto.CreateApplicationRequest;
-import io.casehub.ops.app.service.ApplicationLifecycleService;
+import io.casehub.ops.service.entity.ApplicationEntity;
+import io.casehub.ops.service.rest.dto.CreateApplicationRequest;
+import io.casehub.ops.service.service.ApplicationLifecycleService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -2160,7 +2170,7 @@ public class ApplicationResource {
 
 ```java
 // app/src/main/java/io/casehub/ops/app/rest/dto/CreateApplicationRequest.java
-package io.casehub.ops.app.rest.dto;
+package io.casehub.ops.service.rest.dto;
 
 public record CreateApplicationRequest(String name, String description, String servicesJson) {}
 ```
@@ -2175,7 +2185,7 @@ The implementer should create each resource class following the same annotation 
 
 ```java
 // app/src/test/java/io/casehub/ops/app/rest/ApplicationResourceTest.java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -2192,8 +2202,8 @@ class ApplicationResourceTest {
                 .contentType("application/json")
                 .header("X-Tenancy-ID", "test-tenant")
                 .body("""
-                    {"name": "test-app", "description": "test", "servicesJson": "[]"}
-                    """)
+                      {"name": "test-app", "description": "test", "servicesJson": "[]"}
+                      """)
                 .when().post("/api/applications")
                 .then().statusCode(201)
                 .body("name", equalTo("test-app"))
@@ -2219,7 +2229,7 @@ class ApplicationResourceTest {
 
 ```java
 // app/src/test/java/io/casehub/ops/app/rest/ClusterResourceTest.java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -2236,9 +2246,9 @@ class ClusterResourceTest {
                 .contentType("application/json")
                 .header("X-Tenancy-ID", "test-tenant")
                 .body("""
-                    {"name": "test-cluster", "apiUrl": "https://localhost:6443",
-                     "namespace": "default", "clusterType": "KUBERNETES"}
-                    """)
+                      {"name": "test-cluster", "apiUrl": "https://localhost:6443",
+                       "namespace": "default", "clusterType": "KUBERNETES"}
+                      """)
                 .when().post("/api/clusters")
                 .then().statusCode(201)
                 .body("name", equalTo("test-cluster"))

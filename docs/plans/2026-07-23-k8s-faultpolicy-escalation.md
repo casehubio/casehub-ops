@@ -634,8 +634,8 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Create: `api/src/main/java/io/casehub/ops/api/k8s/K8sReviewSpec.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/k8s/KubernetesFaultPolicy.java`
-- Create: `app/src/test/java/io/casehub/ops/app/k8s/KubernetesFaultPolicyTest.java`
+- Modify: `service`
+- Create: `service`
 
 **Interfaces:**
 - Consumes: `ThresholdFaultPolicy.builder()`, `EscalationAction.addReviewNode()` from Task 2,
@@ -669,17 +669,17 @@ public record K8sReviewSpec(NodeId faultedNode, String reason) implements NodeSp
 
 Use `ide_create_file`:
 
-File: `app/src/test/java/io/casehub/ops/app/k8s/KubernetesFaultPolicyTest.java`
+File: `service`
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.*;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.InfraNodeSpec;
 import io.casehub.ops.api.k8s.K8sReviewSpec;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -690,11 +690,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class KubernetesFaultPolicyTest {
 
-    private static final NodeType K8S_REVIEW = NodeType.of("k8s-review");
+    private static final NodeType    K8S_REVIEW   = NodeType.of("k8s-review");
     private static final ActualState EMPTY_ACTUAL = new ActualState(Map.of());
 
     private final DefaultDesiredStateGraphFactory graphFactory = new DefaultDesiredStateGraphFactory();
-    private KubernetesFaultPolicy policy;
+    private       KubernetesFaultPolicy           policy;
 
     @BeforeEach
     void setUp() {
@@ -787,14 +787,14 @@ class KubernetesFaultPolicyTest {
     @Test
     void allK8sNodeTypes_escalate() {
         for (NodeType k8sType : List.of(ApplicationNodeTypes.K8S_NAMESPACE,
-                                         ApplicationNodeTypes.K8S_DEPLOYMENT,
-                                         ApplicationNodeTypes.K8S_SERVICE,
-                                         ApplicationNodeTypes.K8S_INGRESS,
-                                         ApplicationNodeTypes.K8S_CONFIGMAP)) {
+                                        ApplicationNodeTypes.K8S_DEPLOYMENT,
+                                        ApplicationNodeTypes.K8S_SERVICE,
+                                        ApplicationNodeTypes.K8S_INGRESS,
+                                        ApplicationNodeTypes.K8S_CONFIGMAP)) {
             var freshPolicy = new KubernetesFaultPolicy();
-            var node = new DesiredNode(NodeId.of("res-1"), k8sType, testSpec(), HumanGating.NONE);
-            var graph = graphFactory.of(List.of(node), List.of());
-            var event = new FaultEvent(NodeId.of("res-1"), FaultType.PROVISION_FAILED, "fail");
+            var node        = new DesiredNode(NodeId.of("res-1"), k8sType, testSpec(), HumanGating.NONE);
+            var graph       = graphFactory.of(List.of(node), List.of());
+            var event       = new FaultEvent(NodeId.of("res-1"), FaultType.PROVISION_FAILED, "fail");
 
             freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL);
             freshPolicy.onFault("t1", event, graph, EMPTY_ACTUAL);
@@ -825,12 +825,12 @@ Expected: FAIL — KubernetesFaultPolicy still returns `List.of()`.
 Use `ide_edit_member` to replace the full `KubernetesFaultPolicy` class. The complete file:
 
 ```java
-package io.casehub.ops.app.k8s;
+package io.casehub.ops.service.k8s;
 
 import io.casehub.desiredstate.api.*;
 import io.casehub.desiredstate.runtime.ThresholdFaultPolicy;
 import io.casehub.ops.api.k8s.K8sReviewSpec;
-import io.casehub.ops.app.goal.ApplicationNodeTypes;
+import io.casehub.ops.service.goal.ApplicationNodeTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.List;
@@ -842,22 +842,22 @@ public class KubernetesFaultPolicy implements FaultPolicy {
     private static final NodeType K8S_REVIEW = NodeType.of("k8s-review");
 
     private final ThresholdFaultPolicy delegate = ThresholdFaultPolicy.builder()
-            .faultTypes(Set.of(FaultType.PROVISION_FAILED))
-            .nodeTypes(Set.of(
-                    ApplicationNodeTypes.K8S_NAMESPACE,
-                    ApplicationNodeTypes.K8S_DEPLOYMENT,
-                    ApplicationNodeTypes.K8S_SERVICE,
-                    ApplicationNodeTypes.K8S_INGRESS,
-                    ApplicationNodeTypes.K8S_CONFIGMAP))
-            .ignoreTypes(Set.of(K8S_REVIEW))
-            .threshold(3)
-            .action(EscalationAction.addReviewNode(K8S_REVIEW,
-                    (event, current) -> new K8sReviewSpec(event.node(), event.detail())))
-            .build();
+                                                                      .faultTypes(Set.of(FaultType.PROVISION_FAILED))
+                                                                      .nodeTypes(Set.of(
+                                                                              ApplicationNodeTypes.K8S_NAMESPACE,
+                                                                              ApplicationNodeTypes.K8S_DEPLOYMENT,
+                                                                              ApplicationNodeTypes.K8S_SERVICE,
+                                                                              ApplicationNodeTypes.K8S_INGRESS,
+                                                                              ApplicationNodeTypes.K8S_CONFIGMAP))
+                                                                      .ignoreTypes(Set.of(K8S_REVIEW))
+                                                                      .threshold(3)
+                                                                      .action(EscalationAction.addReviewNode(K8S_REVIEW,
+                                                                                                             (event, current) -> new K8sReviewSpec(event.node(), event.detail())))
+                                                                      .build();
 
     @Override
     public List<GraphMutation> onFault(String tenancyId, FaultEvent event,
-                                        DesiredStateGraph current, ActualState actual) {
+                                       DesiredStateGraph current, ActualState actual) {
         return delegate.onFault(tenancyId, event, current, actual);
     }
 }

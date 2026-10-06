@@ -29,17 +29,17 @@
 ### Task 1: Data Model — ScalingRule, ServiceDefinition extension, CaseSignaler extraction
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/model/ScalingRule.java`
-- Create: `app/src/test/java/io/casehub/ops/app/model/ScalingRuleTest.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/CaseSignaler.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/model/ServiceDefinition.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/DriftSignalBridge.java`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java:136` (constructor call)
-- Modify: `app/src/test/java/io/casehub/ops/app/model/ServiceDefinitionTest.java`
-- Modify: `app/src/test/java/io/casehub/ops/app/service/UpdateServiceReplicasTest.java:199` (constructor call)
-- Modify: `app/src/test/java/io/casehub/ops/app/goal/ApplicationGoalCompilerTest.java:116` (constructor call)
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service` (constructor call)
+- Modify: `service`
+- Modify: `service` (constructor call)
+- Modify: `service` (constructor call)
 - Modify: `app/pom.xml` (add `casehub-ras-api` dependency)
-- Test: `app/src/test/java/io/casehub/ops/app/model/ScalingRuleTest.java`
+- Test: `service`
 
 **Interfaces:**
 - Produces: `ScalingRule(String situationId, double minConfidence, int minReplicas, int maxReplicas, Duration cooldownPeriod)` — used by Tasks 2, 3, 4
@@ -60,13 +60,15 @@ Add to `app/pom.xml` dependencies section:
 
 - [ ] **Step 2: Write ScalingRule tests**
 
-Create `app/src/test/java/io/casehub/ops/app/model/ScalingRuleTest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import org.junit.jupiter.api.Test;
+
 import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.*;
 
 class ScalingRuleTest {
@@ -159,10 +161,10 @@ Expected: COMPILATION ERROR
 
 - [ ] **Step 4: Implement ScalingRule**
 
-Create `app/src/main/java/io/casehub/ops/app/model/ScalingRule.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.model;
+package io.casehub.ops.service.model;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -184,9 +186,9 @@ public record ScalingRule(
 
     public int computeTarget(double confidence) {
         double effective = Math.max(0.0, Math.min(1.0,
-                (confidence - minConfidence) / (1.0 - minConfidence)));
+                                                  (confidence - minConfidence) / (1.0 - minConfidence)));
         return Math.max(minReplicas, Math.min(maxReplicas,
-                minReplicas + (int) ((maxReplicas - minReplicas) * effective)));
+                                              minReplicas + (int) ((maxReplicas - minReplicas) * effective)));
     }
 }
 ```
@@ -198,10 +200,10 @@ Expected: all tests pass
 
 - [ ] **Step 6: Extract CaseSignaler to top-level interface**
 
-Create `app/src/main/java/io/casehub/ops/app/service/CaseSignaler.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import java.util.UUID;
 
@@ -286,11 +288,11 @@ git add -A && git commit -m "feat(#56): ScalingRule record, CaseSignaler extract
 ### Task 2: SituationScalingEvaluator + ScalingEvaluatorSupport
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/ScalingRequestedEvent.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/ScalingEvaluatorSupport.java`
-- Create: `app/src/main/java/io/casehub/ops/app/service/SituationScalingEvaluator.java`
-- Create: `app/src/test/java/io/casehub/ops/app/service/SituationScalingEvaluatorTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/SituationScalingEvaluatorTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ScalingRule.computeTarget(double)` from Task 1
@@ -306,12 +308,13 @@ git add -A && git commit -m "feat(#56): ScalingRule record, CaseSignaler extract
 
 - [ ] **Step 1: Create ScalingRequestedEvent**
 
-Create `app/src/main/java/io/casehub/ops/app/service/ScalingRequestedEvent.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.case_.ScalingPolicy;
+import io.casehub.ops.service.case_.ScalingPolicy;
+
 import java.util.UUID;
 
 public record ScalingRequestedEvent(
@@ -327,14 +330,15 @@ public record ScalingRequestedEvent(
 
 - [ ] **Step 2: Create ScalingEvaluatorSupport**
 
-Create `app/src/main/java/io/casehub/ops/app/service/ScalingEvaluatorSupport.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.entity.ApplicationEntity;
+import io.casehub.ops.service.entity.ApplicationEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+
 import java.util.UUID;
 
 @ApplicationScoped
@@ -350,17 +354,17 @@ public class ScalingEvaluatorSupport {
 
 - [ ] **Step 3: Write SituationScalingEvaluator tests**
 
-Create `app/src/test/java/io/casehub/ops/app/service/SituationScalingEvaluatorTest.java`. This is a large test class — the evaluator is the most complex component. Tests use a test-only constructor that accepts a `SituationSource` stub, an event sink (replacing CDI async), and a `ServicesJsonLoader` function (replacing `ScalingEvaluatorSupport`).
+Create `service`. This is a large test class — the evaluator is the most complex component. Tests use a test-only constructor that accepts a `SituationSource` stub, an event sink (replacing CDI async), and a `ServicesJsonLoader` function (replacing `ScalingEvaluatorSupport`).
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.casehub.ops.app.case_.ScalingPolicy;
-import io.casehub.ops.app.model.ScalingRule;
-import io.casehub.ops.app.model.ServiceDefinition;
+import io.casehub.ops.service.case_.ScalingPolicy;
+import io.casehub.ops.service.model.ScalingRule;
+import io.casehub.ops.service.model.ServiceDefinition;
 import io.casehub.ops.api.infra.types.ResourceRequirements;
 import io.casehub.ras.api.ActiveSituation;
 import io.casehub.ras.api.SituationChangeEvent;
@@ -384,18 +388,18 @@ import static org.assertj.core.api.Assertions.*;
 class SituationScalingEvaluatorTest {
 
     private List<ScalingRequestedEvent> firedEvents;
-    private List<ActiveSituation> activeSituations;
-    private String currentServicesJson;
-    private SituationScalingEvaluator evaluator;
-    private ObjectMapper objectMapper;
+    private List<ActiveSituation>       activeSituations;
+    private String                      currentServicesJson;
+    private SituationScalingEvaluator   evaluator;
+    private ObjectMapper                objectMapper;
 
     @BeforeEach
     void setUp() {
-        firedEvents = new CopyOnWriteArrayList<>();
+        firedEvents      = new CopyOnWriteArrayList<>();
         activeSituations = new CopyOnWriteArrayList<>();
-        objectMapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .registerModule(new Jdk8Module());
+        objectMapper     = new ObjectMapper()
+                                   .registerModule(new JavaTimeModule())
+                                   .registerModule(new Jdk8Module());
 
         SituationSource source = tenancyId -> Uni.createFrom().item(List.copyOf(activeSituations));
 
@@ -602,9 +606,9 @@ class SituationScalingEvaluatorTest {
 
     private void setServicesWithRules(String serviceId, int replicas, List<ScalingRule> rules) {
         var sd = new ServiceDefinition(serviceId, serviceId, "img:1.0", replicas,
-                List.of(), Map.of(),
-                new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), rules);
+                                       List.of(), Map.of(),
+                                       new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
+                                       List.of(), Optional.empty(), List.of(), rules);
         try {
             currentServicesJson = objectMapper.writeValueAsString(List.of(sd));
         } catch (Exception e) {
@@ -618,12 +622,12 @@ class SituationScalingEvaluatorTest {
 
     private ActiveSituation situation(String situationId, String tenancyId, double confidence) {
         return new ActiveSituation(situationId, "corr-1", tenancyId, confidence,
-                Map.of(), Instant.now(), Instant.now(), 1);
+                                   Map.of(), Instant.now(), Instant.now(), 1);
     }
 
     private SituationChangeEvent event(String tenancyId, String situationId, ChangeType type) {
         return new SituationChangeEvent(tenancyId, situationId, "corr-1", type,
-                new SituationContext(Map.of()));
+                                        new SituationContext(Map.of()));
     }
 }
 ```
@@ -635,15 +639,15 @@ Expected: COMPILATION ERROR (SituationScalingEvaluator doesn't exist)
 
 - [ ] **Step 5: Implement SituationScalingEvaluator**
 
-Create `app/src/main/java/io/casehub/ops/app/service/SituationScalingEvaluator.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.ops.app.case_.ScalingPolicy;
-import io.casehub.ops.app.model.ScalingRule;
-import io.casehub.ops.app.model.ServiceDefinition;
+import io.casehub.ops.service.case_.ScalingPolicy;
+import io.casehub.ops.service.model.ScalingRule;
+import io.casehub.ops.service.model.ServiceDefinition;
 import io.casehub.ras.api.ActiveSituation;
 import io.casehub.ras.api.SituationChangeEvent;
 import io.casehub.ras.api.SituationSource;
@@ -672,21 +676,21 @@ import java.util.logging.Logger;
 @ApplicationScoped
 public class SituationScalingEvaluator {
 
-    private static final Logger LOG = Logger.getLogger(SituationScalingEvaluator.class.getName());
-    private static final long POLL_INTERVAL_MINUTES = 5;
+    private static final Logger LOG                   = Logger.getLogger(SituationScalingEvaluator.class.getName());
+    private static final long   POLL_INTERVAL_MINUTES = 5;
 
     record ScalingRegistration(UUID appCaseId, String applicationId,
                                Map<String, Integer> baseReplicas) {}
 
-    private final SituationSource situationSource;
-    private final Consumer<ScalingRequestedEvent> eventSink;
-    private final Function<UUID, String> servicesJsonLoader;
-    private final ObjectMapper objectMapper;
-    private final ConcurrentHashMap<String, ScalingRegistration> registrations = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Instant> lastScalingTimestamps = new ConcurrentHashMap<>();
+    private final SituationSource                                situationSource;
+    private final Consumer<ScalingRequestedEvent>                eventSink;
+    private final Function<UUID, String>                         servicesJsonLoader;
+    private final ObjectMapper                                   objectMapper;
+    private final ConcurrentHashMap<String, ScalingRegistration> registrations         = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Instant>             lastScalingTimestamps = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService pollScheduler;
-    private volatile ScheduledFuture<?> pollFuture;
+    private final    ScheduledExecutorService pollScheduler;
+    private volatile ScheduledFuture<?>       pollFuture;
 
     @Inject
     public SituationScalingEvaluator(
@@ -705,11 +709,11 @@ public class SituationScalingEvaluator {
             Consumer<ScalingRequestedEvent> eventSink,
             Function<UUID, String> servicesJsonLoader,
             ObjectMapper objectMapper) {
-        this.situationSource = Objects.requireNonNull(situationSource);
-        this.eventSink = Objects.requireNonNull(eventSink);
+        this.situationSource    = Objects.requireNonNull(situationSource);
+        this.eventSink          = Objects.requireNonNull(eventSink);
         this.servicesJsonLoader = Objects.requireNonNull(servicesJsonLoader);
-        this.objectMapper = Objects.requireNonNull(objectMapper);
-        this.pollScheduler = Executors.newScheduledThreadPool(1, r -> {
+        this.objectMapper       = Objects.requireNonNull(objectMapper);
+        this.pollScheduler      = Executors.newScheduledThreadPool(1, r -> {
             Thread t = new Thread(r, "scaling-evaluator-poll");
             t.setDaemon(true);
             return t;
@@ -718,10 +722,10 @@ public class SituationScalingEvaluator {
     }
 
     public void register(String tenancyId, UUID appCaseId, String applicationId,
-                          Map<String, Integer> baseReplicas) {
+                         Map<String, Integer> baseReplicas) {
         String key = tenancyId + ":" + applicationId;
         registrations.put(key, new ScalingRegistration(appCaseId, applicationId,
-                Map.copyOf(baseReplicas)));
+                                                       Map.copyOf(baseReplicas)));
     }
 
     public void deregister(String tenancyId, String applicationId) {
@@ -729,7 +733,7 @@ public class SituationScalingEvaluator {
     }
 
     public boolean isCoolingDown(String applicationId, String serviceId) {
-        String key = applicationId + ":" + serviceId;
+        String  key  = applicationId + ":" + serviceId;
         Instant last = lastScalingTimestamps.get(key);
         if (last == null) return false;
         // Check against all rules for this service — would need servicesJson
@@ -738,9 +742,9 @@ public class SituationScalingEvaluator {
     }
 
     public boolean isCoolingDown(String applicationId, String serviceId,
-                                  Duration cooldownPeriod) {
+                                 Duration cooldownPeriod) {
         if (cooldownPeriod == null) return false;
-        String key = applicationId + ":" + serviceId;
+        String  key  = applicationId + ":" + serviceId;
         Instant last = lastScalingTimestamps.get(key);
         if (last == null) return false;
         return Duration.between(last, Instant.now()).compareTo(cooldownPeriod) < 0;
@@ -756,9 +760,9 @@ public class SituationScalingEvaluator {
 
     void pollAllTenants() {
         registrations.keySet().stream()
-                .map(key -> key.substring(0, key.indexOf(':')))
-                .distinct()
-                .forEach(this::evaluateForTenant);
+                     .map(key -> key.substring(0, key.indexOf(':')))
+                     .distinct()
+                     .forEach(this::evaluateForTenant);
     }
 
     private void evaluateForTenant(String tenancyId) {
@@ -781,7 +785,7 @@ public class SituationScalingEvaluator {
     }
 
     private void evaluateRegistration(String tenancyId, ScalingRegistration reg,
-                                       List<ActiveSituation> situations) {
+                                      List<ActiveSituation> situations) {
         String servicesJson = servicesJsonLoader.apply(UUID.fromString(reg.applicationId()));
         if (servicesJson == null) return;
 
@@ -796,17 +800,17 @@ public class SituationScalingEvaluator {
         for (ServiceDefinition sd : services) {
             if (sd.scalingRules().isEmpty()) continue;
 
-            int targetReplicas = -1;
-            int mergedMinReplicas = Integer.MAX_VALUE;
-            int mergedMaxReplicas = 0;
-            Duration mergedCooldown = null;
-            int matchCount = 0;
+            int      targetReplicas    = -1;
+            int      mergedMinReplicas = Integer.MAX_VALUE;
+            int      mergedMaxReplicas = 0;
+            Duration mergedCooldown    = null;
+            int      matchCount        = 0;
 
             for (ScalingRule rule : sd.scalingRules()) {
                 var match = situations.stream()
-                        .filter(s -> s.situationId().equals(rule.situationId()))
-                        .filter(s -> s.confidence() >= rule.minConfidence())
-                        .findFirst();
+                                      .filter(s -> s.situationId().equals(rule.situationId()))
+                                      .filter(s -> s.confidence() >= rule.minConfidence())
+                                      .findFirst();
                 if (match.isPresent()) {
                     int computed = rule.computeTarget(match.get().confidence());
                     if (computed > targetReplicas) {
@@ -816,8 +820,8 @@ public class SituationScalingEvaluator {
                     mergedMaxReplicas = Math.max(mergedMaxReplicas, rule.maxReplicas());
                     if (rule.cooldownPeriod() != null) {
                         mergedCooldown = mergedCooldown == null ? rule.cooldownPeriod()
-                                : rule.cooldownPeriod().compareTo(mergedCooldown) > 0
-                                  ? rule.cooldownPeriod() : mergedCooldown;
+                                                                : rule.cooldownPeriod().compareTo(mergedCooldown) > 0
+                                                                  ? rule.cooldownPeriod() : mergedCooldown;
                     }
                     matchCount++;
                 }
@@ -826,7 +830,7 @@ public class SituationScalingEvaluator {
             if (matchCount == 0) {
                 Integer base = reg.baseReplicas().get(sd.serviceId());
                 if (base != null && base != sd.replicas()) {
-                    targetReplicas = base;
+                    targetReplicas    = base;
                     mergedMinReplicas = 0;
                     mergedMaxReplicas = Integer.MAX_VALUE;
                 } else {
@@ -840,8 +844,8 @@ public class SituationScalingEvaluator {
             if (isCoolingDown(reg.applicationId(), sd.serviceId(), effectiveCooldown)) continue;
 
             ScalingPolicy policy = matchCount > 0
-                    ? new ScalingPolicy(mergedMinReplicas, mergedMaxReplicas, mergedCooldown)
-                    : ScalingPolicy.UNBOUNDED;
+                                   ? new ScalingPolicy(mergedMinReplicas, mergedMaxReplicas, mergedCooldown)
+                                   : ScalingPolicy.UNBOUNDED;
 
             var event = new ScalingRequestedEvent(
                     reg.appCaseId(), reg.applicationId(), tenancyId,
@@ -859,7 +863,7 @@ public class SituationScalingEvaluator {
         for (ScalingRule rule : sd.scalingRules()) {
             if (rule.cooldownPeriod() != null) {
                 max = max == null ? rule.cooldownPeriod()
-                        : rule.cooldownPeriod().compareTo(max) > 0 ? rule.cooldownPeriod() : max;
+                                  : rule.cooldownPeriod().compareTo(max) > 0 ? rule.cooldownPeriod() : max;
             }
         }
         return max;
@@ -904,9 +908,9 @@ git add -A && git commit -m "feat(#56): SituationScalingEvaluator with confidenc
 ### Task 3: ScalingSignalBridge
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/service/ScalingSignalBridge.java`
-- Create: `app/src/test/java/io/casehub/ops/app/service/ScalingSignalBridgeTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/service/ScalingSignalBridgeTest.java`
+- Create: `service`
+- Create: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ScalingRequestedEvent` from Task 2
@@ -916,12 +920,12 @@ git add -A && git commit -m "feat(#56): SituationScalingEvaluator with confidenc
 
 - [ ] **Step 1: Write ScalingSignalBridge tests**
 
-Create `app/src/test/java/io/casehub/ops/app/service/ScalingSignalBridgeTest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
-import io.casehub.ops.app.case_.ScalingPolicy;
+import io.casehub.ops.service.case_.ScalingPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -934,13 +938,13 @@ import static org.assertj.core.api.Assertions.*;
 
 class ScalingSignalBridgeTest {
 
-    private ScalingSignalBridge bridge;
+    private ScalingSignalBridge          bridge;
     private java.util.List<SignalRecord> signals;
 
     @BeforeEach
     void setUp() {
         signals = new CopyOnWriteArrayList<>();
-        bridge = new ScalingSignalBridge(
+        bridge  = new ScalingSignalBridge(
                 (caseId, path, value) -> signals.add(new SignalRecord(caseId, path, value)));
     }
 
@@ -949,7 +953,7 @@ class ScalingSignalBridgeTest {
     void eventSignalsCorrectCaseWithFullSpec() {
         UUID caseId = UUID.randomUUID();
         var event = new ScalingRequestedEvent(caseId, "app-1", "tenant-1",
-                "web", 6, 3, "high-load", new ScalingPolicy(2, 10, Duration.ofMinutes(5)));
+                                              "web", 6, 3, "high-load", new ScalingPolicy(2, 10, Duration.ofMinutes(5)));
 
         bridge.onScalingRequested(event);
 
@@ -974,7 +978,7 @@ class ScalingSignalBridgeTest {
     void unboundedPolicyOmitsCooldown() {
         UUID caseId = UUID.randomUUID();
         var event = new ScalingRequestedEvent(caseId, "app-1", "tenant-1",
-                "web", 5, 2, "manual", ScalingPolicy.UNBOUNDED);
+                                              "web", 5, 2, "manual", ScalingPolicy.UNBOUNDED);
 
         bridge.onScalingRequested(event);
 
@@ -993,17 +997,16 @@ Expected: COMPILATION ERROR
 
 - [ ] **Step 3: Implement ScalingSignalBridge**
 
-Create `app/src/main/java/io/casehub/ops/app/service/ScalingSignalBridge.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.service;
+package io.casehub.ops.service.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1040,8 +1043,8 @@ public class ScalingSignalBridge {
         try {
             signaler.signal(event.appCaseId(), "scalingRequired", spec);
             LOG.fine(() -> "Signaled scaling for app " + event.applicationId()
-                    + " service " + event.serviceId()
-                    + " target=" + event.targetReplicas());
+                           + " service " + event.serviceId()
+                           + " target=" + event.targetReplicas());
         } catch (Exception e) {
             LOG.log(Level.WARNING, "Failed to signal scaling for case " + event.appCaseId(), e);
         }
@@ -1065,10 +1068,10 @@ git add -A && git commit -m "feat(#56): ScalingSignalBridge — translates Scali
 ### Task 4: ScalingResource (REST endpoint)
 
 **Files:**
-- Create: `app/src/main/java/io/casehub/ops/app/rest/ScalingResource.java`
-- Create: `app/src/main/java/io/casehub/ops/app/rest/dto/ScaleServiceRequest.java`
-- Create: `app/src/test/java/io/casehub/ops/app/rest/ScalingResourceTest.java`
-- Test: `app/src/test/java/io/casehub/ops/app/rest/ScalingResourceTest.java`
+- Create: `service`
+- Create: `service`
+- Create: `service`
+- Test: `service`
 
 **Interfaces:**
 - Consumes: `ScalingRequestedEvent` from Task 2
@@ -1080,29 +1083,29 @@ git add -A && git commit -m "feat(#56): ScalingSignalBridge — translates Scali
 
 - [ ] **Step 1: Create ScaleServiceRequest DTO**
 
-Create `app/src/main/java/io/casehub/ops/app/rest/dto/ScaleServiceRequest.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.rest.dto;
+package io.casehub.ops.service.rest.dto;
 
 public record ScaleServiceRequest(int targetReplicas, String reason) {}
 ```
 
 - [ ] **Step 2: Write ScalingResource tests**
 
-Create `app/src/test/java/io/casehub/ops/app/rest/ScalingResourceTest.java`. Tests use the REST resource directly (not @QuarkusTest) to avoid full CDI bootstrap:
+Create `service`. Tests use the REST resource directly (not @QuarkusTest) to avoid full CDI bootstrap:
 
 ```java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.casehub.ops.app.case_.ScalingPolicy;
-import io.casehub.ops.app.model.ScalingRule;
-import io.casehub.ops.app.model.ServiceDefinition;
-import io.casehub.ops.app.rest.dto.ScaleServiceRequest;
-import io.casehub.ops.app.service.ScalingRequestedEvent;
+import io.casehub.ops.service.case_.ScalingPolicy;
+import io.casehub.ops.service.model.ScalingRule;
+import io.casehub.ops.service.model.ServiceDefinition;
+import io.casehub.ops.service.rest.dto.ScaleServiceRequest;
+import io.casehub.ops.service.service.ScalingRequestedEvent;
 import io.casehub.ops.api.infra.types.ResourceRequirements;
 import org.junit.jupiter.api.Test;
 
@@ -1118,18 +1121,18 @@ import static org.assertj.core.api.Assertions.*;
 class ScalingResourceTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .registerModule(new Jdk8Module());
+                                                      .registerModule(new JavaTimeModule())
+                                                      .registerModule(new Jdk8Module());
 
     @Test
     void validRequestReturns202() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
-        var resource = buildResource(events);
-        UUID appId = UUID.randomUUID();
+        var  events   = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var  resource = buildResource(events);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "web",
-                new ScaleServiceRequest(5, "manual"),
-                testApp(appId, "RUNNING", servicesJson("web", 2, List.of())));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testApp(appId, "RUNNING", servicesJson("web", 2, List.of())));
 
         assertThat(response.getStatus()).isEqualTo(202);
         assertThat(events).hasSize(1);
@@ -1139,13 +1142,13 @@ class ScalingResourceTest {
 
     @Test
     void wrongStatusReturns409() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
-        var resource = buildResource(events);
-        UUID appId = UUID.randomUUID();
+        var  events   = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var  resource = buildResource(events);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "web",
-                new ScaleServiceRequest(5, "manual"),
-                testApp(appId, "DRAFT", servicesJson("web", 2, List.of())));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testApp(appId, "DRAFT", servicesJson("web", 2, List.of())));
 
         assertThat(response.getStatus()).isEqualTo(409);
         assertThat(events).isEmpty();
@@ -1153,56 +1156,56 @@ class ScalingResourceTest {
 
     @Test
     void nullEngineCaseIdReturns409() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
-        var resource = buildResource(events);
-        UUID appId = UUID.randomUUID();
+        var  events   = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var  resource = buildResource(events);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "web",
-                new ScaleServiceRequest(5, "manual"),
-                testAppNoCaseId(appId, "RUNNING", servicesJson("web", 2, List.of())));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testAppNoCaseId(appId, "RUNNING", servicesJson("web", 2, List.of())));
 
         assertThat(response.getStatus()).isEqualTo(409);
     }
 
     @Test
     void unknownServiceReturns404() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
-        var resource = buildResource(events);
-        UUID appId = UUID.randomUUID();
+        var  events   = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var  resource = buildResource(events);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "nonexistent",
-                new ScaleServiceRequest(5, "manual"),
-                testApp(appId, "RUNNING", servicesJson("web", 2, List.of())));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testApp(appId, "RUNNING", servicesJson("web", 2, List.of())));
 
         assertThat(response.getStatus()).isEqualTo(404);
     }
 
     @Test
     void coolingDownReturns429() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var events           = new CopyOnWriteArrayList<ScalingRequestedEvent>();
         var cooldownServices = new java.util.HashSet<String>();
         cooldownServices.add("app-1:web");
-        var resource = buildResourceWithCooldown(events, cooldownServices);
-        UUID appId = UUID.randomUUID();
+        var  resource = buildResourceWithCooldown(events, cooldownServices);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "web",
-                new ScaleServiceRequest(5, "manual"),
-                testApp(appId, "RUNNING", servicesJson("web", 2,
-                        List.of(new ScalingRule("x", 0.5, 2, 10, Duration.ofMinutes(5))))));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testApp(appId, "RUNNING", servicesJson("web", 2,
+                                                                             List.of(new ScalingRule("x", 0.5, 2, 10, Duration.ofMinutes(5))))));
 
         assertThat(response.getStatus()).isEqualTo(429);
     }
 
     @Test
     void serviceWithRulesIncludesWarningHeader() {
-        var events = new CopyOnWriteArrayList<ScalingRequestedEvent>();
-        var resource = buildResource(events);
-        UUID appId = UUID.randomUUID();
+        var  events   = new CopyOnWriteArrayList<ScalingRequestedEvent>();
+        var  resource = buildResource(events);
+        UUID appId    = UUID.randomUUID();
 
         var response = resource.scale(appId, "web",
-                new ScaleServiceRequest(5, "manual"),
-                testApp(appId, "RUNNING", servicesJson("web", 2,
-                        List.of(new ScalingRule("x", 0.5, 2, 10, null)))));
+                                      new ScaleServiceRequest(5, "manual"),
+                                      testApp(appId, "RUNNING", servicesJson("web", 2,
+                                                                             List.of(new ScalingRule("x", 0.5, 2, 10, null)))));
 
         assertThat(response.getStatus()).isEqualTo(202);
         assertThat(response.getHeaderString("X-Scaling-Warning")).isEqualTo("active-rules");
@@ -1219,20 +1222,20 @@ class ScalingResourceTest {
     }
 
     private ScalingResource buildResourceWithCooldown(List<ScalingRequestedEvent> events,
-                                                       java.util.Set<String> coolingDown) {
+                                                      java.util.Set<String> coolingDown) {
         // ScalingResource will need a test-friendly constructor accepting event sink
         // and cooldown checker. Detailed below in the implementation step.
         return new ScalingResource(events::add,
-                (appId, serviceId) -> coolingDown.contains(appId + ":" + serviceId),
-                (appId, serviceId) -> coolingDown.add(appId + ":" + serviceId),
-                objectMapper);
+                                   (appId, serviceId) -> coolingDown.contains(appId + ":" + serviceId),
+                                   (appId, serviceId) -> coolingDown.add(appId + ":" + serviceId),
+                                   objectMapper);
     }
 
     private String servicesJson(String serviceId, int replicas, List<ScalingRule> rules) {
         var sd = new ServiceDefinition(serviceId, serviceId, "img:1.0", replicas,
-                List.of(), Map.of(),
-                new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
-                List.of(), Optional.empty(), List.of(), rules);
+                                       List.of(), Map.of(),
+                                       new ResourceRequirements("100m", "256Mi", "50m", "128Mi"),
+                                       List.of(), Optional.empty(), List.of(), rules);
         try {
             return objectMapper.writeValueAsString(List.of(sd));
         } catch (Exception e) {
@@ -1255,21 +1258,21 @@ class ScalingResourceTest {
 
 - [ ] **Step 3: Implement ScalingResource**
 
-Create `app/src/main/java/io/casehub/ops/app/rest/ScalingResource.java`:
+Create `service`:
 
 ```java
-package io.casehub.ops.app.rest;
+package io.casehub.ops.service.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.ops.app.case_.ScalingPolicy;
-import io.casehub.ops.app.entity.ApplicationEntity;
-import io.casehub.ops.app.model.ApplicationStatus;
-import io.casehub.ops.app.model.ScalingRule;
-import io.casehub.ops.app.model.ServiceDefinition;
-import io.casehub.ops.app.rest.dto.ScaleServiceRequest;
-import io.casehub.ops.app.service.ScalingRequestedEvent;
-import io.casehub.ops.app.service.ServiceDefinitionParser;
-import io.casehub.ops.app.service.SituationScalingEvaluator;
+import io.casehub.ops.service.case_.ScalingPolicy;
+import io.casehub.ops.service.entity.ApplicationEntity;
+import io.casehub.ops.service.model.ApplicationStatus;
+import io.casehub.ops.service.model.ScalingRule;
+import io.casehub.ops.service.model.ServiceDefinition;
+import io.casehub.ops.service.rest.dto.ScaleServiceRequest;
+import io.casehub.ops.service.service.ScalingRequestedEvent;
+import io.casehub.ops.service.service.ServiceDefinitionParser;
+import io.casehub.ops.service.service.SituationScalingEvaluator;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -1296,9 +1299,9 @@ import java.util.function.Consumer;
 public class ScalingResource {
 
     private final Consumer<ScalingRequestedEvent> eventSink;
-    private final BiPredicate<String, String> cooldownChecker;
-    private final BiConsumer<String, String> timestampRecorder;
-    private final ObjectMapper objectMapper;
+    private final BiPredicate<String, String>     cooldownChecker;
+    private final BiConsumer<String, String>      timestampRecorder;
+    private final ObjectMapper                    objectMapper;
 
     @Inject
     public ScalingResource(Event<ScalingRequestedEvent> cdiEvent,
@@ -1314,10 +1317,10 @@ public class ScalingResource {
                     BiPredicate<String, String> cooldownChecker,
                     BiConsumer<String, String> timestampRecorder,
                     ObjectMapper objectMapper) {
-        this.eventSink = eventSink;
-        this.cooldownChecker = cooldownChecker;
+        this.eventSink         = eventSink;
+        this.cooldownChecker   = cooldownChecker;
         this.timestampRecorder = timestampRecorder;
-        this.objectMapper = objectMapper;
+        this.objectMapper      = objectMapper;
     }
 
     @POST
@@ -1335,20 +1338,20 @@ public class ScalingResource {
     Response scale(UUID appId, String serviceId, ScaleServiceRequest request,
                    Object appRecord) {
         // Extract fields — supports both ApplicationEntity and test record
-        UUID engineCaseId;
+        UUID   engineCaseId;
         String status;
         String servicesJson;
         String applicationId;
 
         if (appRecord instanceof ApplicationEntity app) {
-            engineCaseId = app.engineCaseId;
-            status = app.status.name();
-            servicesJson = app.servicesJson;
+            engineCaseId  = app.engineCaseId;
+            status        = app.status.name();
+            servicesJson  = app.servicesJson;
             applicationId = app.id.toString();
-        } else if (appRecord instanceof io.casehub.ops.app.rest.ScalingResourceTest.TestApp test) {
-            engineCaseId = test.engineCaseId();
-            status = test.status();
-            servicesJson = test.servicesJson();
+        } else if (appRecord instanceof io.casehub.ops.service.rest.ScalingResourceTest.TestApp test) {
+            engineCaseId  = test.engineCaseId();
+            status        = test.status();
+            servicesJson  = test.servicesJson();
             applicationId = test.applicationId();
         } else {
             return Response.status(500).build();
@@ -1364,8 +1367,8 @@ public class ScalingResource {
 
         List<ServiceDefinition> services = ServiceDefinitionParser.parse(servicesJson, objectMapper);
         ServiceDefinition target = services.stream()
-                .filter(sd -> sd.serviceId().equals(serviceId))
-                .findFirst().orElse(null);
+                                           .filter(sd -> sd.serviceId().equals(serviceId))
+                                           .findFirst().orElse(null);
 
         if (target == null) {
             return Response.status(404).entity(Map.of("error", "Service not found: " + serviceId)).build();
@@ -1377,8 +1380,8 @@ public class ScalingResource {
         }
 
         ScalingPolicy policy = target.scalingRules().isEmpty()
-                ? ScalingPolicy.UNBOUNDED
-                : mergedPolicy(target.scalingRules());
+                               ? ScalingPolicy.UNBOUNDED
+                               : mergedPolicy(target.scalingRules());
 
         var event = new ScalingRequestedEvent(
                 engineCaseId, applicationId, "",
@@ -1406,22 +1409,22 @@ public class ScalingResource {
         for (ScalingRule rule : sd.scalingRules()) {
             if (rule.cooldownPeriod() != null) {
                 max = max == null ? rule.cooldownPeriod()
-                        : rule.cooldownPeriod().compareTo(max) > 0 ? rule.cooldownPeriod() : max;
+                                  : rule.cooldownPeriod().compareTo(max) > 0 ? rule.cooldownPeriod() : max;
             }
         }
         return max;
     }
 
     private ScalingPolicy mergedPolicy(List<ScalingRule> rules) {
-        int min = Integer.MAX_VALUE;
-        int max = 0;
+        int      min      = Integer.MAX_VALUE;
+        int      max      = 0;
         Duration cooldown = null;
         for (ScalingRule r : rules) {
             min = Math.min(min, r.minReplicas());
             max = Math.max(max, r.maxReplicas());
             if (r.cooldownPeriod() != null) {
                 cooldown = cooldown == null ? r.cooldownPeriod()
-                        : r.cooldownPeriod().compareTo(cooldown) > 0 ? r.cooldownPeriod() : cooldown;
+                                            : r.cooldownPeriod().compareTo(cooldown) > 0 ? r.cooldownPeriod() : cooldown;
             }
         }
         return new ScalingPolicy(min, max, cooldown);
@@ -1447,10 +1450,10 @@ git add -A && git commit -m "feat(#56): ScalingResource REST endpoint for manual
 ### Task 5: Blackboard unification + registration wiring + existing code changes
 
 **Files:**
-- Modify: `app/src/main/java/io/casehub/ops/app/case_/ApplicationCaseDescriptor.java:35-36`
-- Modify: `app/src/main/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptor.java:87`
-- Modify: `app/src/main/java/io/casehub/ops/app/service/ApplicationLifecycleService.java` (deploy + decommission)
-- Modify: `app/src/test/java/io/casehub/ops/app/case_/ScalingEventCaseDescriptorTest.java`
+- Modify: `service`
+- Modify: `service`
+- Modify: `service` (deploy + decommission)
+- Modify: `service`
 - Test: existing tests updated
 
 **Interfaces:**
