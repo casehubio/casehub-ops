@@ -33,7 +33,7 @@ public final class ScalingEventCaseDescriptor {
                 .capabilities(capabilities())
                 .workers(workers(lifecycleService, convergenceTracker))
                 .bindings(bindings())
-                .completion(".scalingStatus == \"converged\" || .scalingStatus == \"no-change-needed\"")
+                .completion("(.scalingStatus == \"converged\") or (.scalingStatus == \"no-change-needed\")")
                 .build();
     }
 

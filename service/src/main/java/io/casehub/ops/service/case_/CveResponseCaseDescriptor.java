@@ -33,7 +33,7 @@ public final class CveResponseCaseDescriptor {
                 .capabilities(capabilities())
                 .workers(workers(lifecycleService, convergenceTracker))
                 .bindings(bindings())
-                .completion(".cveStatus == \"resolved\" || .cveStatus == \"escalated\"")
+                .completion("(.cveStatus == \"resolved\") or (.cveStatus == \"escalated\")")
                 .build();
     }
 

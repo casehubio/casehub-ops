@@ -3,6 +3,7 @@ package io.casehub.ops.service.api;
 import io.casehub.ops.service.entity.ApplicationEntity;
 import io.casehub.ops.service.rest.dto.CreateApplicationRequest;
 import io.casehub.ops.service.service.ApplicationLifecycleService;
+import io.casehub.platform.api.mcp.ContextParam;
 import io.casehub.platform.api.mcp.McpDomain;
 import io.casehub.platform.api.mcp.PathParam;
 import io.casehub.platform.api.mcp.PlatformMutation;
@@ -24,9 +25,10 @@ public class OpsApplicationApi {
 
     @PlatformMutation("Create an application")
     @RestPath("/")
-    public ApplicationEntity createApplication(CreateApplicationRequest request) {
+    public ApplicationEntity createApplication(CreateApplicationRequest request,
+                                                @ContextParam("tenancyId") String tenancyId) {
         return lifecycleService.createDraft(
-                request.name(), request.description(), request.servicesJson(), null);
+                request.name(), request.description(), request.servicesJson(), tenancyId);
     }
 
     @PlatformQuery("List all applications")

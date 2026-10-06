@@ -27,7 +27,7 @@ public class OpsDeploymentApi {
 
     @PlatformMutation("Deploy an application")
     @RestPath("/{applicationId}/deploy")
-    public void deploy(@PathParam UUID applicationId, DeployRequest request) {
+    public void deploy(@PathParam UUID applicationId) {
         var app = em.find(ApplicationEntity.class, applicationId);
         if (app == null) { throw new IllegalArgumentException("Application not found: " + applicationId); }
         lifecycleService.deploy(applicationId, app.tenancyId);

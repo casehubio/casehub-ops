@@ -17,8 +17,8 @@ class GraphQLEndpointTest {
                 .body("""
                     {"name": "gql-app", "description": "graphql test", "servicesJson": "[]"}
                     """)
-                .when().post("/api/applications")
-                .then().statusCode(201);
+                .when().post("/api/ops/applications")
+                .then().statusCode(200);
 
         given()
                 .contentType("application/json")

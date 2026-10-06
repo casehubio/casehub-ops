@@ -4,6 +4,7 @@ import io.casehub.ops.service.entity.ClusterReferenceEntity;
 import io.casehub.ops.service.model.ClusterStatus;
 import io.casehub.ops.service.rest.dto.RegisterClusterRequest;
 import io.casehub.ops.service.service.ClusterService;
+import io.casehub.platform.api.mcp.ContextParam;
 import io.casehub.platform.api.mcp.McpDomain;
 import io.casehub.platform.api.mcp.PathParam;
 import io.casehub.platform.api.mcp.PlatformMutation;
@@ -23,20 +24,21 @@ public class OpsClusterApi {
 
     @PlatformMutation("Register a cluster")
     @RestPath("/")
-    public ClusterReferenceEntity registerCluster(RegisterClusterRequest request) {
+    public ClusterReferenceEntity registerCluster(RegisterClusterRequest request,
+                                                   @ContextParam("tenancyId") String tenancyId) {
         var cluster = new ClusterReferenceEntity();
         cluster.name = request.name();
         cluster.apiUrl = request.apiUrl();
         cluster.namespace = request.namespace();
         cluster.credentialRef = request.credentialRef();
         cluster.clusterType = request.clusterType();
-        return clusterService.register(cluster, null);
+        return clusterService.register(cluster, tenancyId);
     }
 
     @PlatformQuery("List clusters")
     @RestPath("/")
-    public List<ClusterReferenceEntity> listClusters() {
-        return clusterService.list(null);
+    public List<ClusterReferenceEntity> listClusters(@ContextParam("tenancyId") String tenancyId) {
+        return clusterService.list(tenancyId);
     }
 
     @PlatformQuery("Get cluster details")

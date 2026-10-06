@@ -18,14 +18,14 @@ class ClusterResourceTest {
                     {"name": "test-cluster", "apiUrl": "https://localhost:6443",
                      "namespace": "default", "clusterType": "KUBERNETES"}
                     """)
-                .when().post("/api/clusters")
-                .then().statusCode(201)
+                .when().post("/api/ops/clusters")
+                .then().statusCode(200)
                 .body("name", equalTo("test-cluster"))
                 .body("id", notNullValue());
 
         given()
                 .header("X-Tenancy-ID", "test-tenant")
-                .when().get("/api/clusters")
+                .when().get("/api/ops/clusters")
                 .then().statusCode(200)
                 .body("size()", greaterThanOrEqualTo(1));
     }
@@ -39,12 +39,12 @@ class ClusterResourceTest {
                     {"name": "get-cluster", "apiUrl": "https://localhost:6443",
                      "namespace": "default", "clusterType": "KUBERNETES"}
                     """)
-                .when().post("/api/clusters")
-                .then().statusCode(201)
+                .when().post("/api/ops/clusters")
+                .then().statusCode(200)
                 .extract().path("id");
 
         given()
-                .when().get("/api/clusters/" + id)
+                .when().get("/api/ops/clusters/" + id)
                 .then().statusCode(200)
                 .body("name", equalTo("get-cluster"));
     }
@@ -52,7 +52,7 @@ class ClusterResourceTest {
     @Test
     void returns404ForMissingCluster() {
         given()
-                .when().get("/api/clusters/00000000-0000-0000-0000-000000000000")
+                .when().get("/api/ops/clusters/00000000-0000-0000-0000-000000000000")
                 .then().statusCode(404);
     }
 
@@ -65,13 +65,13 @@ class ClusterResourceTest {
                     {"name": "delete-cluster", "apiUrl": "https://localhost:6443",
                      "namespace": "default", "clusterType": "KUBERNETES"}
                     """)
-                .when().post("/api/clusters")
-                .then().statusCode(201)
+                .when().post("/api/ops/clusters")
+                .then().statusCode(200)
                 .extract().path("id");
 
         given()
                 .header("X-Tenancy-ID", "test-tenant-delete")
-                .when().delete("/api/clusters/" + id)
+                .when().post("/api/ops/clusters/" + id + "/delete")
                 .then().statusCode(204);
     }
 
@@ -84,13 +84,13 @@ class ClusterResourceTest {
                     {"name": "connectivity-cluster", "apiUrl": "https://localhost:6443",
                      "namespace": "default", "clusterType": "KUBERNETES"}
                     """)
-                .when().post("/api/clusters")
-                .then().statusCode(201)
+                .when().post("/api/ops/clusters")
+                .then().statusCode(200)
                 .extract().path("id");
 
         given()
                 .contentType("application/json")
-                .when().post("/api/clusters/" + id + "/test")
+                .when().post("/api/ops/clusters/" + id + "/test")
                 .then().statusCode(200);
     }
 }

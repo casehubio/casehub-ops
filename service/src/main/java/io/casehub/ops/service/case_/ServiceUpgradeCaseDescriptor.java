@@ -33,7 +33,7 @@ public final class ServiceUpgradeCaseDescriptor {
                 .capabilities(capabilities())
                 .workers(workers(lifecycleService, convergenceTracker))
                 .bindings(bindings())
-                .completion(".upgradeStatus == \"completed\" || .upgradeStatus == \"escalated\"")
+                .completion("(.upgradeStatus == \"completed\") or (.upgradeStatus == \"escalated\")")
                 .build();
     }
 

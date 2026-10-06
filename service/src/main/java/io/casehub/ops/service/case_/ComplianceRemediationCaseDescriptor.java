@@ -37,7 +37,7 @@ public final class ComplianceRemediationCaseDescriptor {
                 .capabilities(capabilities())
                 .workers(workers(lifecycleService, convergenceTracker))
                 .bindings(bindings())
-                .completion(".complianceStatus == \"resolved\" || .complianceStatus == \"escalated\"")
+                .completion("(.complianceStatus == \"resolved\") or (.complianceStatus == \"escalated\")")
                 .build();
     }
 

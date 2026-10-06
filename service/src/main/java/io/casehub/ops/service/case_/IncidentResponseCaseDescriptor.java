@@ -33,7 +33,7 @@ public final class IncidentResponseCaseDescriptor {
                 .capabilities(capabilities())
                 .workers(workers(lifecycleService, convergenceTracker))
                 .bindings(bindings())
-                .completion(".incidentStatus == \"resolved\" || .incidentStatus == \"escalated\"")
+                .completion("(.incidentStatus == \"resolved\") or (.incidentStatus == \"escalated\")")
                 .build();
     }
 

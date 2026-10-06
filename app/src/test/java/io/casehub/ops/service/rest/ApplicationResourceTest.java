@@ -17,14 +17,14 @@ class ApplicationResourceTest {
                 .body("""
                     {"name": "test-app", "description": "test", "servicesJson": "[]"}
                     """)
-                .when().post("/api/applications")
-                .then().statusCode(201)
+                .when().post("/api/ops/applications")
+                .then().statusCode(200)
                 .body("name", equalTo("test-app"))
                 .body("id", notNullValue());
 
         given()
                 .header("X-Tenancy-ID", "test-tenant")
-                .when().get("/api/applications")
+                .when().get("/api/ops/applications")
                 .then().statusCode(200)
                 .body("size()", greaterThanOrEqualTo(1));
     }
@@ -32,7 +32,7 @@ class ApplicationResourceTest {
     @Test
     void returns404ForMissingApplication() {
         given()
-                .when().get("/api/applications/00000000-0000-0000-0000-000000000000")
+                .when().get("/api/ops/applications/00000000-0000-0000-0000-000000000000")
                 .then().statusCode(404);
     }
 
@@ -44,14 +44,14 @@ class ApplicationResourceTest {
                 .body("""
                     {"name": "delete-app", "description": "test", "servicesJson": "[]"}
                     """)
-                .when().post("/api/applications")
-                .then().statusCode(201)
+                .when().post("/api/ops/applications")
+                .then().statusCode(200)
                 .extract().path("id");
 
         given()
                 .header("X-Tenancy-ID", "test-tenant-delete")
-                .when().delete("/api/applications/" + id)
-                .then().statusCode(202);
+                .when().post("/api/ops/applications/" + id + "/delete")
+                .then().statusCode(204);
     }
 
     @Test
@@ -62,12 +62,12 @@ class ApplicationResourceTest {
                 .body("""
                     {"name": "get-app", "description": "test", "servicesJson": "[]"}
                     """)
-                .when().post("/api/applications")
-                .then().statusCode(201)
+                .when().post("/api/ops/applications")
+                .then().statusCode(200)
                 .extract().path("id");
 
         given()
-                .when().get("/api/applications/" + id)
+                .when().get("/api/ops/applications/" + id)
                 .then().statusCode(200)
                 .body("name", equalTo("get-app"));
     }

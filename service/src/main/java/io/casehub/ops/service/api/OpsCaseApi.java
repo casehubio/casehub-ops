@@ -24,7 +24,7 @@ public class OpsCaseApi {
         if (app == null) { return null; }
         if (app.engineCaseId == null) { return new CaseEventLog(null, 0, List.of()); }
         var eventLog = caseHubRuntime.eventLog(app.engineCaseId);
-        return new CaseEventLog(app.engineCaseId, eventLog.size(), eventLog);
+        return new CaseEventLog(app.engineCaseId, eventLog.size(), eventLog.stream().map(Object::toString).toList());
     }
 
     @PlatformQuery("Get a specific case")
@@ -32,11 +32,11 @@ public class OpsCaseApi {
     public CaseEventLog getCase(@PathParam UUID applicationId, @PathParam UUID caseId) {
         try {
             var eventLog = caseHubRuntime.eventLog(caseId);
-            return new CaseEventLog(caseId, eventLog.size(), eventLog);
+            return new CaseEventLog(caseId, eventLog.size(), eventLog.stream().map(Object::toString).toList());
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 
-    public record CaseEventLog(UUID caseId, int eventCount, List<?> events) {}
+    public record CaseEventLog(UUID caseId, int eventCount, List<String> events) {}
 }
