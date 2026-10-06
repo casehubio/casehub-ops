@@ -1,7 +1,6 @@
 package io.casehub.ops.deployment.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.ras.api.ActiveSituation;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
@@ -9,10 +8,12 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.ras.api.ActiveSituation;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -71,6 +72,44 @@ public final class AdaptationRule {
         }
         return rules;
     }
+
+    /**
+     * Creates AdaptationRule instances from specs, validating update action fields
+     * against the target NodeSpec type's Jackson-visible properties.
+     */
+    public static List<AdaptationRule> fromSpecs(
+            List<AdaptationRuleSpec> specs,
+            DeploymentGoalCompiler compiler,
+            ObjectMapper mapper,
+            DesiredStateGraphFactory factory,
+            Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> nodeTypeRegistry) {
+        Objects.requireNonNull(specs, "specs");
+        Objects.requireNonNull(compiler, "compiler");
+        Objects.requireNonNull(mapper, "mapper");
+        Objects.requireNonNull(factory, "factory");
+        Objects.requireNonNull(nodeTypeRegistry, "nodeTypeRegistry");
+
+        List<AdaptationRule> rules = new ArrayList<>();
+        for (var spec : specs) {
+            List<Object> actions = new ArrayList<>();
+            for (var actionSpec : spec.actions()) {
+                if (actionSpec instanceof AdaptationActionSpec.UpdateActionSpec u
+                    && u.nodeType() != null
+                    && nodeTypeRegistry.containsKey(u.nodeType())) {
+                    validateUpdateFields(u, nodeTypeRegistry.get(u.nodeType()), mapper);
+                }
+                Object action = switch (actionSpec) {
+                    case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
+                    case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
+                    case AdaptationActionSpec.AddActionSpec a -> new AddAction(a, compiler, factory);
+                };
+                actions.add(action);
+            }
+            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory));
+        }
+        return rules;
+    }
+
 
     /**
      * Returns the rule name.
@@ -142,5 +181,26 @@ public final class AdaptationRule {
         }
 
         return targets;
+    }
+
+    private static void validateUpdateFields(
+            AdaptationActionSpec.UpdateActionSpec updateSpec,
+            Class<? extends io.casehub.desiredstate.api.NodeSpec> specClass,
+            ObjectMapper mapper) {
+        var         config      = mapper.getSerializationConfig();
+        var         javaType    = mapper.constructType(specClass);
+        var         description = config.introspect(javaType);
+        Set<String> validFields = new HashSet<>();
+        for (var prop : description.findProperties()) {
+            validFields.add(prop.getName());
+        }
+
+        Set<String> unknown = new HashSet<>(updateSpec.fields().keySet());
+        unknown.removeAll(validFields);
+        if (!unknown.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Unknown fields " + unknown + " in update action for nodeType '"
+                    + updateSpec.nodeType() + "'. Valid fields: " + validFields);
+        }
     }
 }

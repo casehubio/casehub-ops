@@ -1,9 +1,7 @@
 package io.casehub.ops.deployment.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.ras.api.ActiveSituation;
 import io.casehub.desiredstate.api.DesiredNode;
-import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
@@ -15,15 +13,15 @@ import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.ras.api.ActiveSituation;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class AdaptationRuleTest {
 
@@ -217,6 +215,68 @@ class AdaptationRuleTest {
         var updatedSpec = (TrustPolicyNodeSpec) updatedPolicy.spec();
         assertThat(updatedSpec.threshold()).isEqualTo(0.95);
     }
+
+
+    @Test
+    void fromSpecs_updateAction_unknownField_throwsAtParseTime() {
+        var compiler = new DeploymentGoalCompiler();
+        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var updateAction = new AdaptationActionSpec.UpdateActionSpec(
+                "risk-policy",
+                "trust_policy",
+                Map.of("treshold", 0.9)  // typo: "treshold" instead of "threshold"
+        );
+        var ruleSpec = new AdaptationRuleSpec("update-threshold", trigger, List.of(updateAction));
+
+        var nodeTypeRegistry = Map.<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>>of(
+                "trust_policy", TrustPolicyNodeSpec.class,
+                "agent", AgentNodeSpec.class
+                                                                                                    );
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory, nodeTypeRegistry))
+                .withMessageContaining("treshold")
+                .withMessageContaining("trust_policy");
+    }
+
+    @Test
+    void fromSpecs_updateAction_validFields_passesWithRegistry() {
+        var compiler = new DeploymentGoalCompiler();
+        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var updateAction = new AdaptationActionSpec.UpdateActionSpec(
+                "risk-policy",
+                "trust_policy",
+                Map.of("threshold", 0.9)
+        );
+        var ruleSpec = new AdaptationRuleSpec("update-threshold", trigger, List.of(updateAction));
+
+        var nodeTypeRegistry = Map.<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>>of(
+                "trust_policy", TrustPolicyNodeSpec.class
+                                                                                                    );
+
+        var rules = AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory, nodeTypeRegistry);
+        assertThat(rules).hasSize(1);
+    }
+
+    @Test
+    void fromSpecs_updateAction_nullNodeType_skipsValidation() {
+        var compiler = new DeploymentGoalCompiler();
+        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var updateAction = new AdaptationActionSpec.UpdateActionSpec(
+                "risk-policy",
+                null,
+                Map.of("treshold", 0.9)  // typo, but nodeType is null so no validation
+        );
+        var ruleSpec = new AdaptationRuleSpec("update-threshold", trigger, List.of(updateAction));
+
+        var nodeTypeRegistry = Map.<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>>of(
+                "trust_policy", TrustPolicyNodeSpec.class
+                                                                                                    );
+
+        var rules = AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory, nodeTypeRegistry);
+        assertThat(rules).hasSize(1);
+    }
+
 
     private DesiredNode createAgentNode(String agentId) {
         var spec = new AgentNodeSpec(

@@ -27,6 +27,16 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
 
     private static final Logger LOG = Logger.getLogger(
         DeploymentAdaptiveSituationRecompiler.class.getName());
+    static final         Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> NODE_TYPE_REGISTRY = Map.of(
+            "agent", io.casehub.ops.api.deployment.AgentNodeSpec.class,
+            "channel", io.casehub.ops.api.deployment.ChannelNodeSpec.class,
+            "case_type", io.casehub.ops.api.deployment.CaseTypeNodeSpec.class,
+            "trust_policy", io.casehub.ops.api.deployment.TrustPolicyNodeSpec.class,
+            "endpoint", io.casehub.ops.api.deployment.EndpointNodeSpec.class,
+            "detection", io.casehub.ops.api.deployment.DetectionNodeSpec.class,
+            "pool", io.casehub.ops.api.deployment.PoolNodeSpec.class
+                                                                                                                       );
+
 
     @Inject DeploymentGoalCompiler compiler;
     @Inject ObjectMapper mapper;
@@ -43,7 +53,7 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
                          Map<String, Duration> situationClearanceWindows,
                          DesiredStateGraphFactory factory) {
         List<AdaptationRule> rules = AdaptationRule.fromSpecs(
-            goals.adaptations(), compiler, mapper, factory);
+            goals.adaptations(), compiler, mapper, factory, NODE_TYPE_REGISTRY);
         var state = new TenantAdaptationState(goals, rules, situationClearanceWindows);
         tenantStates.put(tenancyId, state);
     }
