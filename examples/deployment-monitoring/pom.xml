@@ -31,6 +31,11 @@
             <groupId>io.casehub</groupId>
             <artifactId>casehub-platform-expression</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.casehub</groupId>
+            <artifactId>casehub-platform-yaml-jackson</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Test -->
         <dependency>

@@ -1,20 +1,22 @@
 package io.casehub.ops.compliance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.casehub.ops.api.compliance.ComplianceGoalEntry;
 import io.casehub.ops.api.compliance.ComplianceGoals;
+import io.casehub.yaml.jackson.YamlMappers;
 import jakarta.enterprise.context.ApplicationScoped;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
 @ApplicationScoped
 public class ComplianceGoalLoader {
 
-    private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    private final ObjectMapper yamlMapper = YamlMappers.create();
 
     public ComplianceGoals load(String path) {
         try (InputStream stream = resolveStream(path)) {

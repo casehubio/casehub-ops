@@ -1,11 +1,14 @@
 package io.casehub.ops.example.monitoring;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.casehub.blocks.summarisation.LevelEvent;
-import io.casehub.blocks.summarisation.yaml.*;
-import io.casehub.blocks.summarisation.yaml.builtin.*;
+import io.casehub.blocks.summarisation.yaml.LevelDefinition;
+import io.casehub.blocks.summarisation.yaml.PipelineCompiler;
+import io.casehub.blocks.summarisation.yaml.PipelineWrapper;
+import io.casehub.blocks.summarisation.yaml.SummariserFactory;
+import io.casehub.blocks.summarisation.yaml.SummariserRegistry;
+import io.casehub.blocks.summarisation.yaml.builtin.PhaseDetectSummariser;
+import io.casehub.blocks.summarisation.yaml.builtin.ThresholdClassifySummariser;
 import io.casehub.platform.expression.MvelExpressionEngine;
+import io.casehub.yaml.jackson.YamlMappers;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,7 +22,7 @@ public class DeploymentMonitoringExample {
 
     @SuppressWarnings("unchecked")
     public static Result run() throws IOException {
-        var mapper = new ObjectMapper(new YAMLFactory());
+        var mapper = YamlMappers.create();
         var expr = new MvelExpressionEngine();
 
         var yaml = DeploymentMonitoringExample.class.getResourceAsStream(

@@ -1,14 +1,22 @@
 package io.casehub.ops.service.lifecycle.summarisation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.casehub.blocks.summarisation.EventLevel;
 import io.casehub.blocks.summarisation.EventStreamBus;
 import io.casehub.blocks.summarisation.LevelEvent;
-import io.casehub.blocks.summarisation.yaml.*;
-import io.casehub.blocks.summarisation.yaml.builtin.*;
+import io.casehub.blocks.summarisation.yaml.CompiledPipeline;
+import io.casehub.blocks.summarisation.yaml.LevelDefinition;
+import io.casehub.blocks.summarisation.yaml.PipelineCompiler;
+import io.casehub.blocks.summarisation.yaml.PipelineDefinition;
+import io.casehub.blocks.summarisation.yaml.PipelineValidator;
+import io.casehub.blocks.summarisation.yaml.PipelineWrapper;
+import io.casehub.blocks.summarisation.yaml.SummariserFactory;
+import io.casehub.blocks.summarisation.yaml.SummariserRegistry;
+import io.casehub.blocks.summarisation.yaml.builtin.PhaseDetectSummariser;
+import io.casehub.blocks.summarisation.yaml.builtin.ThresholdClassifySummariser;
 import io.casehub.platform.api.expression.ExpressionEngine;
 import io.casehub.platform.expression.MvelExpressionEngine;
+import io.casehub.yaml.jackson.YamlMappers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DeploymentMonitoringPipelineTest {
 
-    static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
+    static final ObjectMapper MAPPER = YamlMappers.create();
     static final ExpressionEngine EXPR = new MvelExpressionEngine();
     static final EventLevel INPUT = new EventLevel("input", 0);
 

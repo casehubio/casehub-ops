@@ -2,7 +2,6 @@ package io.casehub.ops.deployment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
@@ -13,6 +12,7 @@ import io.casehub.ops.api.deployment.EndpointNodeSpec;
 import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.PoolNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
+import io.casehub.yaml.jackson.YamlMappers;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 @ApplicationScoped
 public class DeploymentGoalLoader {
 
-    private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory())
+    private final ObjectMapper yamlMapper = YamlMappers.create()
                                                     .registerModule(new JavaTimeModule());
 
     public DeploymentGoals load(String path) {

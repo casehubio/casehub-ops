@@ -1,7 +1,6 @@
 package io.casehub.ops.topology.compilation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.casehub.desiredstate.annotations.runtime.DependencyDescriptor;
 import io.casehub.desiredstate.annotations.runtime.GraphDescriptor;
 import io.casehub.desiredstate.annotations.runtime.NodeDescriptor;
@@ -17,6 +16,7 @@ import io.casehub.desiredstate.yaml.model.YamlModuleFile;
 import io.casehub.desiredstate.yaml.model.YamlNode;
 import io.casehub.ops.api.infra.InfraNodeSpec;
 import io.casehub.ops.infra.InfraNodeSpecFactoryProvider;
+import io.casehub.yaml.jackson.YamlMappers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class TopologyTestBase {
 
-    private static final ObjectMapper                    YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper                    YAML_MAPPER = YamlMappers.create();
     private static final DefaultDesiredStateGraphFactory FACTORY     = new DefaultDesiredStateGraphFactory();
 
     public static Map<String, String> buildTypeRegistry() {

@@ -1,19 +1,23 @@
 package io.casehub.ops.deployment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.casehub.yaml.jackson.YamlMappers;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class DefinitionPayloadLoader {
 
-    private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    private final ObjectMapper yamlMapper = YamlMappers.create();
 
     public Map<String, Object> load(String definitionFile) {
         try (InputStream stream = resolveStream(definitionFile)) {
