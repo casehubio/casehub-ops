@@ -16,6 +16,7 @@ import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
 import io.casehub.ras.api.ActiveSituation;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,15 +34,18 @@ class DeploymentAdaptiveSituationRecompilerTest {
     private final DeploymentGoalCompiler compiler = new DeploymentGoalCompiler();
     private final ActualState emptyActual = new ActualState(Map.of());
 
+    private SimpleMeterRegistry meterRegistry;
     private DeploymentAdaptiveSituationRecompiler recompiler;
     private DeploymentGoals goalsWithAdaptations;
     private DesiredStateGraph baseGraph;
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
         recompiler = new DeploymentAdaptiveSituationRecompiler();
         recompiler.compiler = compiler;
         recompiler.mapper = mapper;
+        recompiler.meterRegistry = meterRegistry;
 
         var scaleTrigger = new AdaptationTrigger("volatility-spike", 0.7, 0.5, Duration.ofMinutes(5));
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
@@ -202,6 +206,42 @@ class DeploymentAdaptiveSituationRecompilerTest {
         assertThat(result).isEmpty();
     }
 
+
+    @Test
+    void recompileIncrementsConflictCounterWhenRulesOverlap() {
+        var trigger     = new AdaptationTrigger("volatility-spike", 0.7, null, null);
+        var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 3);
+        var rule1       = new AdaptationRuleSpec("scale-risk", trigger, List.of(scaleAction));
+
+        var updateAction = new AdaptationActionSpec.UpdateActionSpec("risk-agent", null,
+                                                                     Map.of("name", "Updated Risk Monitor"));
+        var rule2 = new AdaptationRuleSpec("update-risk", trigger, List.of(updateAction));
+
+        var goals = new DeploymentGoals(
+                List.of(new GoalEntry<>(new AgentNodeSpec("risk-agent", "Risk Monitor",
+                                                          "worker", null, null, null, null, null, null, null,
+                                                          null, null, null, null, null, null, null, null, null), null)),
+                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(),
+                List.of(rule1, rule2));
+
+        recompiler.register("t1", goals,
+                            Map.of("volatility-spike", Duration.ofMinutes(30)), graphFactory);
+
+        var base = extractGraph(compiler.compile(goals, graphFactory));
+        var situation = new ActiveSituation("volatility-spike", "k1", "t1",
+                                            1.0, Map.of(), Instant.now(), Instant.now(), 1);
+
+        recompiler.recompile("t1", base, emptyActual, situation, graphFactory);
+
+        var counter = meterRegistry.find("desiredstate.adaptation.conflict.total")
+                                   .tag("tenancy_id", "t1")
+                                   .tag("rule_name", "update-risk")
+                                   .tag("node_id", "risk-agent")
+                                   .counter();
+        assertThat(counter).isNotNull();
+        assertThat(counter.count()).isEqualTo(1.0);
+    }
 
     private DesiredStateGraph extractGraph(CompilationResult result) {
         if (result instanceof CompilationResult.SingleGraph single) {

@@ -10,6 +10,8 @@ import io.casehub.desiredstate.api.SituationRecompiler;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
 import io.casehub.ras.api.ActiveSituation;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -40,6 +42,7 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
 
     @Inject DeploymentGoalCompiler compiler;
     @Inject ObjectMapper mapper;
+    @Inject MeterRegistry meterRegistry;
 
     private final ConcurrentHashMap<String, TenantAdaptationState> tenantStates =
         new ConcurrentHashMap<>();
@@ -89,6 +92,9 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
                                 "Conflict: rule '%s' modifies '%s' "
                                     + "already modified by earlier rule",
                                 rule.name(), t.value()));
+                            meterRegistry.counter("desiredstate.adaptation.conflict.total",
+                                Tags.of("tenancy_id", tenancyId, "rule_name", rule.name(), "node_id", t.value()))
+                                .increment();
                         }
                     }
                     adapted = rule.apply(adapted, match.get());
