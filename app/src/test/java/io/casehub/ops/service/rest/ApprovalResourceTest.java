@@ -83,11 +83,20 @@ class ApprovalResourceTest {
     }
 
     @Test
-    void approve_notFound_returns500() {
+    void approve_notFound_returns404() {
         given()
                 .queryParam("actorId", "admin")
                 .when().post("/api/ops/approvals/00000000-0000-0000-0000-000000000099/approve")
-                .then().statusCode(500);
+                .then().statusCode(404);
+    }
+
+    @Test
+    void reject_notFound_returns404() {
+        given()
+                .queryParam("actorId", "admin")
+                .queryParam("reason", "too risky")
+                .when().post("/api/ops/approvals/00000000-0000-0000-0000-000000000099/reject")
+                .then().statusCode(404);
     }
 
     @Test

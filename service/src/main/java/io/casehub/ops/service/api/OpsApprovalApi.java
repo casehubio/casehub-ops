@@ -25,6 +25,8 @@ import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import jakarta.ws.rs.NotFoundException;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,7 +61,7 @@ public class OpsApprovalApi {
     @RestPath("/{id}/approve")
     public void approve(@PathParam UUID id, String actorId) {
         var item = workItemService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Approval not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Approval not found: " + id));
         RiskClassification risk = resolveRisk(item);
         var authResult = authorizer.authorize(risk, actorId, principal.roles());
         if (authResult instanceof ApprovalAuthorizer.AuthorizationResult.Denied denied) {
@@ -76,7 +78,7 @@ public class OpsApprovalApi {
     @RestPath("/{id}/reject")
     public void reject(@PathParam UUID id, String actorId, String reason) {
         var item = workItemService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Approval not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Approval not found: " + id));
         RiskClassification risk = resolveRisk(item);
         var authResult = authorizer.authorize(risk, actorId, principal.roles());
         if (authResult instanceof ApprovalAuthorizer.AuthorizationResult.Denied denied) {
