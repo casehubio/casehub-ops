@@ -22,7 +22,7 @@ class CaseHubAppDriftCheckerTest {
     @BeforeEach
     void setUp() {
         deployTarget = new StubDeploymentTarget();
-        checker = new CaseHubAppDriftChecker(deployTarget);
+        checker = new CaseHubAppDriftChecker(deployTarget, new io.casehub.ops.deployment.InstanceIdStore());
     }
 
     @Test

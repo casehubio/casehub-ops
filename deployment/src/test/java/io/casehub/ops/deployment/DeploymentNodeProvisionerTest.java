@@ -89,7 +89,7 @@ class DeploymentNodeProvisionerTest {
                     @Override public boolean exists(String id) { return false; }
                 }),
                 new PoolProvisionHandler(new NoOpPoolOperations()),
-                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget()),
+                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore()),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),
                 planStore);

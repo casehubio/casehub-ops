@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
 import io.casehub.ops.api.deployment.DetectionNodeSpec;
 import io.casehub.ops.api.deployment.EndpointNodeSpec;
+import io.casehub.ops.api.deployment.PoolNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.api.infra.*;
 import io.casehub.ops.api.infra.plan.ToolPlanDetail;
@@ -45,6 +47,8 @@ public final class PlanStoreMapper {
             @JsonSubTypes.Type(value = TrustPolicyNodeSpec.class, name = "deployment-trust-policy"),
             @JsonSubTypes.Type(value = EndpointNodeSpec.class, name = "deployment-endpoint"),
             @JsonSubTypes.Type(value = DetectionNodeSpec.class, name = "deployment-detection"),
+            @JsonSubTypes.Type(value = PoolNodeSpec.class, name = "deployment-pool"),
+            @JsonSubTypes.Type(value = CaseHubApplicationSpec.class, name = "deployment-casehub-application"),
     })
     interface NodeSpecMixin {}
 
@@ -71,6 +75,8 @@ public final class PlanStoreMapper {
             @JsonSubTypes.Type(value = TrustPolicyNodeSpec.class, name = "trust-policy"),
             @JsonSubTypes.Type(value = EndpointNodeSpec.class, name = "endpoint"),
             @JsonSubTypes.Type(value = DetectionNodeSpec.class, name = "detection"),
+            @JsonSubTypes.Type(value = PoolNodeSpec.class, name = "pool"),
+            @JsonSubTypes.Type(value = CaseHubApplicationSpec.class, name = "casehub-application"),
     })
     interface DeploymentNodeSpecMixin {}
 

@@ -24,6 +24,19 @@ trust:
       blendFactor: 0.5
       bootstrapEscalationRequired: false
     dependsOn: []
+applications:
+  - spec:
+      applicationId: test-app
+      image: "ghcr.io/test/app:1.0"
+      runtime:
+        engine: "0.2"
+        modules:
+          - a2a
+          - react
+      config:
+        llm: anthropic
+      replicas: 2
+    dependsOn: []
 endpoints:
   - spec:
       path: test/kafka-stream

@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,6 +86,21 @@ class DeploymentGoalLoaderTest {
         assertThat(endpoint.protocol()).isEqualTo(io.casehub.platform.api.endpoints.EndpointProtocol.KAFKA);
         assertThat(endpoint.properties()).containsEntry(io.casehub.platform.api.endpoints.EndpointPropertyKeys.TOPIC, "test.events");
     }
+
+    @Test
+    void loadsApplicationFromYaml() {
+        DeploymentGoals goals = loader.load("test-deployment/topology.yaml");
+        assertThat(goals.applications()).hasSize(1);
+        var app = goals.applications().get(0).spec();
+        assertThat(app.applicationId()).isEqualTo("test-app");
+        assertThat(app.image()).isEqualTo("ghcr.io/test/app:1.0");
+        assertThat(app.source()).isNull();
+        assertThat(app.runtime().engine()).isEqualTo("0.2");
+        assertThat(app.runtime().modules()).containsExactly("a2a", "react");
+        assertThat(app.config()).containsEntry("llm", "anthropic");
+        assertThat(app.replicas()).isEqualTo(2);
+    }
+
 
     @Test
     void loadsDurationFieldsFromDetectionYaml(@TempDir Path tempDir) throws IOException {

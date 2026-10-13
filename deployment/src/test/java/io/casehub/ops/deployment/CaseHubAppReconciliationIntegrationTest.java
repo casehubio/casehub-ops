@@ -4,6 +4,7 @@ import io.casehub.desiredstate.api.*;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.ops.api.deployment.*;
+import io.casehub.ops.deployment.InstanceIdStore;
 import io.casehub.ops.deployment.drift.CaseHubAppDriftChecker;
 import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
 import io.casehub.ops.testing.StubDeploymentTarget;
@@ -27,7 +28,7 @@ class CaseHubAppReconciliationIntegrationTest {
         deployTarget = new StubDeploymentTarget();
         compiler = new DeploymentGoalCompiler();
         specHashStore = new SpecHashStore();
-        var driftChecker = new CaseHubAppDriftChecker(deployTarget);
+        var driftChecker = new CaseHubAppDriftChecker(deployTarget, new InstanceIdStore());
         adapter = new DeploymentActualStateAdapter(List.of(driftChecker), specHashStore);
     }
 
@@ -108,7 +109,7 @@ class CaseHubAppReconciliationIntegrationTest {
         var graph = ((CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
 
         var handler = new CaseHubAppProvisionHandler(
-            new PrebuiltImagePipeline(), deployTarget);
+            new PrebuiltImagePipeline(), deployTarget, new io.casehub.ops.deployment.InstanceIdStore());
         var provResult = handler.provision(spec,
             new ProvisionContext("tenant-1", graph));
         assertThat(provResult).isInstanceOf(ProvisionResult.Success.class);

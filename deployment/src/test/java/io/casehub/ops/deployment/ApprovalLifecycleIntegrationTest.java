@@ -94,7 +94,7 @@ class ApprovalLifecycleIntegrationTest {
                     @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
                     @Override public void destroyPool(String name) {}
                 }),
-                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget()),
+                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore()),
                 new SpecHashStore(),
                 evaluator,
                 planStore);

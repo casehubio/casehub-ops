@@ -1,10 +1,18 @@
 package io.casehub.ops.deployment.handler;
 
+import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
-import io.casehub.ops.api.deployment.*;
+import io.casehub.ops.api.deployment.ApplicationBuildPipeline;
+import io.casehub.ops.api.deployment.ApplicationDeploymentTarget;
+import io.casehub.ops.api.deployment.BuildResult;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
+import io.casehub.ops.api.deployment.DeployConfig;
+import io.casehub.ops.api.deployment.DeployResult;
+import io.casehub.ops.api.deployment.HealthCheckResult;
+import io.casehub.ops.deployment.InstanceIdStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -13,15 +21,18 @@ import java.util.Map;
 @ApplicationScoped
 public class CaseHubAppProvisionHandler {
 
-    private final ApplicationBuildPipeline buildPipeline;
+    private final ApplicationBuildPipeline    buildPipeline;
     private final ApplicationDeploymentTarget deployTarget;
+    private final InstanceIdStore             instanceIdStore;
 
     @Inject
     public CaseHubAppProvisionHandler(
             ApplicationBuildPipeline buildPipeline,
-            ApplicationDeploymentTarget deployTarget) {
-        this.buildPipeline = buildPipeline;
-        this.deployTarget = deployTarget;
+            ApplicationDeploymentTarget deployTarget,
+            InstanceIdStore instanceIdStore) {
+        this.buildPipeline   = buildPipeline;
+        this.deployTarget    = deployTarget;
+        this.instanceIdStore = instanceIdStore;
     }
 
     public ProvisionResult provision(CaseHubApplicationSpec spec, ProvisionContext context) {
@@ -37,7 +48,7 @@ public class CaseHubAppProvisionHandler {
         }
 
         var deployConfig = new DeployConfig(
-            spec.applicationId(), spec.replicas(), spec.config(), Map.of());
+                spec.applicationId(), spec.replicas(), spec.config(), Map.of());
         var deployResult = deployTarget.deploy(imageRef, deployConfig);
 
         if (deployResult instanceof DeployResult.Failed f) {
@@ -45,20 +56,23 @@ public class CaseHubAppProvisionHandler {
         }
 
         var instanceId = ((DeployResult.Success) deployResult).instanceId();
-        var health = deployTarget.healthCheck(instanceId);
+        var health     = deployTarget.healthCheck(instanceId);
         if (health instanceof HealthCheckResult.Unhealthy u) {
             return new ProvisionResult.Failed("Health check failed: " + u.reason());
         }
 
+        instanceIdStore.record(NodeId.of(spec.applicationId()), instanceId);
         return new ProvisionResult.Success();
     }
 
     public DeprovisionResult deprovision(CaseHubApplicationSpec spec, DeprovisionContext context) {
-        var instanceId = spec.applicationId() + "-instance";
-        var result = deployTarget.undeploy(instanceId);
+        var nodeId     = NodeId.of(spec.applicationId());
+        var instanceId = instanceIdStore.get(nodeId).orElse(spec.applicationId() + "-instance");
+        var result     = deployTarget.undeploy(instanceId);
         if (result instanceof DeployResult.Failed f) {
             return new DeprovisionResult.Failed("Undeploy failed: " + f.reason());
         }
+        instanceIdStore.remove(nodeId);
         return new DeprovisionResult.Success();
     }
 }
