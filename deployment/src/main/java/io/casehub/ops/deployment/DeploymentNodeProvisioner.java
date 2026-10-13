@@ -170,6 +170,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case EndpointNodeSpec s -> endpointHandler.provision(s, context);
             case DetectionNodeSpec s -> detectionHandler.provision(s, context);
             case PoolNodeSpec s -> poolHandler.provision(s, context);
+            case CaseHubApplicationSpec s -> new ProvisionResult.Failed("casehub_application provisioning not yet wired");
         };
         if (result instanceof ProvisionResult.Success) {
             specHashStore.record(node.id(), node.spec());
@@ -186,6 +187,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case EndpointNodeSpec s -> endpointHandler.deprovision(s, context);
             case DetectionNodeSpec s -> detectionHandler.deprovision(s, context);
             case PoolNodeSpec s -> poolHandler.deprovision(s, context);
+            case CaseHubApplicationSpec s -> new DeprovisionResult.Failed("casehub_application deprovisioning not yet wired");
         };
         if (result instanceof DeprovisionResult.Success) {
             specHashStore.remove(node.id());

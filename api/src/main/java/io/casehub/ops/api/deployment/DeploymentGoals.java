@@ -12,16 +12,18 @@ public record DeploymentGoals(
         List<GoalEntry<EndpointNodeSpec>> endpoints,
         List<GoalEntry<DetectionNodeSpec>> detections,
         List<GoalEntry<PoolNodeSpec>> pools,
+        List<GoalEntry<CaseHubApplicationSpec>> applications,
         List<AdaptationRuleSpec> adaptations
 ) {
     public DeploymentGoals {
-        agents = agents != null ? List.copyOf(agents) : List.of();
-        channels = channels != null ? List.copyOf(channels) : List.of();
-        caseTypes = caseTypes != null ? List.copyOf(caseTypes) : List.of();
-        trust = trust != null ? List.copyOf(trust) : List.of();
-        endpoints = endpoints != null ? List.copyOf(endpoints) : List.of();
-        detections = detections != null ? List.copyOf(detections) : List.of();
-        pools = pools != null ? List.copyOf(pools) : List.of();
-        adaptations = adaptations != null ? List.copyOf(adaptations) : List.of();
+        agents       = agents != null ? List.copyOf(agents) : List.of();
+        channels     = channels != null ? List.copyOf(channels) : List.of();
+        caseTypes    = caseTypes != null ? List.copyOf(caseTypes) : List.of();
+        trust        = trust != null ? List.copyOf(trust) : List.of();
+        endpoints    = endpoints != null ? List.copyOf(endpoints) : List.of();
+        detections   = detections != null ? List.copyOf(detections) : List.of();
+        pools        = pools != null ? List.copyOf(pools) : List.of();
+        applications = applications != null ? List.copyOf(applications) : List.of();
+        adaptations  = adaptations != null ? List.copyOf(adaptations) : List.of();
     }
 }

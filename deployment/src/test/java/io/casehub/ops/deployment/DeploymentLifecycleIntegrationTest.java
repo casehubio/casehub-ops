@@ -124,6 +124,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(new GoalEntry<>(endpointSpec, List.of())),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         // Compile
@@ -185,6 +186,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         var desired = ((CompilationResult.SingleGraph) compiler.compile(deploymentGoals, graphFactory)).graph();
@@ -198,6 +200,7 @@ class DeploymentLifecycleIntegrationTest {
                 "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", null, List.of());
         var modifiedGoals = new DeploymentGoals(
                 List.of(new GoalEntry<>(modifiedSpec, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -232,6 +235,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(new GoalEntry<>(endpointSpec, List.of())),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         var desired = ((CompilationResult.SingleGraph) compiler.compile(deploymentGoals, graphFactory)).graph();
@@ -254,6 +258,7 @@ class DeploymentLifecycleIntegrationTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(modifiedSpec, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of());

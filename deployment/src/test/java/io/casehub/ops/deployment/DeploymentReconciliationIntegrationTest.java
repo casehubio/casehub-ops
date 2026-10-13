@@ -196,6 +196,7 @@ class DeploymentReconciliationIntegrationTest {
                 yamlGoals.trust(), yamlGoals.endpoints(),
                 List.of(new GoalEntry<>(detection, List.of())),
                 yamlGoals.pools(),
+                yamlGoals.applications(),
                 yamlGoals.adaptations());
     }
 
@@ -222,12 +223,12 @@ class DeploymentReconciliationIntegrationTest {
             return new GoalEntry<>(modified, entry.dependsOn());
         }).toList();
         return new DeploymentGoals(modifiedAgents, goals.channels(), goals.caseTypes(),
-                goals.trust(), goals.endpoints(), goals.detections(), goals.pools(), goals.adaptations());
+                goals.trust(), goals.endpoints(), goals.detections(), goals.pools(), goals.applications(), goals.adaptations());
     }
 
     private DeploymentGoals withoutDetections(DeploymentGoals goals) {
         return new DeploymentGoals(goals.agents(), goals.channels(), goals.caseTypes(),
-                goals.trust(), goals.endpoints(), List.of(), goals.pools(), goals.adaptations());
+                goals.trust(), goals.endpoints(), List.of(), goals.pools(), goals.applications(), goals.adaptations());
     }
 
     static class StubSituationRegistrar implements SituationRegistrar {

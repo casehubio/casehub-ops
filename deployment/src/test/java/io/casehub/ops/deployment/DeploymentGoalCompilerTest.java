@@ -46,6 +46,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -65,6 +66,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(),
                 List.of(new GoalEntry<>(channel, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -100,6 +102,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -130,6 +133,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -149,6 +153,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(new GoalEntry<>(agent, List.of("work-queue"))),
                 List.of(new GoalEntry<>(channel, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -195,6 +200,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -220,6 +226,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -237,6 +244,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(), List.of(),
                 List.of(new GoalEntry<>(caseType, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -267,6 +275,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
@@ -285,6 +294,7 @@ class DeploymentGoalCompilerTest {
         var goals = new DeploymentGoals(
                 List.of(), List.of(),
                 List.of(new GoalEntry<>(caseType, List.of())),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -315,6 +325,7 @@ class DeploymentGoalCompilerTest {
                 List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(new GoalEntry<>(detection, List.of())),
                 List.of(),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
@@ -342,6 +353,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(pool, List.of())),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
@@ -367,6 +379,7 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(pool, List.of("code-reviewer"))),
+                List.of(),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)

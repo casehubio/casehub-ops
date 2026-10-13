@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
@@ -60,14 +61,15 @@ public class DeploymentGoalLoader {
     }
 
     public DeploymentGoals merge(DeploymentGoals... fragments) {
-        var agents      = new ArrayList<GoalEntry<AgentNodeSpec>>();
-        var channels    = new ArrayList<GoalEntry<ChannelNodeSpec>>();
-        var caseTypes   = new ArrayList<GoalEntry<CaseTypeNodeSpec>>();
-        var trust       = new ArrayList<GoalEntry<TrustPolicyNodeSpec>>();
-        var endpoints   = new ArrayList<GoalEntry<EndpointNodeSpec>>();
-        var detections  = new ArrayList<GoalEntry<DetectionNodeSpec>>();
-        var pools       = new ArrayList<GoalEntry<PoolNodeSpec>>();
-        var adaptations = new ArrayList<AdaptationRuleSpec>();
+        var agents       = new ArrayList<GoalEntry<AgentNodeSpec>>();
+        var channels     = new ArrayList<GoalEntry<ChannelNodeSpec>>();
+        var caseTypes    = new ArrayList<GoalEntry<CaseTypeNodeSpec>>();
+        var trust        = new ArrayList<GoalEntry<TrustPolicyNodeSpec>>();
+        var endpoints    = new ArrayList<GoalEntry<EndpointNodeSpec>>();
+        var detections   = new ArrayList<GoalEntry<DetectionNodeSpec>>();
+        var pools        = new ArrayList<GoalEntry<PoolNodeSpec>>();
+        var applications = new ArrayList<GoalEntry<CaseHubApplicationSpec>>();
+        var adaptations  = new ArrayList<AdaptationRuleSpec>();
         for (var f : fragments) {
             agents.addAll(f.agents());
             channels.addAll(f.channels());
@@ -76,9 +78,10 @@ public class DeploymentGoalLoader {
             endpoints.addAll(f.endpoints());
             detections.addAll(f.detections());
             pools.addAll(f.pools());
+            applications.addAll(f.applications());
             adaptations.addAll(f.adaptations());
         }
-        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, detections, pools, adaptations);
+        return new DeploymentGoals(agents, channels, caseTypes, trust, endpoints, detections, pools, applications, adaptations);
     }
 
     private InputStream resolveStream(String path) {
