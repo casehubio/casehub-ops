@@ -1,0 +1,64 @@
+package io.casehub.ops.deployment.handler;
+
+import io.casehub.desiredstate.api.DeprovisionContext;
+import io.casehub.desiredstate.api.DeprovisionResult;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
+import io.casehub.ops.api.deployment.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import java.util.Map;
+
+@ApplicationScoped
+public class CaseHubAppProvisionHandler {
+
+    private final ApplicationBuildPipeline buildPipeline;
+    private final ApplicationDeploymentTarget deployTarget;
+
+    @Inject
+    public CaseHubAppProvisionHandler(
+            ApplicationBuildPipeline buildPipeline,
+            ApplicationDeploymentTarget deployTarget) {
+        this.buildPipeline = buildPipeline;
+        this.deployTarget = deployTarget;
+    }
+
+    public ProvisionResult provision(CaseHubApplicationSpec spec, ProvisionContext context) {
+        String imageRef;
+        if (spec.image() != null && !spec.image().isBlank()) {
+            imageRef = spec.image();
+        } else {
+            var buildResult = buildPipeline.build(spec);
+            if (buildResult instanceof BuildResult.Failed f) {
+                return new ProvisionResult.Failed("Build failed: " + f.reason());
+            }
+            imageRef = ((BuildResult.Success) buildResult).imageRef();
+        }
+
+        var deployConfig = new DeployConfig(
+            spec.applicationId(), spec.replicas(), spec.config(), Map.of());
+        var deployResult = deployTarget.deploy(imageRef, deployConfig);
+
+        if (deployResult instanceof DeployResult.Failed f) {
+            return new ProvisionResult.Failed("Deploy failed: " + f.reason());
+        }
+
+        var instanceId = ((DeployResult.Success) deployResult).instanceId();
+        var health = deployTarget.healthCheck(instanceId);
+        if (health instanceof HealthCheckResult.Unhealthy u) {
+            return new ProvisionResult.Failed("Health check failed: " + u.reason());
+        }
+
+        return new ProvisionResult.Success();
+    }
+
+    public DeprovisionResult deprovision(CaseHubApplicationSpec spec, DeprovisionContext context) {
+        var instanceId = spec.applicationId() + "-instance";
+        var result = deployTarget.undeploy(instanceId);
+        if (result instanceof DeployResult.Failed f) {
+            return new DeprovisionResult.Failed("Undeploy failed: " + f.reason());
+        }
+        return new DeprovisionResult.Success();
+    }
+}

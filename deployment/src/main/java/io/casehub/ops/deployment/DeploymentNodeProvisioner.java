@@ -21,6 +21,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
     private final EndpointProvisionHandler endpointHandler;
     private final DetectionProvisionHandler detectionHandler;
     private final PoolProvisionHandler poolHandler;
+    private final CaseHubAppProvisionHandler appHandler;
     private final SpecHashStore specHashStore;
     private final ApprovalEvaluator approvalEvaluator;
     private final PlanStore planStore;
@@ -35,6 +36,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             EndpointProvisionHandler endpointHandler,
             DetectionProvisionHandler detectionHandler,
             PoolProvisionHandler poolHandler,
+            CaseHubAppProvisionHandler appHandler,
             SpecHashStore specHashStore,
             ApprovalEvaluator approvalEvaluator,
             PlanStore planStore) {
@@ -45,6 +47,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
         this.endpointHandler = endpointHandler;
         this.detectionHandler = detectionHandler;
         this.poolHandler = poolHandler;
+        this.appHandler = appHandler;
         this.specHashStore = specHashStore;
         this.approvalEvaluator = approvalEvaluator;
         this.planStore = planStore;
@@ -59,7 +62,8 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
                 NodeType.of("trust_policy"),
                 NodeType.of("endpoint"),
                 NodeType.of("detection"),
-                NodeType.of("pool"));
+                NodeType.of("pool"),
+                NodeType.of("casehub_application"));
     }
 
     @Override
@@ -170,7 +174,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case EndpointNodeSpec s -> endpointHandler.provision(s, context);
             case DetectionNodeSpec s -> detectionHandler.provision(s, context);
             case PoolNodeSpec s -> poolHandler.provision(s, context);
-            case CaseHubApplicationSpec s -> new ProvisionResult.Failed("casehub_application provisioning not yet wired");
+            case CaseHubApplicationSpec s -> appHandler.provision(s, context);
         };
         if (result instanceof ProvisionResult.Success) {
             specHashStore.record(node.id(), node.spec());
@@ -187,7 +191,7 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
             case EndpointNodeSpec s -> endpointHandler.deprovision(s, context);
             case DetectionNodeSpec s -> detectionHandler.deprovision(s, context);
             case PoolNodeSpec s -> poolHandler.deprovision(s, context);
-            case CaseHubApplicationSpec s -> new DeprovisionResult.Failed("casehub_application deprovisioning not yet wired");
+            case CaseHubApplicationSpec s -> appHandler.deprovision(s, context);
         };
         if (result instanceof DeprovisionResult.Success) {
             specHashStore.remove(node.id());

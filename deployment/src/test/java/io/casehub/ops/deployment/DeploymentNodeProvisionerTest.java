@@ -18,6 +18,9 @@ import io.casehub.eidos.api.AgentMatch;
 import io.casehub.eidos.api.AgentQuery;
 import io.casehub.eidos.api.AgentRegistry;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
+import io.casehub.ops.api.deployment.PrebuiltImagePipeline;
+import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
+import io.casehub.ops.testing.StubDeploymentTarget;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
@@ -86,6 +89,7 @@ class DeploymentNodeProvisionerTest {
                     @Override public boolean exists(String id) { return false; }
                 }),
                 new PoolProvisionHandler(new NoOpPoolOperations()),
+                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget()),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),
                 planStore);

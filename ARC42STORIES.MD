@@ -153,7 +153,7 @@ C4Container
   title casehub-ops — Layer Architecture
   Container_Boundary(api, "Layer: L1 Shared API") {
     Container(infra_api, "infra types", "Java records", "InfraNodeSpec sealed hierarchy, InfraBackend SPI, domain types")
-    Container(deploy_api, "deployment types", "Java records", "DeploymentNodeSpec sealed interface, GoalEntry, DeploymentGoals")
+    Container(deploy_api, "deployment types", "Java records", "DeploymentNodeSpec sealed interface, GoalEntry, DeploymentGoals, ApplicationBuildPipeline SPI, ApplicationDeploymentTarget SPI")
     Container(comply_api, "compliance types", "Java records", "ComplianceControlSpec, EvidenceCollector SPI, EvidenceResult")
   }
   Container_Boundary(infra, "Layer: L2 Infra") {
@@ -279,6 +279,19 @@ Three SPIs in `api/approval/`:
 6. Re-entry: provisioner checks `context.hasApproval()`, retrieves the stored plan, verifies the spec hasn't changed since approval (stale-spec detection), then proceeds or re-evaluates
 
 **Persistent storage:** `JpaPlanStore` + `ApprovalPlanEntity` (Flyway V5). `ApprovalPlan` contains the `originalSpec` (polymorphic `NodeSpec`), serialized via Jackson mixins in `PlanStoreMapper` — mixins avoid polluting domain types with serialization annotations.
+
+### CaseHub Application Node Type
+
+The `casehub_application` node type extends the deployment domain's sealed hierarchy to support YAML-first case application deployment. Rather than implementing the build-and-deploy pipeline directly, the provisioner delegates to two SPIs:
+
+| SPI | Responsibility | Default |
+|---|---|---|
+| `ApplicationBuildPipeline` | Source directory → OCI image reference | `PrebuiltImagePipeline` (`@DefaultBean`) — returns `spec.image()` directly |
+| `ApplicationDeploymentTarget` | Image reference → running container lifecycle | No default — requires implementation on classpath |
+
+`CaseHubAppProvisionHandler` orchestrates: build pipeline → deploy target → health check. `CaseHubAppDriftChecker` queries the deploy target for container status. Both SPIs are stubbed until engine#1018 (schema-driven record generation) and engine#1019 (casehub.yaml descriptor) deliver real implementations.
+
+Parent epic: casehubio/engine#1017.
 
 ### Anti-patterns
 

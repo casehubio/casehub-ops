@@ -17,6 +17,9 @@ import io.casehub.eidos.api.AgentDescriptor;
 import io.casehub.eidos.api.AgentQuery;
 import io.casehub.eidos.api.AgentRegistry;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
+import io.casehub.ops.api.deployment.PrebuiltImagePipeline;
+import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
+import io.casehub.ops.testing.StubDeploymentTarget;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.deployment.handler.CaseTypeProvisionHandler;
@@ -91,6 +94,7 @@ class ApprovalLifecycleIntegrationTest {
                     @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
                     @Override public void destroyPool(String name) {}
                 }),
+                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget()),
                 new SpecHashStore(),
                 evaluator,
                 planStore);

@@ -44,6 +44,7 @@ public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
         compileEntries(goals.endpoints(), nodes, dependencies);
         compileEntries(goals.detections(), nodes, dependencies);
         compileEntries(goals.pools(), nodes, dependencies);
+        compileEntries(goals.applications(), nodes, dependencies);
 
         return CompilationResult.single(factory.of(nodes, dependencies));
     }
