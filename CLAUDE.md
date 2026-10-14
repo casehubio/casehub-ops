@@ -26,6 +26,7 @@ continuous compliance posture (vs. point-in-time audit prep tools).
 mvn --batch-mode install
 mvn --batch-mode -o test -pl app      # app/ tests — offline avoids GitHub Packages metadata hang
 mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
+mvn --batch-mode test -pl topology-tests -Pintegration-live  # real-instance integration tests (requires Docker + claudony jar)
 ```
 
 ## Module Structure
