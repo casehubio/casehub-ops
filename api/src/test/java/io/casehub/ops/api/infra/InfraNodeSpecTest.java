@@ -27,8 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InfraNodeSpecTest {
 
     @Test
-    void infraNodeSpec_doesNotExtendNodeSpec() {
-        assertThat(NodeSpec.class.isAssignableFrom(InfraNodeSpec.class)).isFalse();
+    void infraNodeSpec_extendsNodeSpec() {
+        assertThat(NodeSpec.class.isAssignableFrom(InfraNodeSpec.class)).isTrue();
     }
 
     @Test

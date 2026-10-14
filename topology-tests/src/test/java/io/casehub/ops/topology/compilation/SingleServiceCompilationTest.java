@@ -3,7 +3,6 @@ package io.casehub.ops.topology.compilation;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeType;
-import io.casehub.ops.api.infra.InfraDesiredNodeSpec;
 import io.casehub.ops.api.infra.K8sDeploymentSpec;
 import io.casehub.ops.api.infra.K8sNamespaceSpec;
 import org.junit.jupiter.api.Test;
@@ -26,10 +25,8 @@ class SingleServiceCompilationTest extends TopologyTestBase {
         var ns = graph.nodes().get(NodeId.of("blog-namespace"));
         assertThat(ns).isNotNull();
         assertThat(ns.type()).isEqualTo(NodeType.of("k8s_namespace"));
-        assertThat(ns.spec()).isInstanceOf(InfraDesiredNodeSpec.class);
-        var infraSpec = ((InfraDesiredNodeSpec) ns.spec()).resourceSpec();
-        assertThat(infraSpec).isInstanceOf(K8sNamespaceSpec.class);
-        assertThat(((K8sNamespaceSpec) infraSpec).name()).isEqualTo("ghost-blog");
+        assertThat(ns.spec()).isInstanceOf(K8sNamespaceSpec.class);
+        assertThat(((K8sNamespaceSpec) ns.spec()).name()).isEqualTo("ghost-blog");
     }
 
     @Test
@@ -49,8 +46,7 @@ class SingleServiceCompilationTest extends TopologyTestBase {
     @Test
     void ghostBlog_variableSubstitution() throws IOException {
         DesiredStateGraph graph = compileSingleGraph("topologies/single-service/single-node-blog.yaml");
-        var deploy = (InfraDesiredNodeSpec) graph.nodes().get(NodeId.of("ghost")).spec();
-        var k8sSpec = (K8sDeploymentSpec) deploy.resourceSpec();
+        var k8sSpec = (K8sDeploymentSpec) graph.nodes().get(NodeId.of("ghost")).spec();
         assertThat(k8sSpec.image()).isEqualTo("ghost:5-alpine");
         assertThat(k8sSpec.replicas()).isEqualTo(1);
     }

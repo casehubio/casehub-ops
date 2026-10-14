@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class TopologyTestBase {
 
-    private static final ObjectMapper                    YAML_MAPPER = YamlMappers.create();
+    private static final ObjectMapper                    YAML_MAPPER = YamlMappers.createWithCoreModule();
     private static final DefaultDesiredStateGraphFactory FACTORY     = new DefaultDesiredStateGraphFactory();
 
     public static Map<String, String> buildTypeRegistry() {
