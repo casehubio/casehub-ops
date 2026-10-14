@@ -75,9 +75,9 @@ class ComplianceReconciliationIntegrationTest {
         }
 
         var plan = planner.plan(desired, actual);
-        assertThat(plan.additions()).isNotEmpty();
+        assertThat(plan.flatAdditions()).isNotEmpty();
 
-        for (var step : plan.additions()) {
+        for (var step : plan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 var result = provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, desired));
                 assertThat(result).as("provisioning %s", step.node().id()).isInstanceOf(ProvisionResult.Success.class);
@@ -90,8 +90,8 @@ class ComplianceReconciliationIntegrationTest {
         }
 
         var secondPlan = planner.plan(desired, afterProvision);
-        assertThat(secondPlan.additions()).isEmpty();
-        assertThat(secondPlan.removals()).isEmpty();
+        assertThat(secondPlan.flatAdditions()).isEmpty();
+        assertThat(secondPlan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -107,9 +107,9 @@ class ComplianceReconciliationIntegrationTest {
         assertThat(driftActual.statusOf(NodeId.of("encryption-at-rest"))).contains(NodeStatus.DRIFTED);
 
         var remediationPlan = planner.plan(modifiedDesired, driftActual);
-        assertThat(remediationPlan.additions()).isNotEmpty();
+        assertThat(remediationPlan.flatAdditions()).isNotEmpty();
 
-        for (var step : remediationPlan.additions()) {
+        for (var step : remediationPlan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 var result = provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, modifiedDesired));
                 assertThat(result).isInstanceOf(ProvisionResult.Success.class);
@@ -122,8 +122,8 @@ class ComplianceReconciliationIntegrationTest {
         }
 
         var closurePlan = planner.plan(modifiedDesired, afterRemediation);
-        assertThat(closurePlan.additions()).isEmpty();
-        assertThat(closurePlan.removals()).isEmpty();
+        assertThat(closurePlan.flatAdditions()).isEmpty();
+        assertThat(closurePlan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -144,7 +144,7 @@ class ComplianceReconciliationIntegrationTest {
     private void provisionAll(DesiredStateGraph desired) {
         var actual = adapter.readActual(desired, TENANCY_ID);
         var plan = planner.plan(desired, actual);
-        for (var step : plan.additions()) {
+        for (var step : plan.flatAdditions()) {
             if (step.action() == StepAction.PROVISION) {
                 provisioner.provision(step.node(), new ProvisionContext(TENANCY_ID, desired));
             }

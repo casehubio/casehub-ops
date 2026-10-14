@@ -45,7 +45,8 @@ class InfraFaultPolicyTest {
         assertThat(mutations).hasSize(2);
         assertThat(mutations.getFirst()).isInstanceOf(GraphMutation.AddNode.class);
 
-        var addNode = (GraphMutation.AddNode) mutations.getFirst();
+        @SuppressWarnings("unchecked")
+        var addNode = (GraphMutation.AddNode<DesiredNode>) mutations.getFirst();
         assertThat(addNode.node().id()).isEqualTo(NodeId.of("infra-review-vm-1"));
         assertThat(addNode.node().type()).isEqualTo(INFRA_REVIEW);
         assertThat(addNode.node().humanGating()).isEqualTo(HumanGating.ALL);
@@ -55,10 +56,11 @@ class InfraFaultPolicyTest {
         assertThat(spec.faultedNode()).isEqualTo(NodeId.of("vm-1"));
         assertThat(spec.reason()).isEqualTo("timeout");
 
-        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddDependency.class);
-        var addDep = (GraphMutation.AddDependency) mutations.get(1);
-        assertThat(addDep.dependency().from()).isEqualTo(NodeId.of("infra-review-vm-1"));
-        assertThat(addDep.dependency().to()).isEqualTo(NodeId.of("vm-1"));
+        assertThat(mutations.get(1)).isInstanceOf(GraphMutation.AddEdge.class);
+        @SuppressWarnings("unchecked")
+        var addEdge = (GraphMutation.AddEdge<DesiredNode>) mutations.get(1);
+        assertThat(addEdge.from()).isEqualTo("infra-review-vm-1");
+        assertThat(addEdge.to()).isEqualTo("vm-1");
     }
 
     @Test
