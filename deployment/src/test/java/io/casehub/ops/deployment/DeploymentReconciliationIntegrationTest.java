@@ -76,7 +76,7 @@ class DeploymentReconciliationIntegrationTest {
                     @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
                     @Override public void destroyPool(String name) {}
                 }),
-                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore()),
+                new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore(), null),
                 specHashStore,
                 (node, action, tenancyId) -> new io.casehub.ops.api.approval.ApprovalDecision.AutoApproved(),
                 new io.casehub.ops.api.approval.InMemoryPlanStore());

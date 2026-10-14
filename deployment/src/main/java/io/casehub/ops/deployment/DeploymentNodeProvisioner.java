@@ -1,13 +1,37 @@
 package io.casehub.ops.deployment;
 
+import io.casehub.desiredstate.api.DeprovisionContext;
+import io.casehub.desiredstate.api.DeprovisionResult;
+import io.casehub.desiredstate.api.DesiredNode;
+import io.casehub.desiredstate.api.NodeProvisioner;
+import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
+import io.casehub.desiredstate.api.StepAction;
+import io.casehub.eidos.api.AgentRegistry;
+import io.casehub.ops.api.approval.ApprovalDecision;
+import io.casehub.ops.api.approval.ApprovalEvaluator;
+import io.casehub.ops.api.approval.PlanStore;
+import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
+import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
+import io.casehub.ops.api.deployment.ChannelNodeSpec;
+import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
+import io.casehub.ops.api.deployment.DeploymentNodeSpec;
+import io.casehub.ops.api.deployment.DetectionNodeSpec;
+import io.casehub.ops.api.deployment.EndpointNodeSpec;
+import io.casehub.ops.api.deployment.PoolNodeSpec;
+import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
+import io.casehub.ops.deployment.handler.AgentProvisionHandler;
+import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
+import io.casehub.ops.deployment.handler.CaseTypeProvisionHandler;
+import io.casehub.ops.deployment.handler.ChannelProvisionHandler;
+import io.casehub.ops.deployment.handler.DetectionProvisionHandler;
+import io.casehub.ops.deployment.handler.EndpointProvisionHandler;
+import io.casehub.ops.deployment.handler.PoolProvisionHandler;
+import io.casehub.ops.deployment.handler.TrustPolicyProvisionHandler;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
-import io.casehub.desiredstate.api.*;
-import io.casehub.eidos.api.AgentRegistry;
-import io.casehub.ops.api.approval.*;
-import io.casehub.ops.api.deployment.*;
-import io.casehub.ops.deployment.handler.*;
 
 import java.util.Set;
 
@@ -68,6 +92,14 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
 
     @Override
     public ProvisionResult provision(DesiredNode node, ProvisionContext context) {
+        if (node.spec() instanceof DeploymentApplicationNodeSpec wrapper) {
+            ProvisionResult result = appHandler.provision(wrapper.spec(), context, wrapper.deploymentTargetId(), wrapper.existingUrl());
+            if (result instanceof ProvisionResult.Success) {
+                specHashStore.record(node.id(), node.spec());
+            }
+            return result;
+        }
+
         if (!(node.spec() instanceof DeploymentNodeSpec spec)) {
             return new ProvisionResult.Failed("spec is not DeploymentNodeSpec");
         }
@@ -87,6 +119,14 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
 
     @Override
     public DeprovisionResult deprovision(DesiredNode node, DeprovisionContext context) {
+        if (node.spec() instanceof DeploymentApplicationNodeSpec wrapper) {
+            DeprovisionResult result = appHandler.deprovision(wrapper.spec(), context);
+            if (result instanceof DeprovisionResult.Success) {
+                specHashStore.remove(node.id());
+            }
+            return result;
+        }
+
         if (!(node.spec() instanceof DeploymentNodeSpec spec)) {
             return new DeprovisionResult.Failed("spec is not DeploymentNodeSpec");
         }

@@ -1,0 +1,35 @@
+desiredState:
+  namespace: casehub
+  name: casehub-topology
+
+nodes:
+  qhorus:
+    type: casehub_application
+    spec:
+      applicationId: qhorus
+      image: casehubio/qhorus:0.5-SNAPSHOT
+      replicas: 1
+      config:
+        quarkus.http.port: "8081"
+
+  eidos:
+    type: casehub_application
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:0.3-SNAPSHOT
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    spec:
+      applicationId: engine
+      image: casehubio/engine:0.4-SNAPSHOT
+      replicas: 1
+
+  ops-app:
+    type: casehub_application
+    dependsOn: [qhorus, eidos, engine]
+    spec:
+      applicationId: ops-app
+      image: casehubio/casehub-ops-app:latest
+      replicas: 1

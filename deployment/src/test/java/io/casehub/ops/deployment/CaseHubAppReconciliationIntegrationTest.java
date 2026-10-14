@@ -109,7 +109,7 @@ class CaseHubAppReconciliationIntegrationTest {
         var graph = ((CompilationResult.SingleGraph) compiler.compile(goals, factory)).graph();
 
         var handler = new CaseHubAppProvisionHandler(
-            new PrebuiltImagePipeline(), deployTarget, new io.casehub.ops.deployment.InstanceIdStore());
+            new PrebuiltImagePipeline(), deployTarget, new io.casehub.ops.deployment.InstanceIdStore(), null);
         var provResult = handler.provision(spec,
             new ProvisionContext("tenant-1", graph));
         assertThat(provResult).isInstanceOf(ProvisionResult.Success.class);

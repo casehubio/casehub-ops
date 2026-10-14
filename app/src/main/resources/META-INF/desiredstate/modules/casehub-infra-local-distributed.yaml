@@ -1,0 +1,19 @@
+module:
+  name: casehub-infra-local-distributed
+  parameters: {}
+
+nodes:
+  ops-postgres:
+    type: container:database
+    spec:
+      name: ops-postgres
+      image: "postgres:16"
+      databaseName: casehub_ops
+      username: casehub
+      password: casehub
+      dataVolume: ops-postgres-data
+
+  ops-network:
+    type: network
+    spec:
+      name: casehub-net

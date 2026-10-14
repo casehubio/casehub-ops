@@ -25,7 +25,7 @@ class CaseHubAppProvisionHandlerTest {
     void setUp() {
         buildPipeline = new PrebuiltImagePipeline();
         deployTarget = new StubDeploymentTarget();
-        handler = new CaseHubAppProvisionHandler(buildPipeline, deployTarget, new io.casehub.ops.deployment.InstanceIdStore());
+        handler = new CaseHubAppProvisionHandler(buildPipeline, deployTarget, new io.casehub.ops.deployment.InstanceIdStore(), null);
     }
 
     @Test
