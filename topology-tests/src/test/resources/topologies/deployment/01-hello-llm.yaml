@@ -1,9 +1,9 @@
 # ============================================================
 # Level 01: Hello LLM
 # ============================================================
-# The minimum viable CaseHub app. Deploys three platform services
-# via claudony: eidos (knowledge), engine (execution runtime),
-# and an LLM app that uses them.
+# The minimum viable CaseHub app. Deploys four services via
+# claudony: manifest (app descriptors), eidos (knowledge),
+# engine (execution runtime), and an LLM app that uses them.
 #
 # Prerequisites: None — this is where you start.
 #
@@ -13,9 +13,10 @@
 #   - How claudony registers and manages your apps
 #
 # After deployment, the reconciliation loop ensures:
-#   1. eidos starts first (no dependencies)
-#   2. engine starts after eidos
-#   3. my-llm starts after engine
+#   1. manifest starts first (no dependencies)
+#   2. eidos starts after manifest
+#   3. engine starts after eidos
+#   4. my-llm starts after engine
 #
 # Try it: change replicas or config values and re-reconcile.
 # Only the changed nodes will be updated.
@@ -26,8 +27,17 @@ desiredState:
   name: hello-llm
 
 nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
   eidos:
     type: casehub_application
+    dependsOn: [manifest]
     spec:
       applicationId: eidos
       image: casehubio/eidos:latest

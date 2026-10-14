@@ -36,12 +36,20 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     }
 
     @Test
-    void helloLlm_plansThreeAdditions() throws IOException {
+    void helloLlm_plansFourAdditions() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.flatAdditions()).hasSize(3);
+        assertThat(plan.flatAdditions()).hasSize(4);
         assertThat(plan.flatRemovals()).isEmpty();
+    }
+
+    @Test
+    void helloLlm_manifestBeforeEidos() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "manifest", "eidos");
     }
 
     @Test
@@ -74,6 +82,75 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     void helloLlm_idempotentAfterExecution() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        executeTransition(plan, "test-tenant");
+
+        actualAdapter.setAllPresent(graph);
+        TransitionPlan replan = planWithActual(graph,
+                actualAdapter.readActual(graph, "test-tenant"));
+        assertThat(replan.flatAdditions()).isEmpty();
+        assertThat(replan.flatRemovals()).isEmpty();
+    }
+
+    // ── Level 02: Accountability ──────────────────────────────────────────
+
+    @Test
+    void accountability_plansSixAdditions() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertThat(plan.flatAdditions()).hasSize(6);
+        assertThat(plan.flatRemovals()).isEmpty();
+    }
+
+    @Test
+    void accountability_manifestBeforeEidos() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "manifest", "eidos");
+    }
+
+    @Test
+    void accountability_eidosBeforeEngineAndLedger() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "eidos", "engine");
+        assertOrderedBefore(plan, "eidos", "ledger");
+    }
+
+    @Test
+    void accountability_engineAndLedgerBeforeWork() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "engine", "work");
+        assertOrderedBefore(plan, "ledger", "work");
+    }
+
+    @Test
+    void accountability_workBeforeLlm() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "work", "my-llm");
+    }
+
+    @Test
+    void accountability_executesSuccessfully() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        TransitionResult result = executeTransition(plan, "test-tenant");
+        assertThat(result.outcomes().values())
+                .allMatch(o -> o instanceof StepOutcome.Succeeded);
+    }
+
+    @Test
+    void accountability_idempotentAfterExecution() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         executeTransition(plan, "test-tenant");
 

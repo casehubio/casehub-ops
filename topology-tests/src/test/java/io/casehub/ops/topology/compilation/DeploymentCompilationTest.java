@@ -18,10 +18,10 @@ class DeploymentCompilationTest extends TopologyTestBase {
             buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
 
     @Test
-    void helloLlm_hasThreeNodes() throws IOException {
+    void helloLlm_hasFourNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(3);
+        assertThat(graph.nodes()).hasSize(4);
     }
 
     @Test
@@ -30,6 +30,14 @@ class DeploymentCompilationTest extends TopologyTestBase {
                 "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
                 assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void helloLlm_eidosDependsOnManifest() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("eidos")))
+                .contains(NodeId.of("manifest"));
     }
 
     @Test
@@ -55,5 +63,54 @@ class DeploymentCompilationTest extends TopologyTestBase {
         var eidosNode = graph.nodes().get(NodeId.of("eidos"));
         assertThat(eidosNode).isNotNull();
         assertThat(eidosNode.spec()).isNotNull();
+    }
+
+    // ── Level 02: Accountability ──────────────────────────────────────────
+
+    @Test
+    void accountability_hasSixNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(6);
+    }
+
+    @Test
+    void accountability_allNodesAreCasehubApplication() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node ->
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void accountability_eidosDependsOnManifest() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("eidos")))
+                .contains(NodeId.of("manifest"));
+    }
+
+    @Test
+    void accountability_ledgerDependsOnEidos() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("ledger")))
+                .contains(NodeId.of("eidos"));
+    }
+
+    @Test
+    void accountability_workDependsOnEngineAndLedger() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("work")))
+                .containsExactlyInAnyOrder(NodeId.of("engine"), NodeId.of("ledger"));
+    }
+
+    @Test
+    void accountability_llmDependsOnWork() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
+                .contains(NodeId.of("work"));
     }
 }

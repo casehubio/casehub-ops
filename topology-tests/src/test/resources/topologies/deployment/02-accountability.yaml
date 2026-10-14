@@ -1,0 +1,87 @@
+# ============================================================
+# Level 02: Accountability
+# ============================================================
+# Builds on Level 01 by adding ledger (audit trail) and work
+# (task management) services. After this level, every deployment
+# is audited and every task execution generates work items.
+#
+# Prerequisites: Level 01 (01-hello-llm.yaml)
+#
+# What you'll learn:
+#   - How to add platform services that cross-cut your app
+#   - How dependency edges grow as services compose
+#   - How reconciliation handles a larger dependency graph
+#
+# Dependency graph:
+#   manifest ──> eidos ──┬──> engine ──┬──> work ──> my-llm
+#                        │             │      ↑
+#                        └──> ledger ──┘──────┘
+#
+# The reconciliation loop ensures:
+#   1. manifest starts first (no dependencies)
+#   2. eidos starts after manifest
+#   3. ledger and engine can start in parallel (both depend only on eidos)
+#   4. work starts after both engine and ledger
+#   5. my-llm starts after work
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: accountability
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  ledger:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: ledger
+      image: casehubio/ledger:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  work:
+    type: casehub_application
+    dependsOn: [engine, ledger]
+    spec:
+      applicationId: work
+      image: casehubio/work:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [work]
+    spec:
+      applicationId: my-llm
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.provider: anthropic
+        llm.model: claude-sonnet-4-20250514

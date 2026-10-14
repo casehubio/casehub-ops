@@ -43,6 +43,7 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
         wireMock.start();
 
         ClaudonyWireMockSupport.stubRegisterApp(wireMock);
+        ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "manifest");
         ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "eidos");
         ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "engine");
         ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "my-llm");
@@ -73,7 +74,7 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
             assertThat(result).isInstanceOf(DeployResult.Success.class);
         }
 
-        wireMock.verify(3, postRequestedFor(urlEqualTo("/api/claudony/apps/")));
+        wireMock.verify(4, postRequestedFor(urlEqualTo("/api/claudony/apps/")));
     }
 
     @Test
