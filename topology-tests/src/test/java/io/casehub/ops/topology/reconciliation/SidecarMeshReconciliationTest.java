@@ -27,15 +27,15 @@ class SidecarMeshReconciliationTest extends ReconciliationTestBase {
     void logistics_plansAllNodesFromEmpty() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(EXEMPLAR);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).isNotEmpty();
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).isNotEmpty();
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test
     void logistics_namespacePrecedesDeployments() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(EXEMPLAR);
         TransitionPlan plan = planFromEmpty(graph);
-        for (OrderedStep step : plan.additions()) {
+        for (OrderedStep step : plan.flatAdditions()) {
             if (step.node().type().equals(NodeType.of("k8s_deployment"))) {
                 assertOrderedBefore(plan, "logistics-ns", step.node().id().value());
             }
@@ -57,8 +57,8 @@ class SidecarMeshReconciliationTest extends ReconciliationTestBase {
         graph.nodes().keySet().forEach(id -> statuses.put(id, NodeStatus.PRESENT));
         statuses.put(NodeId.of("fleet-api"), NodeStatus.ABSENT);
         TransitionPlan plan = planWithActual(graph, new ActualState(statuses));
-        assertThat(plan.additions()).hasSize(1);
-        assertThat(plan.additions().get(0).node().id()).isEqualTo(NodeId.of("fleet-api"));
+        assertThat(plan.flatAdditions()).hasSize(1);
+        assertThat(plan.flatAdditions().get(0).node().id()).isEqualTo(NodeId.of("fleet-api"));
     }
 
     @Test

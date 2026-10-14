@@ -18,8 +18,8 @@ class ReconciliationTestBaseVerificationTest extends ReconciliationTestBase {
     void planFromEmpty_produces_additions_for_all_nodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph("topologies/single-service/single-node-blog.yaml");
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).hasSize(3);
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).hasSize(3);
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test

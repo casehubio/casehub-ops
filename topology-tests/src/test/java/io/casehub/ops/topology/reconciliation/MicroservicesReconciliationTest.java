@@ -27,15 +27,15 @@ class MicroservicesReconciliationTest extends ReconciliationTestBase {
     void tradingPlatform_plansAllNodesFromEmpty() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(EXEMPLAR);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).isNotEmpty();
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).isNotEmpty();
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test
     void tradingPlatform_namespacePrecedesDeployments() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(EXEMPLAR);
         TransitionPlan plan = planFromEmpty(graph);
-        for (OrderedStep step : plan.additions()) {
+        for (OrderedStep step : plan.flatAdditions()) {
             if (step.node().type().equals(NodeType.of("k8s_deployment"))) {
                 assertOrderedBefore(plan, "trading-ns", step.node().id().value());
             }
@@ -69,8 +69,8 @@ class MicroservicesReconciliationTest extends ReconciliationTestBase {
         statuses.put(driftedNode, NodeStatus.ABSENT);
 
         TransitionPlan plan = planWithActual(graph, new ActualState(statuses));
-        assertThat(plan.additions()).hasSize(1);
-        assertThat(plan.additions().get(0).node().id()).isEqualTo(driftedNode);
+        assertThat(plan.flatAdditions()).hasSize(1);
+        assertThat(plan.flatAdditions().get(0).node().id()).isEqualTo(driftedNode);
     }
 
     @Test

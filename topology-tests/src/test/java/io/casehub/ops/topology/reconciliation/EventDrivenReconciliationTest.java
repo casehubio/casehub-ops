@@ -25,8 +25,8 @@ class EventDrivenReconciliationTest extends ReconciliationTestBase {
     void telemetry_plansAllNodesFromEmpty() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(EXEMPLAR);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).isNotEmpty();
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).isNotEmpty();
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -58,8 +58,8 @@ class EventDrivenReconciliationTest extends ReconciliationTestBase {
         graph.nodes().keySet().forEach(id -> statuses.put(id, NodeStatus.PRESENT));
         statuses.put(NodeId.of("kafka-broker"), NodeStatus.DRIFTED);
         TransitionPlan plan = planWithActual(graph, new ActualState(statuses));
-        assertThat(plan.additions()).hasSize(1);
-        assertThat(plan.additions().get(0).node().id()).isEqualTo(NodeId.of("kafka-broker"));
+        assertThat(plan.flatAdditions()).hasSize(1);
+        assertThat(plan.flatAdditions().get(0).node().id()).isEqualTo(NodeId.of("kafka-broker"));
     }
 
     @Test

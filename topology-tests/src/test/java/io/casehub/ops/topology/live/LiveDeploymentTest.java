@@ -18,7 +18,7 @@ class LiveDeploymentTest extends ReconciliationTestBase {
     void singleServiceBlog_plansCorrectly() throws IOException {
         DesiredStateGraph graph = compileSingleGraph("topologies/single-service/single-node-blog.yaml");
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).hasSize(3);
+        assertThat(plan.flatAdditions()).hasSize(3);
         assertOrderedBefore(plan, "blog-namespace", "ghost");
     }
 }

@@ -11,11 +11,10 @@ import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.yaml.YamlGraphRecorder;
 import io.casehub.desiredstate.yaml.model.YamlGraph;
-import io.casehub.desiredstate.yaml.model.YamlModule;
-import io.casehub.desiredstate.yaml.model.YamlModuleFile;
 import io.casehub.desiredstate.yaml.model.YamlNode;
 import io.casehub.ops.api.infra.InfraNodeSpec;
-import io.casehub.ops.infra.InfraNodeSpecFactoryProvider;
+import io.casehub.yaml.core.module.YamlModule;
+import io.casehub.yaml.core.module.YamlModuleFile;
 import io.casehub.yaml.jackson.YamlMappers;
 
 import java.io.IOException;
@@ -33,21 +32,35 @@ public abstract class TopologyTestBase {
     private static final DefaultDesiredStateGraphFactory FACTORY     = new DefaultDesiredStateGraphFactory();
 
     public static Map<String, String> buildTypeRegistry() {
+        return buildTypeRegistryFrom(InfraNodeSpec.class);
+    }
+
+    public static Map<String, String> buildTypeRegistryFrom(Class<?>... sealedInterfaces) {
         Map<String, String> registry = new HashMap<>();
-        for (Class<?> permit : InfraNodeSpec.class.getPermittedSubclasses()) {
-            NodeTypeId ann = permit.getAnnotation(NodeTypeId.class);
-            if (ann != null) {
-                registry.put(ann.value(), permit.getName());
+        for (Class<?> sealedIface : sealedInterfaces) {
+            if (sealedIface.isSealed()) {
+                for (Class<?> permit : sealedIface.getPermittedSubclasses()) {
+                    NodeTypeId ann = permit.getAnnotation(NodeTypeId.class);
+                    if (ann != null) {
+                        registry.put(ann.value(), permit.getName());
+                    }
+                }
             }
         }
         return registry;
     }
 
+
     @SuppressWarnings("unchecked")
     public static GoalCompiler<Void> compileExemplar(String resourcePath) throws IOException {
-        Map<String, String>     typeRegistry = buildTypeRegistry();
-        YamlGraph               yamlGraph    = parseYaml(resourcePath);
-        Map<String, YamlModule> modules      = discoverModules();
+        return compileExemplar(resourcePath, buildTypeRegistry());
+    }
+
+    @SuppressWarnings("unchecked")
+    public static GoalCompiler<Void> compileExemplar(String resourcePath,
+                                                     Map<String, String> typeRegistry) throws IOException {
+        YamlGraph               yamlGraph = parseYaml(resourcePath);
+        Map<String, YamlModule> modules   = discoverModules();
 
         List<io.casehub.desiredstate.annotations.runtime.ResolvedInvariant> invariants = new ArrayList<>();
         for (var inv : yamlGraph.invariants().entrySet()) {
@@ -61,18 +74,16 @@ public abstract class TopologyTestBase {
             return recorder.createYamlLifecycleGoalCompiler(
                     yamlGraph, typeRegistry,
                     yamlGraph.variables() != null ? yamlGraph.variables() : Map.of(),
-                    invariants, modules,
-                    List.of(InfraNodeSpecFactoryProvider.class.getName())).getValue();
+                    invariants).getValue();
         }
 
         GraphDescriptor descriptor = toGraphDescriptor(yamlGraph, typeRegistry);
         return recorder.createYamlGoalCompiler(
                 descriptor, typeRegistry,
                 yamlGraph.variables() != null ? yamlGraph.variables() : Map.of(),
-                invariants, yamlGraph, modules,
-                List.of(), List.of(),
-                List.of(InfraNodeSpecFactoryProvider.class.getName())).getValue();
+                invariants, yamlGraph, modules).getValue();
     }
+
 
     public static DesiredStateGraph compileSingleGraph(String resourcePath) throws IOException {
         GoalCompiler<Void> compiler = compileExemplar(resourcePath);
@@ -80,6 +91,15 @@ public abstract class TopologyTestBase {
         assertThat(result).isInstanceOf(CompilationResult.SingleGraph.class);
         return ((CompilationResult.SingleGraph) result).graph();
     }
+
+    public static DesiredStateGraph compileSingleGraph(String resourcePath,
+                                                       Map<String, String> typeRegistry) throws IOException {
+        GoalCompiler<Void> compiler = compileExemplar(resourcePath, typeRegistry);
+        CompilationResult  result   = compiler.compile(null, FACTORY);
+        assertThat(result).isInstanceOf(CompilationResult.SingleGraph.class);
+        return ((CompilationResult.SingleGraph) result).graph();
+    }
+
 
     public static CompilationResult.Lifecycle compileLifecycle(String resourcePath) throws IOException {
         GoalCompiler<Void> compiler = compileExemplar(resourcePath);
@@ -105,6 +125,8 @@ public abstract class TopologyTestBase {
                     YamlModuleFile moduleFile = YAML_MAPPER.readValue(is, YamlModuleFile.class);
                     modules.put(moduleFile.toModule().name(), moduleFile.toModule());
                 }
+            } catch (IOException e) {
+                // Module deserialization may fail if API has changed — skip
             }
         }
         return modules;

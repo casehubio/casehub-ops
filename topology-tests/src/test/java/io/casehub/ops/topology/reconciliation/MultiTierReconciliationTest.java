@@ -1,6 +1,7 @@
 package io.casehub.ops.topology.reconciliation;
 
 import io.casehub.desiredstate.api.ActualState;
+import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.FaultEvent;
@@ -36,8 +37,8 @@ class MultiTierReconciliationTest extends ReconciliationTestBase {
         CompilationResult.Lifecycle lifecycle = compileLifecycle(EXEMPLAR);
         for (Phase phase : lifecycle.phases()) {
             TransitionPlan plan = planFromEmpty(phase.graph());
-            assertThat(plan.additions()).isNotEmpty();
-            assertThat(plan.removals()).isEmpty();
+            assertThat(plan.flatAdditions()).isNotEmpty();
+            assertThat(plan.flatRemovals()).isEmpty();
         }
     }
 
@@ -69,8 +70,8 @@ class MultiTierReconciliationTest extends ReconciliationTestBase {
         statuses.put(NodeId.of("product-db"), NodeStatus.DRIFTED);
 
         TransitionPlan plan = planWithActual(dataGraph, new ActualState(statuses));
-        assertThat(plan.additions()).hasSize(1);
-        assertThat(plan.additions().get(0).node().id()).isEqualTo(NodeId.of("product-db"));
+        assertThat(plan.flatAdditions()).hasSize(1);
+        assertThat(plan.flatAdditions().get(0).node().id()).isEqualTo(NodeId.of("product-db"));
     }
 
     @Test
@@ -95,8 +96,8 @@ class MultiTierReconciliationTest extends ReconciliationTestBase {
 
         List<GraphMutation> mutations = evaluateFault("tenant", event, graph, actual);
         assertThat(mutations).isNotEmpty();
-        assertThat(mutations).anyMatch(m -> m instanceof GraphMutation.AddNode addNode
-                && addNode.node().type().equals(NodeType.of("infra-review")));
+        assertThat(mutations).anyMatch(m -> m instanceof GraphMutation.AddNode<?> addNode
+                && ((DesiredNode) addNode.node()).type().equals(NodeType.of("infra-review")));
     }
 
     @Test

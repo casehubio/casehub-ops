@@ -14,6 +14,7 @@ import io.casehub.desiredstate.runtime.DefaultNodeProvisionerRouter;
 import io.casehub.desiredstate.runtime.FaultPolicyEngine;
 import io.casehub.desiredstate.runtime.NoOpHumanNodeHandler;
 import io.casehub.desiredstate.runtime.NoOpPendingApprovalHandler;
+import io.casehub.desiredstate.runtime.NodeStepExecutor;
 import io.casehub.desiredstate.runtime.SimpleTransitionExecutor;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.desiredstate.testing.MockActualStateAdapter;
@@ -57,31 +58,33 @@ public abstract class ReconciliationTestBase extends TopologyTestBase {
     }
 
     protected TransitionResult executeTransition(TransitionPlan plan, String tenancyId) {
-        SimpleTransitionExecutor executor = new SimpleTransitionExecutor(
+        NodeStepExecutor nodeStepExecutor = new NodeStepExecutor(
                 new DefaultNodeProvisionerRouter(List.of(provisioner)),
                 new NoOpHumanNodeHandler(),
                 new NoOpPendingApprovalHandler(),
                 (step, tid) -> new StepOutcome.Succeeded());
+        SimpleTransitionExecutor executor = new SimpleTransitionExecutor(nodeStepExecutor);
         return executor.execute(plan, tenancyId);
     }
 
+    @SuppressWarnings("unchecked")
     protected List<GraphMutation> evaluateFault(String tenancyId, FaultEvent event,
-                                                 DesiredStateGraph graph, ActualState actual) {
-        return faultEngine.evaluate(tenancyId, event, graph, actual);
+                                                DesiredStateGraph graph, ActualState actual) {
+        return (List) faultEngine.evaluate(tenancyId, event, graph, actual);
     }
 
     protected static void assertOrderedBefore(TransitionPlan plan, String beforeId, String afterId) {
-        List<OrderedStep> additions = plan.additions();
-        int beforeIdx = -1;
-        int afterIdx = -1;
+        List<OrderedStep> additions = plan.flatAdditions();
+        int               beforeIdx = -1;
+        int               afterIdx  = -1;
         for (int i = 0; i < additions.size(); i++) {
             String id = additions.get(i).node().id().value();
-            if (id.equals(beforeId)) beforeIdx = i;
-            if (id.equals(afterId)) afterIdx = i;
+            if (id.equals(beforeId)) {beforeIdx = i;}
+            if (id.equals(afterId)) {afterIdx = i;}
         }
         assertThat(beforeIdx)
                 .as("Expected '%s' (idx=%d) before '%s' (idx=%d) in plan additions",
-                        beforeId, beforeIdx, afterId, afterIdx)
+                    beforeId, beforeIdx, afterId, afterIdx)
                 .isGreaterThanOrEqualTo(0);
         assertThat(afterIdx).isGreaterThanOrEqualTo(0);
         assertThat(beforeIdx).isLessThan(afterIdx);

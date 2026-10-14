@@ -22,8 +22,8 @@ class SingleServiceReconciliationTest extends ReconciliationTestBase {
     void ghostBlog_plansAllNodesFromEmpty() throws IOException {
         DesiredStateGraph graph = compileSingleGraph("topologies/single-service/single-node-blog.yaml");
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.additions()).hasSize(3);
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).hasSize(3);
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test
@@ -57,8 +57,8 @@ class SingleServiceReconciliationTest extends ReconciliationTestBase {
                 NodeId.of("ghost"), NodeStatus.PRESENT,
                 NodeId.of("ghost-service"), NodeStatus.ABSENT);
         TransitionPlan plan = planWithActual(graph, new ActualState(statuses));
-        assertThat(plan.additions()).hasSize(1);
-        assertThat(plan.additions().get(0).node().id()).isEqualTo(NodeId.of("ghost-service"));
-        assertThat(plan.removals()).isEmpty();
+        assertThat(plan.flatAdditions()).hasSize(1);
+        assertThat(plan.flatAdditions().get(0).node().id()).isEqualTo(NodeId.of("ghost-service"));
+        assertThat(plan.flatRemovals()).isEmpty();
     }
 }
