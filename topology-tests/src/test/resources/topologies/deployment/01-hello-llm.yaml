@@ -1,0 +1,56 @@
+# ============================================================
+# Level 01: Hello LLM
+# ============================================================
+# The minimum viable CaseHub app. Deploys three platform services
+# via claudony: eidos (knowledge), engine (execution runtime),
+# and an LLM app that uses them.
+#
+# Prerequisites: None — this is where you start.
+#
+# What you'll learn:
+#   - How to declare CaseHub apps in YAML
+#   - How dependency edges control deployment order
+#   - How claudony registers and manages your apps
+#
+# After deployment, the reconciliation loop ensures:
+#   1. eidos starts first (no dependencies)
+#   2. engine starts after eidos
+#   3. my-llm starts after engine
+#
+# Try it: change replicas or config values and re-reconcile.
+# Only the changed nodes will be updated.
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: hello-llm
+
+nodes:
+  eidos:
+    type: casehub_application
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    spec:
+      applicationId: my-llm
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.provider: anthropic
+        llm.model: claude-sonnet-4-20250514
