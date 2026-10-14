@@ -28,6 +28,7 @@
         <module>deployment</module>
         <module>infra</module>
         <module>compliance</module>
+        <module>claudony</module>
         <module>testing</module>
         <module>topology-tests</module>
         <module>examples/deployment-monitoring</module>
@@ -77,7 +78,12 @@
                 <artifactId>casehub-ops-compliance</artifactId>
                 <version>${project.version}</version>
             </dependency>
-<dependency>
+            <dependency>
+                <groupId>io.casehub</groupId>
+                <artifactId>casehub-ops-claudony</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.casehub</groupId>
                 <artifactId>casehub-ops-testing</artifactId>
                 <version>${project.version}</version>

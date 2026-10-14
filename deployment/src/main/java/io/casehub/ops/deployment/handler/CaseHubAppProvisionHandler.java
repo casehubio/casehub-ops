@@ -64,6 +64,22 @@ public class CaseHubAppProvisionHandler {
         return new DeprovisionResult.Success();
     }
 
+    public DeployResult suspend(CaseHubApplicationSpec spec, String deploymentTargetId) {
+        ApplicationDeploymentTarget target = resolveTarget(deploymentTargetId);
+        return target.suspend(spec.applicationId());
+    }
+
+    public DeployResult resume(CaseHubApplicationSpec spec, String deploymentTargetId) {
+        ApplicationDeploymentTarget target = resolveTarget(deploymentTargetId);
+        return target.resume(spec.applicationId());
+    }
+
+    public boolean supportsStatefulLifecycle(String deploymentTargetId) {
+        ApplicationDeploymentTarget target = resolveTarget(deploymentTargetId);
+        return target.supportsStatefulLifecycle();
+    }
+
+
     private ApplicationDeploymentTarget resolveTarget(String targetId) {
         if (targetId == null || targetId.isEmpty()) {return deployTarget;}
         return allTargets.stream()

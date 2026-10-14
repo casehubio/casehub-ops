@@ -7,7 +7,12 @@ import io.casehub.desiredstate.api.NodeProvisioner;
 import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
+import io.casehub.desiredstate.api.ResumeContext;
+import io.casehub.desiredstate.api.ResumeResult;
 import io.casehub.desiredstate.api.StepAction;
+import io.casehub.desiredstate.api.SuspendContext;
+import io.casehub.desiredstate.api.SuspendResult;
+import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.eidos.api.AgentRegistry;
 import io.casehub.ops.api.approval.ApprovalDecision;
 import io.casehub.ops.api.approval.ApprovalEvaluator;
@@ -143,6 +148,36 @@ public class DeploymentNodeProvisioner implements NodeProvisioner {
 
         return doDeprovision(node, spec, context);
     }
+
+    @Override
+    public SuspendResult suspend(DesiredNode node, SuspendContext context) {
+        if (node.spec() instanceof DeploymentApplicationNodeSpec wrapper) {
+            var result = appHandler.suspend(wrapper.spec(), wrapper.deploymentTargetId());
+            if (result instanceof DeployResult.Failed f) {
+                return new SuspendResult.Failed(f.reason());
+            }
+            return new SuspendResult.Success();
+        }
+        return new SuspendResult.Failed("suspend not supported for " + node.type().value());
+    }
+
+    @Override
+    public ResumeResult resume(DesiredNode node, ResumeContext context) {
+        if (node.spec() instanceof DeploymentApplicationNodeSpec wrapper) {
+            var result = appHandler.resume(wrapper.spec(), wrapper.deploymentTargetId());
+            if (result instanceof DeployResult.Failed f) {
+                return new ResumeResult.Failed(f.reason());
+            }
+            return new ResumeResult.Success();
+        }
+        return new ResumeResult.Failed("resume not supported for " + node.type().value());
+    }
+
+    @Override
+    public boolean supportsStatefulLifecycle() {
+        return true;
+    }
+
 
     private ProvisionResult handleProvisionReEntry(DesiredNode node, DeploymentNodeSpec spec, ProvisionContext context) {
         var planOpt = planStore.retrieve(context.approval().planReference());
