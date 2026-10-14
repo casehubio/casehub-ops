@@ -39,6 +39,7 @@ mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
 | `compliance/` | `casehub-ops-compliance` | `io.casehub.ops.compliance` | Compliance posture — SOC2/GDPR/EU-AI-Act/DORA/NIS2 |
 | `testing/` | `casehub-ops-testing` | `io.casehub.ops.testing` | Shared test fixtures. **Test scope only.** |
 | `container/` | `casehub-ops-container` | `io.casehub.ops.container` | Container provisioning — Podman REST API for app containers, databases, networks, volumes |
+| `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet deployment target — deploy/suspend/resume apps via claudony REST API |
 | `app/` | `casehub-ops-app` | `io.casehub.ops.service` | Thin Quarkus shell — application.properties + quarkus-maven-plugin only. Depends solely on casehub-ops-service. |
 
 ## Domain Priority

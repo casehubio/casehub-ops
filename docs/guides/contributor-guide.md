@@ -17,6 +17,8 @@ api (shared types, SPIs)
  +-- infra (infrastructure provisioning)
  +-- compliance (regulatory posture)
  +-- iot (device management)
+ +-- container (Podman container provisioning)
+ +-- claudony (claudony fleet deployment target)
  +-- app (K8s ops console, embeds engine + desiredstate runtime)
  +-- testing (shared test fixtures, no sources)
 ```

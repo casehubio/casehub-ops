@@ -25,6 +25,8 @@ Each domain module implements the full desiredstate SPI quad -- `GoalCompiler`, 
 | `compliance` | `casehub-ops-compliance` | Regulatory compliance posture: SOC2-TypeII, GDPR, EU-AI-Act Art.12, DORA, NIS2, ISO27001. Strategy-based evidence collection with tamper-evident ledger records |
 | `iot` | `casehub-ops-iot` | IoT device desired state: physical device installation (human-gated), device configuration via `DeviceProvider` (Home Assistant/OpenHAB). Capability normalization and command mapping |
 | `app` | `casehub-ops-app` | Ops console: Quarkus application for K8s microservice lifecycle management. Embeds casehub-engine and casehub-desiredstate runtime. REST API, JPA entities, Flyway migrations, fabric8 K8s integration |
+| `container` | `casehub-ops-container` | Container provisioning: Podman REST API for app containers, databases, networks, volumes. `PodmanDeploymentTarget` for casehub_application deploy-via-Podman |
+| `claudony` | `casehub-ops-claudony` | Claudony fleet deployment target: deploy, suspend, resume apps via claudony REST API. `ClaudonyDeploymentTarget` with `targetId="claudony"` for fleet-managed casehub_application nodes |
 | `testing` | `casehub-ops-testing` | Shared test fixtures: dependency aggregator POM for `casehub-ops-api`, `casehub-desiredstate-testing`, `casehub-platform-testing`. No Java sources |
 
 ---
