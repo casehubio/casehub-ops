@@ -4,24 +4,37 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.ApplicationDeploymentTarget;
-import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
+import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
 import io.casehub.ops.api.deployment.NodeDriftChecker;
 import io.casehub.ops.deployment.InstanceIdStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class CaseHubAppDriftChecker implements NodeDriftChecker {
 
-    private final ApplicationDeploymentTarget deployTarget;
-    private final InstanceIdStore             instanceIdStore;
+    private final ApplicationDeploymentTarget           deployTarget;
+    private final InstanceIdStore                       instanceIdStore;
+    private final Instance<ApplicationDeploymentTarget> allTargets;
 
     @Inject
+    public CaseHubAppDriftChecker(ApplicationDeploymentTarget deployTarget,
+                                  InstanceIdStore instanceIdStore,
+                                  @Any Instance<ApplicationDeploymentTarget> allTargets) {
+        this.deployTarget    = deployTarget;
+        this.instanceIdStore = instanceIdStore;
+        this.allTargets      = allTargets;
+    }
+
     public CaseHubAppDriftChecker(ApplicationDeploymentTarget deployTarget, InstanceIdStore instanceIdStore) {
         this.deployTarget    = deployTarget;
         this.instanceIdStore = instanceIdStore;
+        this.allTargets      = null;
     }
+
 
     @Override
     public String nodeType() {
@@ -34,18 +47,27 @@ public class CaseHubAppDriftChecker implements NodeDriftChecker {
             if (wrapper.existingUrl() != null) {
                 return probeExistingUrl(wrapper.existingUrl());
             }
-            return checkAppStatus(wrapper.spec());
+            ApplicationDeploymentTarget target = resolveTarget(wrapper.deploymentTargetId());
+            return checkAppStatus(wrapper.spec(), target);
         }
         if (!(spec instanceof CaseHubApplicationSpec appSpec)) {
             return NodeStatus.UNKNOWN;
         }
-        return checkAppStatus(appSpec);
+        return checkAppStatus(appSpec, deployTarget);
     }
 
-    private NodeStatus checkAppStatus(CaseHubApplicationSpec appSpec) {
+    private ApplicationDeploymentTarget resolveTarget(String targetId) {
+        if (targetId == null || targetId.isEmpty() || allTargets == null) { return deployTarget; }
+        return allTargets.stream()
+                .filter(t -> targetId.equals(t.targetId()))
+                .findFirst()
+                .orElse(deployTarget);
+    }
+
+    private NodeStatus checkAppStatus(CaseHubApplicationSpec appSpec, ApplicationDeploymentTarget target) {
         var nodeId     = NodeId.of(appSpec.applicationId());
         var instanceId = instanceIdStore.get(nodeId).orElse(appSpec.applicationId() + "-instance");
-        return deployTarget.status(instanceId);
+        return target.status(instanceId);
     }
 
     private NodeStatus probeExistingUrl(String url) {
