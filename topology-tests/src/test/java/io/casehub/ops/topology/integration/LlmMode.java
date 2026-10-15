@@ -13,7 +13,22 @@ public enum LlmMode {
         if (cached != null) {return cached;}
         ManifestLoader loader   = new ManifestLoader();
         Manifest       manifest = loader.load(null, null);
-        cached = manifest.providers().isEmpty() ? NO_PROVIDER : FULL;
+        if (!manifest.providers().isEmpty()) {
+            cached = FULL;
+        } else {
+            cached = claudeCliAvailable() ? FULL : NO_PROVIDER;
+        }
         return cached;
+    }
+
+    private static boolean claudeCliAvailable() {
+        try {
+            Process p = new ProcessBuilder("claude", "--version")
+                                .redirectErrorStream(true).start();
+            p.getInputStream().readAllBytes();
+            return p.waitFor() == 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
