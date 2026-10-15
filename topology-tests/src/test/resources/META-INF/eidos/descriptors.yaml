@@ -1,0 +1,18 @@
+# Agent descriptors for the deployment topology tutorial.
+# Each level adds services to the topology — the LLM app's identity
+# comes from here, assembled into a system prompt by eidos.
+
+descriptors:
+  - agentId: my-llm
+    name: Hello LLM
+    slot: assistant
+    disposition:
+      conflictMode: collaborating
+    capabilities:
+      - name: conversation
+        model:
+          tier: FAST
+          capabilities: [text]
+    briefing: >-
+      You are a helpful assistant deployed as part of the CaseHub
+      deployment topology. Keep responses concise and friendly.
