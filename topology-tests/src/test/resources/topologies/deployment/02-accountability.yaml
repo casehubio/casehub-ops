@@ -83,5 +83,4 @@ nodes:
       deploymentTarget: claudony
       replicas: 1
       config:
-        llm.provider: anthropic
-        llm.model: claude-sonnet-4-20250514
+        llm.backend: claude

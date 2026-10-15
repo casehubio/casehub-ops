@@ -79,6 +79,11 @@
 
         <dependency>
             <groupId>io.casehub</groupId>
+            <artifactId>casehub-platform-agent-config-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.casehub</groupId>
             <artifactId>casehub-desiredstate-testing</artifactId>
             <scope>test</scope>
         </dependency>

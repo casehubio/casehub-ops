@@ -16,10 +16,11 @@ public @interface LlmAvailable {
         @Override
         public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
             if (LlmMode.detect() == LlmMode.FULL) {
-                return ConditionEvaluationResult.enabled("ANTHROPIC_API_KEY is set");
+                return ConditionEvaluationResult.enabled("Manifest has LLM provider configured");
             }
             return ConditionEvaluationResult.disabled(
-                    "ANTHROPIC_API_KEY not set — skipping LLM-dependent test");
+                    "No LLM provider in manifest — skipping LLM-dependent test. "
+                    + "Configure a provider in ~/.casehub/agent-config.yaml");
         }
     }
 }
