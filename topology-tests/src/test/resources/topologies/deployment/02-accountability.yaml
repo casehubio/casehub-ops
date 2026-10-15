@@ -84,3 +84,4 @@ nodes:
       replicas: 1
       config:
         llm.capability: fast
+        llm.identity-source: eidos

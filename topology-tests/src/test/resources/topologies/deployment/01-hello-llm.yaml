@@ -10,6 +10,7 @@
 # What you'll learn:
 #   - How to declare CaseHub apps in YAML
 #   - How dependency edges control deployment order
+#   - How eidos provides LLM identity (model discovery via manifest)
 #   - How claudony registers and manages your apps
 #
 # After deployment, the reconciliation loop ensures:
@@ -63,3 +64,4 @@ nodes:
       replicas: 1
       config:
         llm.capability: fast
+        llm.identity-source: eidos
