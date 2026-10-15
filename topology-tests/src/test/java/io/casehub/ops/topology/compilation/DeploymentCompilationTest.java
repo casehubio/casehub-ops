@@ -113,4 +113,37 @@ class DeploymentCompilationTest extends TopologyTestBase {
         assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
                 .contains(NodeId.of("work"));
     }
+// ── Level 03: Case Management ────────────────────────────────────────
+
+    @Test
+    void caseManagement_hasSevenNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(7);
+    }
+
+    @Test
+    void caseManagement_allNodesAreCasehubApplication() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node ->
+                                               assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void caseManagement_qhorusDependsOnWorkAndLedger() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("qhorus")))
+                .containsExactlyInAnyOrder(NodeId.of("work"), NodeId.of("ledger"));
+    }
+
+    @Test
+    void caseManagement_llmDependsOnQhorus() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
+                .contains(NodeId.of("qhorus"));
+    }
+
 }
