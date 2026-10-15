@@ -42,7 +42,11 @@ public final class ManifestLlmClient {
         };
     }
 
-    private static String tryOllama(ProviderDeclaration provider) {
+    static String tryOllama() {
+        return tryOllama(new ProviderDeclaration("ollama", null, null));
+    }
+
+    static String tryOllama(ProviderDeclaration provider) {
         try {
             String host = provider.host() != null ? provider.host() : "localhost:11434";
             var body = "{\"model\":\"gemma3:4b\",\"messages\":[{\"role\":\"user\",\"content\":\"Say hello and nothing else.\"}],\"stream\":false}";
@@ -63,7 +67,7 @@ public final class ManifestLlmClient {
         }
     }
 
-    private static String tryClaudeCli() {
+    static String tryClaudeCli() {
         try {
             ProcessBuilder pb = new ProcessBuilder(
                     "claude", "-p", "Say hello and nothing else.", "--output-format", "text");
@@ -77,7 +81,7 @@ public final class ManifestLlmClient {
         }
     }
 
-    private static String simulate() {
+    static String simulate() {
         return SIMULATED_PREFIX + " from fast";
     }
 }
