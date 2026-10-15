@@ -10,7 +10,7 @@
 # What you'll learn:
 #   - How to declare CaseHub apps in YAML
 #   - How dependency edges control deployment order
-#   - How eidos provides LLM identity (model discovery via manifest)
+#   - How eidos generates the LLM's brief from application metadata
 #   - How claudony registers and manages your apps
 #
 # After deployment, the reconciliation loop ensures:
