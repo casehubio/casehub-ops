@@ -6,17 +6,25 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifies that the LLM provider configured in the manifest is reachable
- * and returns a coherent response. Gated on manifest provider availability —
- * skipped when no provider is configured (CI without LLM access).
+ * Verifies LLM routing via the manifest provider chain. Follows the
+ * manifest-declared provider order (Ollama -> Vertex -> Simulation),
+ * falling through to simulation when no real LLM is available.
+ *
+ * <p>Always runs — simulation ensures a response even without real LLM access.
  */
 @Tag("integration-live")
-@LlmAvailable
 class HelloWorldLlmTest {
 
     @Test
     void llmRespondsToHelloPrompt() throws Exception {
         String response = ManifestLlmClient.helloWorld();
-        assertThat(response.toLowerCase()).contains("hello");
+
+        assertThat(response).isNotEmpty();
+
+        if (ManifestLlmClient.isSimulated(response)) {
+            assertThat(response).startsWith("Simulated response");
+        } else {
+            assertThat(response.toLowerCase()).contains("hello");
+        }
     }
 }

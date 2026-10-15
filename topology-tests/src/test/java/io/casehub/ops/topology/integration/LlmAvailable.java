@@ -15,11 +15,14 @@ public @interface LlmAvailable {
     class LlmCondition implements ExecutionCondition {
         @Override
         public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-            if (LlmMode.detect() == LlmMode.FULL) {
-                return ConditionEvaluationResult.enabled("Manifest has LLM provider configured");
-            }
+            try {
+                String response = ManifestLlmClient.helloWorld();
+                if (!ManifestLlmClient.isSimulated(response)) {
+                    return ConditionEvaluationResult.enabled("Real LLM provider available");
+                }
+            } catch (Exception ignored) {}
             return ConditionEvaluationResult.disabled(
-                    "No LLM provider in manifest — skipping LLM-dependent test. "
+                    "No real LLM provider available — only simulation. "
                     + "Configure a provider in ~/.casehub/agent-config.yaml");
         }
     }

@@ -93,4 +93,4 @@ nodes:
       deploymentTarget: claudony
       replicas: 1
       config:
-        llm.backend: claude
+        llm.capability: fast
