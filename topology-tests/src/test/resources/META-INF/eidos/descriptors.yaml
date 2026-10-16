@@ -45,7 +45,7 @@ descriptors:
     capabilities:
       - name: conversation
         model:
-          tier: ${config.llm.capability:FAST}
+          tier: ${config.llm.model-tier:FAST}
           capabilities: [text]
     briefing: >-
       You are a ${config.llm.archetype:assistant} agent with
