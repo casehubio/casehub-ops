@@ -1,0 +1,95 @@
+# ============================================================
+# Level 08: Fleet Observability
+# ============================================================
+# Full observability over a running fleet. Demonstrates the
+# signal chain from healthy fleet through degradation to
+# recovery, using multiple signal sources.
+#
+# Prerequisites: Level 04 (04-llm-fleet.yaml), Level 07 (07-topology-mutations.yaml)
+#
+# What you'll learn:
+#   - How health probes distinguish HEALTHY, DEGRADED, SUSPENDED, DOWN
+#   - How HealthCheckResult provides actionable diagnostics per instance
+#   - How the reconciliation loop uses status to detect and respond to faults
+#   - How suspended instances are distinguishable from failed ones
+#   - How recovery restores the fleet to a known-good state
+#
+# Signal chain (tested end-to-end):
+#   Health probe → status poll → HealthCheckResult → NodeStatus mapping
+#     HEALTHY   →  PRESENT     → Healthy           → no action
+#     DEGRADED  →  DRIFTED     → Unhealthy(reason) → flag for attention
+#     SUSPENDED →  SUSPENDED   → Unhealthy(reason) → operator-initiated, no auto-recover
+#     DOWN      →  ABSENT      → Unhealthy(reason) → reconcile to restore
+#
+# Runtime signal sources (exercised in integration tests):
+#   1. Health probes — per-instance health status via deployment target
+#   2. Status polling — NodeStatus from actual state adapter
+#   3. Health check results — Healthy/Unhealthy with diagnostic reason
+#   4. Fault detection — NodeFaultGanglion classifies health signals
+#   5. Reconciliation events — CloudEvents emitted each cycle
+#
+# Dependency graph (unchanged):
+#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst
+#                                   ├──> my-llm.coder
+#                                   └──> my-llm.assistant
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: llm-fleet
+
+data:
+  llm-fleet:
+    inline: |
+      name:STRING,role:STRING,capability:STRING,archetype:STRING,adjective:STRING,domain:STRING
+      analyst,analyst,deep,investigator,methodical,analysis
+      coder,developer,fast,engineer,pragmatic,software-engineering
+      assistant,assistant,balanced,coordinator,versatile,general
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: llm
+      in: llm-fleet
+    spec:
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.agent-id: my-llm-${each.llm.name}
+        llm.name: LLM ${each.llm.name}
+        llm.role: ${each.llm.role}
+        llm.capability: ${each.llm.capability}
+        llm.archetype: ${each.llm.archetype}
+        llm.adjective: ${each.llm.adjective}
+        llm.domain: ${each.llm.domain}
+        llm.identity-source: eidos

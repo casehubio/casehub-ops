@@ -1,0 +1,90 @@
+# ============================================================
+# Level 06: Lifecycle — Suspend and Resume
+# ============================================================
+# Demonstrates stateful lifecycle management over a running
+# fleet. After deployment, instances can be suspended (pausing
+# all processing) and resumed (returning to healthy operation).
+#
+# Prerequisites: Level 04 (04-llm-fleet.yaml)
+#
+# What you'll learn:
+#   - How suspend/resume operates on deployed instances
+#   - How status transitions reflect lifecycle state (PRESENT → SUSPENDED → PRESENT)
+#   - How deployment targets advertise lifecycle support via supportsStatefulLifecycle()
+#   - How the reconciliation loop can distinguish "suspended by operator"
+#     from "down due to failure"
+#
+# The topology is the same Level 04 fleet — lifecycle is an
+# operational concern, not a topology change. The test exercises
+# suspend/resume through the real claudony API.
+#
+# Status transitions:
+#   Deploy   → HEALTHY (mapped to PRESENT)
+#   Suspend  → SUSPENDED
+#   Resume   → HEALTHY (mapped to PRESENT)
+#
+# Dependency graph (unchanged):
+#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst
+#                                   ├──> my-llm.coder
+#                                   └──> my-llm.assistant
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: llm-fleet
+
+data:
+  llm-fleet:
+    inline: |
+      name:STRING,role:STRING,capability:STRING,archetype:STRING,adjective:STRING,domain:STRING
+      analyst,analyst,deep,investigator,methodical,analysis
+      coder,developer,fast,engineer,pragmatic,software-engineering
+      assistant,assistant,balanced,coordinator,versatile,general
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: llm
+      in: llm-fleet
+    spec:
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.agent-id: my-llm-${each.llm.name}
+        llm.name: LLM ${each.llm.name}
+        llm.role: ${each.llm.role}
+        llm.capability: ${each.llm.capability}
+        llm.archetype: ${each.llm.archetype}
+        llm.adjective: ${each.llm.adjective}
+        llm.domain: ${each.llm.domain}
+        llm.identity-source: eidos

@@ -1,0 +1,87 @@
+# ============================================================
+# Level 07: Topology Mutations — Add and Remove Apps
+# ============================================================
+# Same fleet infrastructure as Level 04, but the fleet
+# composition has changed: assistant is removed, researcher
+# is added. Demonstrates declarative topology mutations —
+# the platform detects what to add and remove by diffing the
+# new desired state against the running actual state.
+#
+# Prerequisites: Level 04 (04-llm-fleet.yaml)
+#
+# What you'll learn:
+#   - How to mutate a topology declaratively (change the data, not the code)
+#   - How the platform detects additions and removals by graph diff
+#   - Why "prune before grow" matters — remove old nodes before adding new
+#   - How dependency ordering is respected during mutations
+#
+# Changes from Level 04:
+#   - Removed: assistant (deregister from claudony)
+#   - Added: researcher (register with claudony)
+#
+# Dependency graph:
+#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst
+#                                   ├──> my-llm.coder
+#                                   └──> my-llm.researcher  ← new
+#   (my-llm.assistant removed)
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: llm-fleet
+
+data:
+  llm-fleet:
+    inline: |
+      name:STRING,role:STRING,capability:STRING,archetype:STRING,adjective:STRING,domain:STRING
+      analyst,analyst,deep,investigator,methodical,analysis
+      coder,developer,fast,engineer,pragmatic,software-engineering
+      researcher,researcher,thorough,scholar,curious,knowledge-discovery
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: llm
+      in: llm-fleet
+    spec:
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.agent-id: my-llm-${each.llm.name}
+        llm.name: LLM ${each.llm.name}
+        llm.role: ${each.llm.role}
+        llm.capability: ${each.llm.capability}
+        llm.archetype: ${each.llm.archetype}
+        llm.adjective: ${each.llm.adjective}
+        llm.domain: ${each.llm.domain}
+        llm.identity-source: eidos

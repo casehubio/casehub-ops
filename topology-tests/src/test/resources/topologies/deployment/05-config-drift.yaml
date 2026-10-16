@@ -1,0 +1,84 @@
+# ============================================================
+# Level 05: Config Drift
+# ============================================================
+# Same fleet as Level 04, but the analyst's configuration has
+# changed. When re-reconciled against the running fleet, only
+# the drifted node should be updated — coder and assistant
+# remain untouched.
+#
+# Prerequisites: Level 04 (04-llm-fleet.yaml)
+#
+# What you'll learn:
+#   - How the platform detects config drift between desired and actual state
+#   - How selective reconciliation updates only what changed
+#   - How deployment targets handle update-in-place via 409→update flow
+#
+# Changes from Level 04:
+#   - analyst: capability "deep" → "analytical"
+#   - analyst: domain "analysis" → "data-analysis"
+#
+# Dependency graph (unchanged from Level 04):
+#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst  ← config changed
+#                                   ├──> my-llm.coder
+#                                   └──> my-llm.assistant
+# ============================================================
+
+desiredState:
+  namespace: casehub
+  name: llm-fleet
+
+data:
+  llm-fleet:
+    inline: |
+      name:STRING,role:STRING,capability:STRING,archetype:STRING,adjective:STRING,domain:STRING
+      analyst,analyst,analytical,investigator,methodical,data-analysis
+      coder,developer,fast,engineer,pragmatic,software-engineering
+      assistant,assistant,balanced,coordinator,versatile,general
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: llm
+      in: llm-fleet
+    spec:
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.agent-id: my-llm-${each.llm.name}
+        llm.name: LLM ${each.llm.name}
+        llm.role: ${each.llm.role}
+        llm.capability: ${each.llm.capability}
+        llm.archetype: ${each.llm.archetype}
+        llm.adjective: ${each.llm.adjective}
+        llm.domain: ${each.llm.domain}
+        llm.identity-source: eidos
