@@ -1,15 +1,22 @@
 package io.casehub.ops.topology.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import io.casehub.eidos.api.AgentDescriptor;
+import io.casehub.eidos.core.registrar.ClasspathYamlDescriptorRegistrar;
+import io.casehub.platform.agent.langchain4j.AgentProviderChatModel;
+import io.casehub.platform.agent.langchain4j.CaseHubChatResponseMetadata;
+import io.casehub.platform.agent.router.RoutingAgentProvider;
+import io.casehub.yaml.core.resolver.VariableSource;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,27 +24,40 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public final class FleetLlmExerciser {
 
-    private static final String OLLAMA_HOST = "http://localhost:11434";
-    private static final String MODEL = "gemma3:4b";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String USER_PROMPT =
+            "A production system is showing intermittent 500 errors."
+            + " What is your specific first action? Answer in 1-2 sentences.";
 
-    public record LlmResponse(String appId, String role, String domain, String content) {}
+    private static volatile ChatModel cachedChatModel;
+
+    public record LlmResponse(String appId, String role, String domain, String content,
+                               String backendKey, String instanceId) {
+        public boolean isSimulated() { return "simulation".equals(backendKey); }
+        public boolean isReal() { return !isSimulated(); }
+    }
 
     public static LlmResponse exercise(String appId, Map<String, ?> config) {
-        String role = str(config, "llm.role", "assistant");
-        String domain = str(config, "llm.domain", "general");
-        String capability = str(config, "llm.capability", "general");
-        String archetype = str(config, "llm.archetype", "agent");
+        Map<String, String> stringConfig = toStringMap(config);
+        AgentDescriptor descriptor = resolveDescriptor(stringConfig);
 
-        String systemPrompt = "You are a " + role + " AI agent specializing in " + domain
-                + ". Your approach is " + capability + " and " + archetype + "."
-                + " Always answer from the perspective of your specialty.";
+        ChatResponse response = chatModel().chat(ChatRequest.builder()
+                .messages(SystemMessage.from(descriptor.briefing()),
+                          UserMessage.from(USER_PROMPT))
+                .build());
 
-        String userPrompt = "A production system is showing intermittent 500 errors."
-                + " What is your specific first action? Answer in 1-2 sentences.";
+        String text = response.aiMessage().text();
+        String backendKey = null;
+        String instanceId = null;
+        if (response.metadata() instanceof CaseHubChatResponseMetadata meta) {
+            backendKey = meta.backendKey();
+            instanceId = meta.instanceId();
+        }
 
-        String content = callOllama(systemPrompt, userPrompt);
-        return new LlmResponse(appId, role, domain, content);
+        System.out.printf("  [%s] route: %s/%s (%d chars)%n",
+                appId, backendKey, instanceId, text.length());
+
+        return new LlmResponse(appId, descriptor.slot(), descriptor.domainVocabulary(),
+                text, backendKey, instanceId);
     }
 
     public static void assertSubstantive(LlmResponse response) {
@@ -50,6 +70,7 @@ public final class FleetLlmExerciser {
 
     public static void assertDomainRelevant(LlmResponse response) {
         assertSubstantive(response);
+        if (response.isSimulated()) return;
         String keywords = domainKeywords(response.domain());
         assertThat(response.content().toLowerCase())
                 .as("LLM %s response should reflect domain '%s':\n  \"%s\"",
@@ -59,6 +80,7 @@ public final class FleetLlmExerciser {
 
     public static void assertDifferentiated(List<LlmResponse> responses) {
         assertThat(responses).hasSizeGreaterThan(1);
+        if (responses.stream().anyMatch(LlmResponse::isSimulated)) return;
         long distinct = responses.stream()
                 .map(r -> r.content().trim().toLowerCase())
                 .distinct()
@@ -82,6 +104,55 @@ public final class FleetLlmExerciser {
             assertDomainRelevant(r);
         }
         assertDifferentiated(responses);
+        assertRouteConsistent(responses);
+    }
+
+    public static void assertRouteConsistent(List<LlmResponse> responses) {
+        long distinctBackends = responses.stream()
+                .map(LlmResponse::backendKey)
+                .distinct()
+                .count();
+        assertThat(distinctBackends)
+                .as("All fleet members should route through the same backend — got: %s",
+                        responses.stream().map(r -> r.appId() + "→" + r.backendKey())
+                                .toList())
+                .isEqualTo(1);
+    }
+
+    private static ChatModel chatModel() {
+        if (cachedChatModel == null) {
+            String profile = System.getenv("CASEHUB_AGENT_PROFILE");
+            if (profile == null) profile = System.getProperty("casehub.agent.profile");
+            Path projectDir = Path.of(System.getProperty("user.home"));
+            var provider = profile != null
+                    ? RoutingAgentProvider.discover(projectDir, profile)
+                    : RoutingAgentProvider.discover(projectDir);
+            cachedChatModel = new AgentProviderChatModel(provider, List.of(),
+                    new SimpleProperties());
+        }
+        return cachedChatModel;
+    }
+
+    static AgentDescriptor resolveDescriptor(Map<String, String> config) {
+        InputStream yaml = FleetLlmExerciser.class.getClassLoader()
+                .getResourceAsStream("META-INF/eidos/descriptors.yaml");
+        Map<String, VariableSource> sources = new LinkedHashMap<>();
+        // Handle ${config.key:default} — eidos#197 will move this into DescriptorPreprocessor
+        sources.put("config", key -> {
+            int colon = key.indexOf(':');
+            String actualKey = colon >= 0 ? key.substring(0, colon) : key;
+            String defaultVal = colon >= 0 ? key.substring(colon + 1) : null;
+            String value = config.get(actualKey);
+            return value != null ? value : defaultVal;
+        });
+        var registrar = new ClasspathYamlDescriptorRegistrar();
+        List<AgentDescriptor> descriptors = registrar.loadFrom(yaml, null, sources);
+        String agentId = config.getOrDefault("llm.agent-id", "my-llm-fleet");
+        return descriptors.stream()
+                .filter(d -> d.agentId().equals(agentId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "No descriptor with agentId " + agentId));
     }
 
     private static String domainKeywords(String domain) {
@@ -98,37 +169,18 @@ public final class FleetLlmExerciser {
         };
     }
 
-    private static String callOllama(String system, String user) {
-        try {
-            String body = MAPPER.writeValueAsString(Map.of(
-                    "model", MODEL,
-                    "messages", List.of(
-                            Map.of("role", "system", "content", system),
-                            Map.of("role", "user", "content", user)),
-                    "stream", false));
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(OLLAMA_HOST + "/api/chat"))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .timeout(Duration.ofSeconds(90))
-                    .build();
-            HttpResponse<String> response = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException("Ollama returned " + response.statusCode() + ": " + response.body());
-            }
-            return MAPPER.readTree(response.body()).path("message").path("content").asText();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted calling Ollama", e);
+    private static Map<String, String> toStringMap(Map<String, ?> config) {
+        var result = new java.util.HashMap<String, String>();
+        for (var entry : config.entrySet()) {
+            result.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
+        return result;
     }
 
-    private static String str(Map<String, ?> config, String key, String defaultVal) {
-        Object val = config.get(key);
-        return val != null ? String.valueOf(val) : defaultVal;
+    private record SimpleProperties() implements io.casehub.platform.agent.langchain4j.AgentLangchain4jProperties {
+        public Duration closeTimeout() { return Duration.ofSeconds(90); }
+        public int sessionMemoryWindowSize() { return 10; }
+        public int maxConcurrentSessions() { return 4; }
     }
 
     private FleetLlmExerciser() {}

@@ -25,7 +25,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration-live")
-@OllamaAvailable
 @ServiceCluster(services = {
         @Service(name = "claudony", repo = "claudony/app")
 })

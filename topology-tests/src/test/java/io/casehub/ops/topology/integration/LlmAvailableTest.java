@@ -7,21 +7,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LlmAvailableTest {
 
     @Test
-    void fromResponse_realLlm_returnsFull() {
-        assertThat(LlmMode.fromResponse("Hello!")).isEqualTo(LlmMode.FULL);
+    void fromBackendKey_realProvider_returnsFull() {
+        assertThat(LlmMode.fromBackendKey("ollama")).isEqualTo(LlmMode.FULL);
     }
 
     @Test
-    void fromResponse_simulated_returnsSimulated() {
-        assertThat(LlmMode.fromResponse("Simulated response from fast"))
-                .isEqualTo(LlmMode.SIMULATED);
+    void fromBackendKey_simulated_returnsSimulated() {
+        assertThat(LlmMode.fromBackendKey("simulation")).isEqualTo(LlmMode.SIMULATED);
     }
 
     @Test
-    void helloWorld_alwaysReturnsResponse() throws Exception {
-        String response = ManifestLlmClient.helloWorld();
-        assertThat(response).isNotEmpty();
-        LlmMode mode = LlmMode.fromResponse(response);
-        assertThat(mode).isIn(LlmMode.FULL, LlmMode.SIMULATED);
+    void fromBackendKey_null_returnsFull() {
+        assertThat(LlmMode.fromBackendKey(null)).isEqualTo(LlmMode.FULL);
     }
 }

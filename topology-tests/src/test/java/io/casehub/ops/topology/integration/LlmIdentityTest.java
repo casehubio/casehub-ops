@@ -1,17 +1,21 @@
 package io.casehub.ops.topology.integration;
 
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import io.casehub.eidos.api.AgentDescriptor;
-import io.casehub.eidos.core.registrar.ClasspathYamlDescriptorRegistrar;
+import io.casehub.platform.agent.langchain4j.AgentProviderChatModel;
+import io.casehub.platform.agent.langchain4j.CaseHubChatResponseMetadata;
+import io.casehub.platform.agent.router.RoutingAgentProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,9 +40,6 @@ class LlmIdentityTest {
             "llm.adjective", "pragmatic",
             "llm.domain", "software-engineering"
     );
-
-    private static final Pattern CONFIG_PATTERN = Pattern.compile(
-            "\\$\\{config\\.([^:}]+)(?::([^}]*))?}");
 
     @Test
     void resolvedDescriptor_analystHasCorrectIdentity() {
@@ -81,13 +82,13 @@ class LlmIdentityTest {
 
     @Test
     @Tag("integration-live")
-    void llmResponse_reflectsAnalystIdentity() throws Exception {
-        AgentDescriptor analyst  = resolveParameterisedDescriptor(ANALYST_CONFIG);
-        String          response = sendWithSystemPrompt(analyst.briefing(), "Describe your role in one sentence.");
+    void llmResponse_reflectsAnalystIdentity() {
+        AgentDescriptor analyst = resolveParameterisedDescriptor(ANALYST_CONFIG);
+        var result = invokeProvider(analyst.briefing(), "Describe your role in one sentence.");
 
-        assertThat(response).isNotNull();
-        if (!ManifestLlmClient.isSimulated(response)) {
-            String lower = response.toLowerCase();
+        assertThat(result.text).isNotNull();
+        if (!"simulation".equals(result.backendKey)) {
+            String lower = result.text.toLowerCase();
             assertThat(lower).satisfiesAnyOf(
                     r -> assertThat(r).contains("analyst"),
                     r -> assertThat(r).contains("investigator"),
@@ -97,13 +98,13 @@ class LlmIdentityTest {
 
     @Test
     @Tag("integration-live")
-    void llmResponse_reflectsCoderIdentity() throws Exception {
-        AgentDescriptor coder    = resolveParameterisedDescriptor(CODER_CONFIG);
-        String          response = sendWithSystemPrompt(coder.briefing(), "Describe your role in one sentence.");
+    void llmResponse_reflectsCoderIdentity() {
+        AgentDescriptor coder = resolveParameterisedDescriptor(CODER_CONFIG);
+        var result = invokeProvider(coder.briefing(), "Describe your role in one sentence.");
 
-        assertThat(response).isNotNull();
-        if (!ManifestLlmClient.isSimulated(response)) {
-            String lower = response.toLowerCase();
+        assertThat(result.text).isNotNull();
+        if (!"simulation".equals(result.backendKey)) {
+            String lower = result.text.toLowerCase();
             assertThat(lower).satisfiesAnyOf(
                     r -> assertThat(r).contains("developer"),
                     r -> assertThat(r).contains("engineer"),
@@ -113,84 +114,43 @@ class LlmIdentityTest {
 
     @Test
     @Tag("integration-live")
-    void differentIdentities_produceDifferentResponses() throws Exception {
+    void differentIdentities_produceDifferentResponses() {
         AgentDescriptor analyst = resolveParameterisedDescriptor(ANALYST_CONFIG);
         AgentDescriptor coder   = resolveParameterisedDescriptor(CODER_CONFIG);
 
-        String analystResponse = sendWithSystemPrompt(analyst.briefing(), "What do you specialise in?");
-        String coderResponse   = sendWithSystemPrompt(coder.briefing(), "What do you specialise in?");
+        var analystResult = invokeProvider(analyst.briefing(), "What do you specialise in?");
+        var coderResult   = invokeProvider(coder.briefing(), "What do you specialise in?");
 
-        assertThat(analystResponse).isNotNull();
-        assertThat(coderResponse).isNotNull();
-        if (!ManifestLlmClient.isSimulated(analystResponse)) {
-            assertThat(analystResponse).isNotEqualTo(coderResponse);
+        assertThat(analystResult.text).isNotNull();
+        assertThat(coderResult.text).isNotNull();
+        if (!"simulation".equals(analystResult.backendKey)) {
+            assertThat(analystResult.text).isNotEqualTo(coderResult.text);
         }
     }
 
 
     private AgentDescriptor resolveParameterisedDescriptor(Map<String, String> config) {
-        try {
-            String yamlText = new String(
-                    getClass().getClassLoader()
-                            .getResourceAsStream("META-INF/eidos/descriptors.yaml")
-                            .readAllBytes(),
-                    StandardCharsets.UTF_8);
-
-            String resolved = resolveConfigPlaceholders(yamlText, config);
-
-            ClasspathYamlDescriptorRegistrar registrar = new ClasspathYamlDescriptorRegistrar();
-            List<AgentDescriptor> descriptors = registrar.loadFrom(
-                    new ByteArrayInputStream(resolved.getBytes(StandardCharsets.UTF_8)));
-
-            return descriptors.stream()
-                    .filter(d -> d.agentId().equals(config.get("llm.agent-id")))
-                    .findFirst()
-                    .orElseThrow(() -> new AssertionError(
-                            "No descriptor with agentId " + config.get("llm.agent-id")));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to resolve descriptor", e);
-        }
+        return FleetLlmExerciser.resolveDescriptor(config);
     }
 
-    private String sendWithSystemPrompt(String systemPrompt, String userMessage) throws Exception {
-        try {
-            String host = "localhost:11434";
-            String body = String.format(
-                    "{\"model\":\"gemma3:4b\",\"messages\":[{\"role\":\"system\",\"content\":%s},{\"role\":\"user\",\"content\":%s}],\"stream\":false}",
-                    escapeJson(systemPrompt), escapeJson(userMessage));
-            var request = java.net.http.HttpRequest.newBuilder()
-                                                   .uri(java.net.URI.create("http://" + host + "/api/chat"))
-                                                   .header("content-type", "application/json")
-                                                   .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                                                   .timeout(java.time.Duration.ofSeconds(60))
-                                                   .build();
-            var response = java.net.http.HttpClient.newHttpClient()
-                                                   .send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                var root   = mapper.readTree(response.body());
-                return root.path("message").path("content").asText();
-            }
-        } catch (Exception ignored) {
+    private record InvokeResult(String text, String backendKey) {}
+
+    private InvokeResult invokeProvider(String systemPrompt, String userMessage) {
+        ChatModel chatModel = new AgentProviderChatModel(
+                RoutingAgentProvider.discover(Path.of(System.getProperty("user.home"))),
+                List.of(),
+                new io.casehub.platform.agent.langchain4j.AgentLangchain4jProperties() {
+                    public Duration closeTimeout() { return Duration.ofSeconds(90); }
+                    public int sessionMemoryWindowSize() { return 10; }
+                    public int maxConcurrentSessions() { return 4; }
+                });
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(SystemMessage.from(systemPrompt), UserMessage.from(userMessage))
+                .build());
+        String backendKey = null;
+        if (response.metadata() instanceof CaseHubChatResponseMetadata meta) {
+            backendKey = meta.backendKey();
         }
-        return ManifestLlmClient.simulate();
-    }
-
-    private static String escapeJson(String text) {
-        return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
-    }
-
-
-    private String resolveConfigPlaceholders(String yaml, Map<String, String> config) {
-        Matcher matcher = CONFIG_PATTERN.matcher(yaml);
-        StringBuilder sb = new StringBuilder();
-        while (matcher.find()) {
-            String key = matcher.group(1);
-            String defaultValue = matcher.group(2);
-            String value = config.getOrDefault(key, defaultValue);
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(value != null ? value : ""));
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
+        return new InvokeResult(response.aiMessage().text(), backendKey);
     }
 }

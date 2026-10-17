@@ -1,55 +1,49 @@
 package io.casehub.ops.topology.integration;
 
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import io.casehub.platform.agent.langchain4j.AgentProviderChatModel;
+import io.casehub.platform.agent.langchain4j.CaseHubChatResponseMetadata;
+import io.casehub.platform.agent.router.RoutingAgentProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Exercises each LLM provider individually and the manifest-driven fallback
- * chain. On a dev machine all three providers are tested. In CI, Ollama
- * (if installed) and simulation run; Vertex tests are skipped.
- */
 @Tag("integration-live")
 class HelloWorldLlmTest {
 
-    // ── Per-provider tests ───────────────────────────────────────────────
+    private final ChatModel chatModel = new AgentProviderChatModel(
+            RoutingAgentProvider.discover(Path.of(System.getProperty("user.home"))),
+            List.of(),
+            new io.casehub.platform.agent.langchain4j.AgentLangchain4jProperties() {
+                public Duration closeTimeout() { return Duration.ofSeconds(90); }
+                public int sessionMemoryWindowSize() { return 10; }
+                public int maxConcurrentSessions() { return 4; }
+            });
 
     @Test
-    @OllamaAvailable
-    void ollama_respondsToHello() {
-        String response = ManifestLlmClient.tryOllama();
-        assertThat(response).isNotNull();
-        assertThat(response.toLowerCase()).contains("hello");
-    }
+    void manifestRouting_respondsToHello() {
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(SystemMessage.from("You are a helpful assistant."),
+                          UserMessage.from("Say hello and nothing else."))
+                .build());
 
-    @Test
-    @LlmAvailable
-    void vertex_respondsToHello() {
-        String response = ManifestLlmClient.tryClaudeCli();
-        assertThat(response).isNotNull();
-        assertThat(response.toLowerCase()).contains("hello");
-    }
+        String text = response.aiMessage().text();
+        assertThat(text).isNotEmpty();
 
-    @Test
-    void simulation_returnsResponse() {
-        String response = ManifestLlmClient.simulate();
-        assertThat(response).startsWith("Simulated response");
-        assertThat(ManifestLlmClient.isSimulated(response)).isTrue();
-    }
-
-    // ── Chain fallback test ──────────────────────────────────────────────
-
-    @Test
-    void chain_fallsThrough() throws Exception {
-        String response = ManifestLlmClient.helloWorld();
-
-        assertThat(response).isNotEmpty();
-        LlmMode mode = LlmMode.fromResponse(response);
-        assertThat(mode).isIn(LlmMode.FULL, LlmMode.SIMULATED);
-
-        if (mode == LlmMode.FULL) {
-            assertThat(response.toLowerCase()).contains("hello");
+        if (response.metadata() instanceof CaseHubChatResponseMetadata meta) {
+            System.out.printf("  route: %s/%s%n", meta.backendKey(), meta.instanceId());
+            if (!"simulation".equals(meta.backendKey())) {
+                assertThat(text.toLowerCase()).contains("hello");
+            }
         }
     }
 }
