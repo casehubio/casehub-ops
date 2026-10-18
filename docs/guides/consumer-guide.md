@@ -26,7 +26,7 @@ Each domain module implements the full desiredstate SPI quad -- `GoalCompiler`, 
 | `iot` | `casehub-ops-iot` | IoT device desired state: physical device installation (human-gated), device configuration via `DeviceProvider` (Home Assistant/OpenHAB). Capability normalization and command mapping |
 | `app` | `casehub-ops-app` | Ops console: Quarkus application for K8s microservice lifecycle management. Embeds casehub-engine and casehub-desiredstate runtime. REST API, JPA entities, Flyway migrations, fabric8 K8s integration |
 | `container` | `casehub-ops-container` | Container provisioning: Podman REST API for app containers, databases, networks, volumes. `PodmanDeploymentTarget` for casehub_application deploy-via-Podman |
-| `claudony` | `casehub-ops-claudony` | Claudony fleet deployment target: deploy, suspend, resume apps via claudony REST API. `ClaudonyDeploymentTarget` with `targetId="claudony"` for fleet-managed casehub_application nodes |
+| `claudony` | `casehub-ops-claudony` | Claudony fleet management: (1) `ClaudonyDeploymentTarget` — deployment module's bridge for ad-hoc app deployment via `targetId="claudony"`, (2) standalone desiredstate domain — declarative fleet management with `claudony_app` and `claudony_pool` node types, full SPI Quad |
 | `testing` | `casehub-ops-testing` | Shared test fixtures: dependency aggregator POM for `casehub-ops-api`, `casehub-desiredstate-testing`, `casehub-platform-testing`. No Java sources |
 
 ---
@@ -297,6 +297,55 @@ Duplicate `deviceId` values are rejected.
 ### Goal Loading
 
 `IoTGoalLoader` -- YAML loading with classpath-first strategy, directory merge, and duplicate device rejection.
+
+---
+
+## Claudony Module -- Fleet Management
+
+### Two Patterns
+
+The claudony module serves two complementary purposes (see ADR-0002 and ADR-0003):
+
+1. **`ClaudonyDeploymentTarget`** -- `ApplicationDeploymentTarget` implementation for the deployment module. Used when a `casehub_application` node specifies `deploymentTargetId: claudony`. Routes through `DeploymentNodeProvisioner` → `CaseHubAppProvisionHandler` → `ClaudonyDeploymentTarget`.
+
+2. **Standalone desiredstate domain** -- declarative fleet management with its own SPI Quad. Manages `claudony_app` and `claudony_pool` node types directly. Routes through `ClaudonyNodeProvisioner` → `ClaudonyFleetClient`.
+
+**Do not declare the same app in both patterns.** If an app is declared as `casehub_application` with `deploymentTargetId: claudony` AND as `claudony_app`, both paths write to the same fleet API and will conflict.
+
+### Node Types
+
+| Node type | Spec | Fields |
+|-----------|------|--------|
+| `claudony_app` | `ClaudonyAppNodeSpec` | `name`, `displayName`, `description`, `image`, `config` |
+| `claudony_pool` | `ClaudonyPoolNodeSpec` | `appName`, `agentId`, `minActive`, `maxActive` |
+
+Namespace is not a YAML field — it is set from the reconciliation `tenancyId` to ensure coherence between provisioning and drift detection.
+
+### Fleet YAML Format
+
+```yaml
+apps:
+  - spec:
+      name: "my-app"
+      displayName: "My Application"
+      image: "my-registry/my-app:1.0"
+      config:
+        key1: "value1"
+    dependsOn: []
+pools:
+  - spec:
+      appName: "my-app"
+      agentId: "agent-1"
+      minActive: 1
+      maxActive: 3
+    dependsOn: []
+```
+
+Pool nodes automatically depend on their parent app (via `appName`). The compiler adds the dependency edge.
+
+### Pool Provisioning
+
+Pools are provisioned via read-modify-write on the parent app spec because claudony's API models pools as a nested list inside the app. The provisioner reads the current app, updates the pools list, and writes it back. This is safe within the reconciliation loop (sequential per tenant) but external mutations between read and write are overwritten.
 
 ---
 

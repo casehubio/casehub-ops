@@ -115,14 +115,7 @@ public class ClaudonyDeploymentTarget implements ApplicationDeploymentTarget {
                 null);
     }
 
-    static NodeStatus mapHealth(final HealthStatus health) {
-        return switch (health) {
-            case HEALTHY -> NodeStatus.PRESENT;
-            case DEGRADED -> NodeStatus.DRIFTED;
-            case DOWN -> NodeStatus.ABSENT;
-            case SUSPENDED -> NodeStatus.SUSPENDED;
-        };
-    }
+    static NodeStatus mapHealth(final HealthStatus health) {return ClaudonyHealthMapper.toNodeStatus(health);}
 
     private static HealthCheckResult toHealthCheckResult(final String instanceId, final HealthStatus health) {
         return switch (health) {

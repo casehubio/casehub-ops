@@ -144,6 +144,8 @@ Three type strategies emerged across the domain modules, each fitting a differen
 
 The IoT domain confirmed this taxonomy: PhysicalDeviceSpec and DeviceConfigSpec have genuinely different provisioning semantics (human vs automated) and different fields — a structural difference requiring sealed hierarchy without wrapper.
 
+The claudony domain uses the same sealed hierarchy strategy: `ClaudonyNodeSpec` → `ClaudonyAppNodeSpec` (image, config, fleet management) vs `ClaudonyPoolNodeSpec` (agentId, minActive, maxActive, pool lifecycle). Apps and pools have different fields and provisioning semantics — apps register/deregister via the fleet API, pools use read-modify-write on the parent app spec.
+
 ---
 
 ## §5 Building Block View
@@ -179,6 +181,7 @@ C4Container
 | `deployment/` | `casehub-ops-deployment` | `io.casehub.ops.deployment` | CaseHub agent topology — primary |
 | `compliance/` | `casehub-ops-compliance` | `io.casehub.ops.compliance` | Compliance posture — largest market gap |
 | `iot/` | `casehub-ops-iot` | `io.casehub.ops.iot` | IoT desired state |
+| `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet management — declarative app/pool lifecycle via fleet API |
 | `testing/` | `casehub-ops-testing` | `io.casehub.ops.testing` | Shared test fixtures (test scope only) |
 
 ---

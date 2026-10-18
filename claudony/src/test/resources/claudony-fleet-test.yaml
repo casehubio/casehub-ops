@@ -1,0 +1,15 @@
+apps:
+  - spec:
+      name: "test-app"
+      displayName: "Test App"
+      image: "test:1.0"
+      config:
+        key1: "value1"
+    dependsOn: []
+pools:
+  - spec:
+      appName: "test-app"
+      agentId: "agent-1"
+      minActive: 1
+      maxActive: 3
+    dependsOn: []

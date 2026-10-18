@@ -40,7 +40,7 @@ mvn --batch-mode test -pl topology-tests -Pintegration-live  # real-instance int
 | `compliance/` | `casehub-ops-compliance` | `io.casehub.ops.compliance` | Compliance posture — SOC2/GDPR/EU-AI-Act/DORA/NIS2 |
 | `testing/` | `casehub-ops-testing` | `io.casehub.ops.testing` | Shared test fixtures. **Test scope only.** |
 | `container/` | `casehub-ops-container` | `io.casehub.ops.container` | Container provisioning — Podman REST API for app containers, databases, networks, volumes |
-| `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet deployment target — deploy/suspend/resume apps via claudony REST API |
+| `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet management — (1) `ApplicationDeploymentTarget` for ad-hoc app deployment, (2) standalone desiredstate domain with `claudony_app`/`claudony_pool` node types for declarative fleet management |
 | `app/` | `casehub-ops-app` | `io.casehub.ops.service` | Thin Quarkus shell — application.properties + quarkus-maven-plugin only. Depends solely on casehub-ops-service. |
 
 ## Domain Priority
