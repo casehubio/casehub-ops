@@ -1,9 +1,17 @@
 package io.casehub.ops.compliance;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.ActualState;
+import io.casehub.desiredstate.api.ActualStateAdapter;
+import io.casehub.desiredstate.api.DesiredNode;
+import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.desiredstate.api.NodeStatus;
+import io.casehub.desiredstate.api.NodeType;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.compliance.ComplianceControlSpec;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -12,12 +20,12 @@ import java.util.Set;
 public class ComplianceActualStateAdapter implements ActualStateAdapter {
 
     private final ComplianceEvidenceService evidenceService;
-    private final ComplianceSpecHashStore specHashStore;
+    private final SpecHashStore specHashStore;
 
     @Inject
     public ComplianceActualStateAdapter(
             ComplianceEvidenceService evidenceService,
-            ComplianceSpecHashStore specHashStore) {
+            SpecHashStore specHashStore) {
         this.evidenceService = evidenceService;
         this.specHashStore = specHashStore;
     }

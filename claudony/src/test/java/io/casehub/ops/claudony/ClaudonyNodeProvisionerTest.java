@@ -7,6 +7,7 @@ import io.casehub.desiredstate.api.DeprovisionResult;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.HumanGating;
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.desiredstate.api.ResumeContext;
@@ -32,21 +33,21 @@ class ClaudonyNodeProvisionerTest {
 
     @Test
     void handledTypes_returns_app_and_pool() {
-        var provisioner = new ClaudonyNodeProvisioner(new RecordingFleetClient(), new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(new RecordingFleetClient(), new SpecHashStore());
         assertThat(provisioner.handledTypes()).containsExactlyInAnyOrder(
             ClaudonyNodeTypes.APP, ClaudonyNodeTypes.POOL);
     }
 
     @Test
     void supportsStatefulLifecycle() {
-        var provisioner = new ClaudonyNodeProvisioner(new RecordingFleetClient(), new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(new RecordingFleetClient(), new SpecHashStore());
         assertThat(provisioner.supportsStatefulLifecycle()).isTrue();
     }
 
     @Test
     void provision_app_calls_registerApp() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyAppNodeSpec("my-app", "My App", null, "img:1", Map.of("k", "v"));
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -63,7 +64,7 @@ class ClaudonyNodeProvisionerTest {
     void provision_app_409_falls_back_to_update() {
         var client = new RecordingFleetClient();
         client.registerThrows409 = true;
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyAppNodeSpec("my-app", "My App", null, "img:1", Map.of());
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -77,7 +78,7 @@ class ClaudonyNodeProvisionerTest {
     void provision_pool_read_modify_write() {
         var client = new RecordingFleetClient();
         client.apps.put("my-app", appInfo("my-app", List.of()));
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyPoolNodeSpec("my-app", "agent-1", 1, 3);
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -92,7 +93,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void provision_pool_fails_when_parent_app_missing() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyPoolNodeSpec("missing-app", "agent-1", 1, 3);
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -104,7 +105,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void deprovision_app_calls_deregisterApp() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyAppNodeSpec("my-app", "My App", null, "img", Map.of());
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -120,7 +121,7 @@ class ClaudonyNodeProvisionerTest {
         client.apps.put("my-app", appInfo("my-app",
             List.of(new ClaudonyAppInfo.AppPoolInfo("agent-1", 1, 3),
                      new ClaudonyAppInfo.AppPoolInfo("agent-2", 2, 4))));
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyPoolNodeSpec("my-app", "agent-1", 1, 3);
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -135,7 +136,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void deprovision_pool_succeeds_when_parent_app_gone() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyPoolNodeSpec("gone-app", "agent-1", 1, 3);
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -147,7 +148,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void suspend_app_calls_suspendApp() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyAppNodeSpec("my-app", "App", null, "img", Map.of());
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -160,7 +161,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void resume_app_calls_resumeApp() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyAppNodeSpec("my-app", "App", null, "img", Map.of());
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 
@@ -173,7 +174,7 @@ class ClaudonyNodeProvisionerTest {
     @Test
     void suspend_pool_returns_failed() {
         var client = new RecordingFleetClient();
-        var provisioner = new ClaudonyNodeProvisioner(client, new ClaudonySpecHashStore());
+        var provisioner = new ClaudonyNodeProvisioner(client, new SpecHashStore());
         var spec = new ClaudonyPoolNodeSpec("my-app", "agent-1", 1, 3);
         var node = new DesiredNode(NodeId.of(spec.nodeId()), spec, HumanGating.NONE);
 

@@ -1,6 +1,7 @@
 package io.casehub.ops.deployment;
 
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

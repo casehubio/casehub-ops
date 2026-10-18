@@ -1,6 +1,7 @@
 package io.casehub.ops.claudony;
 
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ClaudonySpecHashStoreTest {
 
-    private final ClaudonySpecHashStore store = new ClaudonySpecHashStore();
+    private final SpecHashStore store = new SpecHashStore();
 
     @Test
     void unknownNode_hasDrifted_returnsTrue() {

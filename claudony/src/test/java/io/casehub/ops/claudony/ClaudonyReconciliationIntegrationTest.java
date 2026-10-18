@@ -6,6 +6,7 @@ import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.HumanGating;
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
@@ -36,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ClaudonyReconciliationIntegrationTest {
 
     private SimulatingFleetClient client;
-    private ClaudonySpecHashStore specHashStore;
+    private SpecHashStore specHashStore;
     private ClaudonyGoalCompiler compiler;
     private ClaudonyActualStateAdapter adapter;
     private ClaudonyNodeProvisioner provisioner;
@@ -45,7 +46,7 @@ class ClaudonyReconciliationIntegrationTest {
     @BeforeEach
     void setUp() {
         client = new SimulatingFleetClient();
-        specHashStore = new ClaudonySpecHashStore();
+        specHashStore = new SpecHashStore();
         compiler = new ClaudonyGoalCompiler();
         adapter = new ClaudonyActualStateAdapter(client, specHashStore);
         provisioner = new ClaudonyNodeProvisioner(client, specHashStore);

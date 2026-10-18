@@ -1,10 +1,18 @@
 package io.casehub.ops.deployment;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.CompilationResult;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.desiredstate.api.NodeStatus;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
-import io.casehub.ops.api.deployment.*;
-import io.casehub.ops.deployment.InstanceIdStore;
+import io.casehub.ops.api.SpecHashStore;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
+import io.casehub.ops.api.deployment.DeploymentGoals;
+import io.casehub.ops.api.deployment.GoalEntry;
+import io.casehub.ops.api.deployment.PrebuiltImagePipeline;
+import io.casehub.ops.api.deployment.RuntimeConfig;
 import io.casehub.ops.deployment.drift.CaseHubAppDriftChecker;
 import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
 import io.casehub.ops.testing.StubDeploymentTarget;
@@ -14,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CaseHubAppReconciliationIntegrationTest {
 

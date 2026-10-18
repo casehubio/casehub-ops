@@ -7,6 +7,7 @@ import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
 import io.casehub.ops.api.claudony.ClaudonyNodeTypes;
 import io.casehub.ops.api.claudony.ClaudonyPoolNodeSpec;
@@ -23,11 +24,11 @@ public class ClaudonyActualStateAdapter implements ActualStateAdapter {
     private static final Set<NodeType> HANDLED = Set.of(ClaudonyNodeTypes.APP, ClaudonyNodeTypes.POOL);
 
     private final ClaudonyFleetClient fleetClient;
-    private final ClaudonySpecHashStore specHashStore;
+    private final SpecHashStore specHashStore;
 
     @Inject
     public ClaudonyActualStateAdapter(ClaudonyFleetClient fleetClient,
-                                       ClaudonySpecHashStore specHashStore) {
+                                       SpecHashStore specHashStore) {
         this.fleetClient = fleetClient;
         this.specHashStore = specHashStore;
     }

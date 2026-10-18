@@ -11,6 +11,7 @@ import io.casehub.desiredstate.api.ResumeContext;
 import io.casehub.desiredstate.api.ResumeResult;
 import io.casehub.desiredstate.api.SuspendContext;
 import io.casehub.desiredstate.api.SuspendResult;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
 import io.casehub.ops.api.claudony.ClaudonyNodeTypes;
 import io.casehub.ops.api.claudony.ClaudonyPoolNodeSpec;
@@ -26,11 +27,11 @@ public class ClaudonyNodeProvisioner implements NodeProvisioner {
     private static final Set<NodeType> HANDLED = Set.of(ClaudonyNodeTypes.APP, ClaudonyNodeTypes.POOL);
 
     private final ClaudonyFleetClient fleetClient;
-    private final ClaudonySpecHashStore specHashStore;
+    private final SpecHashStore specHashStore;
 
     @Inject
     public ClaudonyNodeProvisioner(ClaudonyFleetClient fleetClient,
-                                    ClaudonySpecHashStore specHashStore) {
+                                    SpecHashStore specHashStore) {
         this.fleetClient = fleetClient;
         this.specHashStore = specHashStore;
     }

@@ -1,10 +1,20 @@
 package io.casehub.ops.compliance;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.CompilationResult;
+import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
+import io.casehub.desiredstate.api.NodeStatus;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
+import io.casehub.desiredstate.api.StepAction;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
-import io.casehub.ops.api.compliance.*;
+import io.casehub.ops.api.compliance.ComplianceControlSpec;
+import io.casehub.ops.api.compliance.ComplianceGoalEntry;
+import io.casehub.ops.api.compliance.ComplianceGoals;
+import io.casehub.ops.api.compliance.EvidenceCollector;
 import io.casehub.ops.testing.StubEvidenceCollector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +61,7 @@ class ComplianceReconciliationIntegrationTest {
 
         var evidenceService = new ComplianceEvidenceService(collectors, writer, finder);
         registry = new ComplianceFrameworkRegistry();
-        var specHashStore = new ComplianceSpecHashStore();
+        var specHashStore = new SpecHashStore();
 
         provisioner = new ComplianceNodeProvisioner(
                 evidenceService, registry, specHashStore,

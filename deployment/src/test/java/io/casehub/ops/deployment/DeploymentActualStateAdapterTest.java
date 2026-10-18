@@ -1,11 +1,19 @@
 package io.casehub.ops.deployment;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.DesiredNode;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeStatus;
+import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
-import io.casehub.ops.api.deployment.*;
+import io.casehub.ops.api.SpecHashStore;
+import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.NodeDriftChecker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DeploymentActualStateAdapterTest {

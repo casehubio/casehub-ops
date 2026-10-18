@@ -4,6 +4,7 @@ import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.api.ProvisionContext;
@@ -26,7 +27,7 @@ class ComplianceNodeProvisionerTest {
 
     private ComplianceNodeProvisioner provisioner;
     private ComplianceFrameworkRegistry registry;
-    private ComplianceSpecHashStore specHashStore;
+    private SpecHashStore specHashStore;
     private DefaultDesiredStateGraphFactory graphFactory;
     // Reference to the ledger stub to verify writes
     private ComplianceEvidenceServiceTest.StubLedgerRepository ledgerRepo;
@@ -41,7 +42,7 @@ class ComplianceNodeProvisionerTest {
                 ledgerRepo::save,
                 ledgerRepo::findLatest);
         registry = new ComplianceFrameworkRegistry();
-        specHashStore = new ComplianceSpecHashStore();
+        specHashStore = new SpecHashStore();
         var approvalEvaluator = new ComplianceApprovalEvaluator();
         var planStore = new InMemoryPlanStore();
         provisioner = new ComplianceNodeProvisioner(evidenceService, registry, specHashStore,

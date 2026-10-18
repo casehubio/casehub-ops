@@ -1,6 +1,5 @@
 package io.casehub.ops.deployment;
 
-import io.casehub.ops.deployment.handler.DetectionProvisionHandler;
 import io.casehub.desiredstate.api.ApprovalCheckResult;
 import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
@@ -16,16 +15,18 @@ import io.casehub.desiredstate.testing.MockPendingApprovalHandler;
 import io.casehub.eidos.api.AgentDescriptor;
 import io.casehub.eidos.api.AgentQuery;
 import io.casehub.eidos.api.AgentRegistry;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
-import io.casehub.ops.api.deployment.PrebuiltImagePipeline;
-import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
-import io.casehub.ops.testing.StubDeploymentTarget;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
+import io.casehub.ops.api.deployment.PrebuiltImagePipeline;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
+import io.casehub.ops.deployment.handler.CaseHubAppProvisionHandler;
 import io.casehub.ops.deployment.handler.CaseTypeProvisionHandler;
 import io.casehub.ops.deployment.handler.ChannelProvisionHandler;
+import io.casehub.ops.deployment.handler.DetectionProvisionHandler;
 import io.casehub.ops.deployment.handler.EndpointProvisionHandler;
 import io.casehub.ops.deployment.handler.TrustPolicyProvisionHandler;
+import io.casehub.ops.testing.StubDeploymentTarget;
 import io.casehub.platform.api.endpoints.EndpointDescriptor;
 import io.casehub.platform.api.endpoints.EndpointQuery;
 import io.casehub.platform.api.endpoints.EndpointRegistry;

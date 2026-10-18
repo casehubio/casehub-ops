@@ -1,26 +1,33 @@
 package io.casehub.ops.compliance;
 
-import io.casehub.desiredstate.api.*;
+import io.casehub.desiredstate.api.ActualState;
+import io.casehub.desiredstate.api.DesiredNode;
+import io.casehub.desiredstate.api.NodeId;
+import io.casehub.ops.api.SpecHashStore;
+import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
-import io.casehub.ops.api.compliance.*;
+import io.casehub.ops.api.compliance.ComplianceControlSpec;
+import io.casehub.ops.api.compliance.EvidenceOutcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ComplianceActualStateAdapterTest {
 
     private ComplianceActualStateAdapter adapter;
-    private ComplianceSpecHashStore specHashStore;
+    private SpecHashStore specHashStore;
     private StubEvidenceService evidenceService;
     private DefaultDesiredStateGraphFactory graphFactory;
 
     @BeforeEach
     void setUp() {
-        specHashStore = new ComplianceSpecHashStore();
+        specHashStore = new SpecHashStore();
         evidenceService = new StubEvidenceService();
         graphFactory = new DefaultDesiredStateGraphFactory();
         adapter = new ComplianceActualStateAdapter(evidenceService, specHashStore);

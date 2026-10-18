@@ -8,6 +8,7 @@ import io.casehub.desiredstate.api.NodeType;
 import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.desiredstate.api.StepAction;
+import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.approval.ApprovalDecision;
 import io.casehub.ops.api.approval.ApprovalEvaluator;
 import io.casehub.ops.api.approval.PlanStore;
@@ -32,7 +33,7 @@ public class ComplianceNodeProvisioner implements NodeProvisioner {
 
     private final ComplianceEvidenceService   evidenceService;
     private final ComplianceFrameworkRegistry registry;
-    private final ComplianceSpecHashStore     specHashStore;
+    private final SpecHashStore     specHashStore;
     private final ApprovalEvaluator           approvalEvaluator;
     private final PlanStore                   planStore;
 
@@ -40,7 +41,7 @@ public class ComplianceNodeProvisioner implements NodeProvisioner {
     public ComplianceNodeProvisioner(
             ComplianceEvidenceService evidenceService,
             ComplianceFrameworkRegistry registry,
-            ComplianceSpecHashStore specHashStore,
+            SpecHashStore specHashStore,
             ApprovalEvaluator approvalEvaluator,
             PlanStore planStore) {
         this.evidenceService   = evidenceService;
