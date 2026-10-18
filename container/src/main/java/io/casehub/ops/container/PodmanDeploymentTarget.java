@@ -6,12 +6,16 @@ import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.api.deployment.HealthCheckResult;
 import io.casehub.ops.container.podman.PodmanClient;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.HashMap;
 
+@ApplicationScoped
 public class PodmanDeploymentTarget implements ApplicationDeploymentTarget {
 
     private final PodmanClient podmanClient;
 
+    @Inject
     public PodmanDeploymentTarget(PodmanClient podmanClient) {
         this.podmanClient = podmanClient;
     }
