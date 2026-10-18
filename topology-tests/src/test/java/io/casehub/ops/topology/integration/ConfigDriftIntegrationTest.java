@@ -8,9 +8,6 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
-import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
-import io.casehub.ops.api.deployment.DeploymentNodeSpec;
-import io.casehub.ops.api.infra.InfraNodeSpec;
 import io.casehub.ops.claudony.ClaudonyAppInfo;
 import io.casehub.ops.claudony.ClaudonyDeploymentTarget;
 import io.casehub.ops.claudony.HttpClaudonyFleetClient;
@@ -31,9 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 class ConfigDriftIntegrationTest extends TopologyTestBase {
 
-    private static final Map<String, String> DEPLOYMENT_REGISTRY =
-            buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
-
     private static final List<String> FLEET_APP_IDS =
             List.of("my-llm-analyst", "my-llm-coder", "my-llm-assistant");
 
@@ -52,16 +46,7 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         HttpClaudonyFleetClient client = new HttpClaudonyFleetClient(claudonyUrl, mapper);
         ClaudonyDeploymentTarget target = new ClaudonyDeploymentTarget(client);
 
-        for (DesiredNode node : initialGraph.nodes().values()) {
-            CaseHubApplicationSpec appSpec = extractAppSpec(node);
-            DeployResult result = target.deploy(
-                    appSpec.image(),
-                    new DeployConfig(appSpec.applicationId(), appSpec.replicas(),
-                            appSpec.config(), Map.of()));
-            assertThat(result)
-                    .as("Initial deploy %s", appSpec.applicationId())
-                    .isInstanceOf(DeployResult.Success.class);
-        }
+        deployAllNodes(initialGraph, target);
 
         ClaudonyAppInfo analystBefore = client.getApp("my-llm-analyst").orElseThrow();
         assertThat(analystBefore.config())
@@ -167,10 +152,4 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         assertThat(afterDrift.domain()).isEqualTo("data-analysis");
     }
 
-    private CaseHubApplicationSpec extractAppSpec(DesiredNode node) {
-        if (node.spec() instanceof DeploymentApplicationNodeSpec dns) {
-            return dns.spec();
-        }
-        return (CaseHubApplicationSpec) node.spec();
-    }
 }

@@ -1,10 +1,12 @@
 package io.casehub.ops.topology.compilation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.desiredstate.annotations.runtime.DependencyDescriptor;
 import io.casehub.desiredstate.annotations.runtime.GraphDescriptor;
 import io.casehub.desiredstate.annotations.runtime.NodeDescriptor;
 import io.casehub.desiredstate.api.CompilationResult;
+import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.desiredstate.api.NodeTypeId;
@@ -12,7 +14,14 @@ import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.yaml.YamlGraphRecorder;
 import io.casehub.desiredstate.yaml.model.YamlGraph;
 import io.casehub.desiredstate.yaml.model.YamlNode;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
+import io.casehub.ops.api.deployment.DeployConfig;
+import io.casehub.ops.api.deployment.DeployResult;
+import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
+import io.casehub.ops.api.deployment.DeploymentNodeSpec;
 import io.casehub.ops.api.infra.InfraNodeSpec;
+import io.casehub.ops.claudony.ClaudonyDeploymentTarget;
+import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.yaml.core.module.YamlModule;
 import io.casehub.yaml.core.module.YamlModuleFile;
 import io.casehub.yaml.jackson.YamlMappers;
@@ -30,6 +39,37 @@ public abstract class TopologyTestBase {
 
     private static final ObjectMapper                    YAML_MAPPER = YamlMappers.createWithCoreModule();
     private static final DefaultDesiredStateGraphFactory FACTORY     = new DefaultDesiredStateGraphFactory();
+    public static final  Map<String, String>             DEPLOYMENT_REGISTRY =
+            buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
+
+    public static CaseHubApplicationSpec extractAppSpec(DesiredNode node) {
+        if (node.spec() instanceof DeploymentApplicationNodeSpec dns) {
+            return dns.spec();
+        }
+        return (CaseHubApplicationSpec) node.spec();
+    }
+
+    public static ClaudonyDeploymentTarget createClaudonyTarget(String url) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        HttpClaudonyFleetClient client = new HttpClaudonyFleetClient(url, mapper);
+        return new ClaudonyDeploymentTarget(client);
+    }
+
+    public static void deployAllNodes(DesiredStateGraph graph,
+                                      ClaudonyDeploymentTarget target) throws IOException {
+        for (DesiredNode node : graph.nodes().values()) {
+            CaseHubApplicationSpec appSpec = extractAppSpec(node);
+            DeployResult result = target.deploy(
+                    appSpec.image(),
+                    new DeployConfig(appSpec.applicationId(), appSpec.replicas(),
+                                     appSpec.config(), Map.of()));
+            assertThat(result)
+                    .as("Deploy %s", appSpec.applicationId())
+                    .isInstanceOf(DeployResult.Success.class);
+        }
+    }
+
 
     public static Map<String, String> buildTypeRegistry() {
         return buildTypeRegistryFrom(InfraNodeSpec.class);
