@@ -1,11 +1,6 @@
 package io.casehub.ops.deployment;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
+import io.casehub.desiredstate.annotations.DesiredStateQualifier;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.Dependency;
 import io.casehub.desiredstate.api.DesiredNode;
@@ -16,8 +11,14 @@ import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
 import io.casehub.ops.api.deployment.GoalEntry;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @ApplicationScoped
+@DesiredStateQualifier(namespace = "deployment")
 public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
 
     private final DefinitionPayloadLoader definitionLoader;
@@ -34,8 +35,8 @@ public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
 
     @Override
     public CompilationResult compile(DeploymentGoals goals, DesiredStateGraphFactory factory) {
-        List<DesiredNode> nodes = new ArrayList<>();
-        List<Dependency> dependencies = new ArrayList<>();
+        List<DesiredNode> nodes        = new ArrayList<>();
+        List<Dependency>  dependencies = new ArrayList<>();
 
         compileEntries(goals.agents(), nodes, dependencies);
         compileEntries(goals.channels(), nodes, dependencies);

@@ -1,6 +1,7 @@
 package io.casehub.ops.infra;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.casehub.desiredstate.annotations.DesiredStateQualifier;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.Dependency;
 import io.casehub.desiredstate.api.DesiredNode;
@@ -43,30 +44,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Compiles {@link InfraGoals} into a {@link DesiredStateGraph}.
- *
- * <p>For each resource/import declaration, the compiler:
- * <ol>
- *   <li>Maps the type string to a typed {@link InfraNodeSpec} via the YAML config JsonNode</li>
- *   <li>Resolves the backend: per-resource > default > "standalone"</li>
- *   <li>Validates type/backend compatibility</li>
- *   <li>Wraps in {@link InfraDesiredNodeSpec}</li>
- *   <li>Creates dependency edges from {@code dependsOn} lists</li>
- * </ol>
- */
 @ApplicationScoped
+@DesiredStateQualifier(namespace = "infra")
 public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
 
     private static final String STANDALONE_BACKEND = "standalone";
 
     @Override
     public CompilationResult compile(InfraGoals goals, DesiredStateGraphFactory factory) {
-        List<DesiredNode> nodes = new ArrayList<>();
-        List<Dependency> dependencies = new ArrayList<>();
+        List<DesiredNode> nodes        = new ArrayList<>();
+        List<Dependency>  dependencies = new ArrayList<>();
 
         for (ResourceDeclaration decl : goals.resources()) {
-            String backendId = resolveBackend(decl.backend(), goals.defaultBackend());
+            String        backendId    = resolveBackend(decl.backend(), goals.defaultBackend());
             InfraNodeSpec resourceSpec = parseSpec(decl.type(), decl.config());
             validateBackendCompatibility(decl.type(), backendId);
 
@@ -74,13 +64,12 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
             nodes.add(new DesiredNode(NodeId.of(decl.id()), wrapper, io.casehub.desiredstate.api.HumanGating.NONE));
 
             for (String dep : decl.dependsOn()) {
-                // decl.id() depends on dep: Dependency(from=dependent, to=dependency)
                 dependencies.add(new Dependency(NodeId.of(decl.id()), NodeId.of(dep)));
             }
         }
 
         for (ImportDeclaration decl : goals.imports()) {
-            String backendId = resolveImportBackend(decl.type(), goals.defaultBackend());
+            String        backendId    = resolveImportBackend(decl.type(), goals.defaultBackend());
             InfraNodeSpec resourceSpec = parseSpec(decl.type(), decl.config());
 
             var wrapper = new InfraDesiredNodeSpec(resourceSpec, backendId);
@@ -105,7 +94,6 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
     }
 
     private String resolveImportBackend(String type, String defaultBackend) {
-        // Wrapping types have hardcoded backend routing
         return switch (type) {
             case "terraform_workspace" -> "terraform";
             case "ansible_playbook" -> "ansible";
@@ -124,8 +112,6 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
         }
     }
 
-    // --- spec parsing ---
-
     private InfraNodeSpec parseSpec(String type, JsonNode config) {
         return switch (type) {
             case "k8s_namespace" -> parseK8sNamespace(config);
@@ -141,18 +127,18 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
     }
 
     private K8sNamespaceSpec parseK8sNamespace(JsonNode config) {
-        String name = requireText(config, "name", "k8s_namespace");
+        String name   = requireText(config, "name", "k8s_namespace");
         Labels labels = parseLabels(config.get("labels"));
         return new K8sNamespaceSpec(name, labels);
     }
 
     private K8sDeploymentSpec parseK8sDeployment(JsonNode config) {
-        String namespace = requireText(config, "namespace", "k8s_deployment");
-        String name = requireText(config, "name", "k8s_deployment");
-        String image = requireText(config, "image", "k8s_deployment");
-        int replicas = config.has("replicas") ? config.get("replicas").asInt() : 1;
+        String               namespace = requireText(config, "namespace", "k8s_deployment");
+        String               name      = requireText(config, "name", "k8s_deployment");
+        String               image     = requireText(config, "image", "k8s_deployment");
+        int                  replicas  = config.has("replicas") ? config.get("replicas").asInt() : 1;
         ResourceRequirements resources = parseResourceRequirements(config.get("resources"));
-        Labels labels = parseLabels(config.get("labels"));
+        Labels               labels    = parseLabels(config.get("labels"));
         return new K8sDeploymentSpec(namespace, name, image, replicas, resources, labels);
     }
 
@@ -166,28 +152,29 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
                                   : ServiceType.CLUSTER_IP;
         Labels labels   = parseLabels(config.get("labels"));
         Labels selector = config.has("selector") ? parseLabels(config.get("selector")) : labels;
-        return new K8sServiceSpec(namespace, name, port, targetPort, serviceType, labels, selector);}
+        return new K8sServiceSpec(namespace, name, port, targetPort, serviceType, labels, selector);
+    }
 
     private K8sIngressSpec parseK8sIngress(JsonNode config) {
-        String namespace = requireText(config, "namespace", "k8s_ingress");
-        String name = requireText(config, "name", "k8s_ingress");
-        String host = requireText(config, "host", "k8s_ingress");
-        List<IngressRule> rules = parseIngressRules(config.get("rules"));
-        Labels labels = parseLabels(config.get("labels"));
+        String            namespace = requireText(config, "namespace", "k8s_ingress");
+        String            name      = requireText(config, "name", "k8s_ingress");
+        String            host      = requireText(config, "host", "k8s_ingress");
+        List<IngressRule> rules     = parseIngressRules(config.get("rules"));
+        Labels            labels    = parseLabels(config.get("labels"));
         return new K8sIngressSpec(namespace, name, host, rules, labels);
     }
 
     private ComputeInstanceSpec parseComputeInstance(JsonNode config) {
-        CloudProvider provider = CloudProvider.valueOf(requireText(config, "provider", "compute_instance"));
-        String region = requireText(config, "region", "compute_instance");
-        JsonNode instanceTypeNode = config.get("instanceType");
+        CloudProvider provider         = CloudProvider.valueOf(requireText(config, "provider", "compute_instance"));
+        String        region           = requireText(config, "region", "compute_instance");
+        JsonNode      instanceTypeNode = config.get("instanceType");
         if (instanceTypeNode == null) {
             throw new IllegalArgumentException("compute_instance requires 'instanceType'");
         }
         InstanceType instanceType = new InstanceType(
                 requireText(instanceTypeNode, "family", "compute_instance.instanceType"),
                 requireText(instanceTypeNode, "size", "compute_instance.instanceType"));
-        String imageId = requireText(config, "imageId", "compute_instance");
+        String   imageId     = requireText(config, "imageId", "compute_instance");
         JsonNode networkNode = config.get("network");
         if (networkNode == null) {
             throw new IllegalArgumentException("compute_instance requires 'network'");
@@ -200,16 +187,16 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
     }
 
     private DatabaseClusterSpec parseDatabaseCluster(JsonNode config) {
-        DatabaseEngine engine = DatabaseEngine.valueOf(requireText(config, "engine", "database_cluster"));
-        String version = requireText(config, "version", "database_cluster");
-        JsonNode sizeNode = config.get("size");
+        DatabaseEngine engine   = DatabaseEngine.valueOf(requireText(config, "engine", "database_cluster"));
+        String         version  = requireText(config, "version", "database_cluster");
+        JsonNode       sizeNode = config.get("size");
         if (sizeNode == null) {
             throw new IllegalArgumentException("database_cluster requires 'size'");
         }
         ClusterSize size = new ClusterSize(
                 sizeNode.has("nodes") ? sizeNode.get("nodes").asInt() : 1,
                 requireText(sizeNode, "storageClass", "database_cluster.size"));
-        String region = requireText(config, "region", "database_cluster");
+        String   region     = requireText(config, "region", "database_cluster");
         JsonNode backupNode = config.get("backup");
         if (backupNode == null) {
             throw new IllegalArgumentException("database_cluster requires 'backup'");
@@ -222,21 +209,21 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
     }
 
     private TerraformWorkspaceSpec parseTerraformWorkspace(JsonNode config) {
-        String workspacePath = requireText(config, "workspacePath", "terraform_workspace");
-        JsonNode stateNode = config.get("state");
+        String   workspacePath = requireText(config, "workspacePath", "terraform_workspace");
+        JsonNode stateNode     = config.get("state");
         if (stateNode == null) {
             throw new IllegalArgumentException("terraform_workspace requires 'state'");
         }
         TerraformStateType stateType = TerraformStateType.valueOf(
                 requireText(stateNode, "type", "terraform_workspace.state"));
-        String bucket = stateNode.has("bucket") ? stateNode.get("bucket").asText() : null;
-        String key = stateNode.has("key") ? stateNode.get("key").asText() : null;
-        TerraformBackendConfig state = new TerraformBackendConfig(stateType, bucket, key);
+        String                 bucket = stateNode.has("bucket") ? stateNode.get("bucket").asText() : null;
+        String                 key    = stateNode.has("key") ? stateNode.get("key").asText() : null;
+        TerraformBackendConfig state  = new TerraformBackendConfig(stateType, bucket, key);
         return new TerraformWorkspaceSpec(workspacePath, state);
     }
 
     private AnsiblePlaybookSpec parseAnsiblePlaybook(JsonNode config) {
-        String playbookPath = requireText(config, "playbookPath", "ansible_playbook");
+        String   playbookPath  = requireText(config, "playbookPath", "ansible_playbook");
         JsonNode inventoryNode = config.get("inventory");
         if (inventoryNode == null) {
             throw new IllegalArgumentException("ansible_playbook requires 'inventory'");
@@ -247,8 +234,6 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
         AnsibleExtraVars extraVars = parseExtraVars(config.get("extraVars"));
         return new AnsiblePlaybookSpec(playbookPath, inventory, extraVars);
     }
-
-    // --- parsing helpers ---
 
     private String requireText(JsonNode node, String field, String context) {
         if (node == null || !node.has(field) || node.get(field).isNull()) {
@@ -261,7 +246,7 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
         if (labelsNode == null || labelsNode.isNull() || labelsNode.isEmpty()) {
             return Labels.empty();
         }
-        Map<String, String> map = new HashMap<>();
+        Map<String, String>                   map    = new HashMap<>();
         Iterator<Map.Entry<String, JsonNode>> fields = labelsNode.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
@@ -310,7 +295,7 @@ public class InfraGoalCompiler implements GoalCompiler<InfraGoals> {
         if (node == null || node.isNull() || node.isEmpty()) {
             return AnsibleExtraVars.empty();
         }
-        Map<String, String> map = new HashMap<>();
+        Map<String, String>                   map    = new HashMap<>();
         Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
