@@ -28,7 +28,7 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
     @Test
     void deploysThreeFleetInstancesViaRealClaudony() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
 
         assertThat(graph.nodes()).hasSize(6);
 
@@ -47,7 +47,7 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
     @Test
     void fleetInstancesHaveDistinctApplicationIds() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
 
         List<String> llmAppIds = graph.nodes().entrySet().stream()
                 .filter(e -> e.getKey().value().startsWith("my-llm."))

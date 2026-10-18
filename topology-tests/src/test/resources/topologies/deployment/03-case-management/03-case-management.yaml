@@ -1,30 +1,7 @@
-# ============================================================
 # Level 03: Case Management
-# ============================================================
-# Builds on Level 02 by adding qhorus (case management).
-# Cases are the fundamental unit of work in CaseHub — they
-# group tasks, track lifecycle, and provide conversation context.
-#
-# Prerequisites: Level 02 (02-accountability.yaml)
-#
-# What you'll learn:
-#   - How case management composes on top of work + ledger
-#   - How qhorus bridges task execution and user interaction
-#   - How the dependency graph grows with cross-cutting services
-#
-# Dependency graph:
-#   manifest ──> eidos ──┬──> engine ──┬──> work ──┬──> qhorus ──> my-llm
-#                        │             │      ↑     │      ↑
-#                        └──> ledger ──┘──────┘─────┘──────┘
-#
-# The reconciliation loop ensures:
-#   1. manifest starts first (no dependencies)
-#   2. eidos starts after manifest
-#   3. ledger and engine can start in parallel (both depend only on eidos)
-#   4. work starts after both engine and ledger
-#   5. qhorus starts after both work and ledger
-#   6. my-llm starts after qhorus
-# ============================================================
+# Methodology step: DEPLOY — Case Operations
+# Prerequisites: Level 02
+# See README.md for walkthrough
 
 desiredState:
   namespace: casehub

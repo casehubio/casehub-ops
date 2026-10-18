@@ -47,7 +47,7 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
     @Test
     void helloLlm_deploysAllAppsViaClaudony() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
 
         deployAllNodes(graph, claudonyTarget);
 
@@ -57,7 +57,7 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
     @Test
     void helloLlm_allAppsReportHealthy() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
 
         for (DesiredNode node : graph.nodes().values()) {
             CaseHubApplicationSpec appSpec = extractAppSpec(node);

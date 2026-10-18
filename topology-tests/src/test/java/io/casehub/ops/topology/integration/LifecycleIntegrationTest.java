@@ -32,7 +32,7 @@ class LifecycleIntegrationTest extends TopologyTestBase {
     @Test
     void suspendAndResumeFleetWithStatusTransitions() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
 
         ClaudonyDeploymentTarget target = createClaudonyTarget(claudonyUrl);
 
@@ -91,7 +91,7 @@ class LifecycleIntegrationTest extends TopologyTestBase {
     @Test
     void suspendedInstanceIsDistinguishableFromAbsent() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
 
         ClaudonyDeploymentTarget target = createClaudonyTarget(claudonyUrl);
 

@@ -33,9 +33,9 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
     @Test
     void prunesRemovedNodeBeforeGrowingNewNode() throws IOException {
         DesiredStateGraph initialGraph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         DesiredStateGraph mutatedGraph = compileSingleGraph(
-                "topologies/deployment/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
 
         ClaudonyDeploymentTarget target = createClaudonyTarget(claudonyUrl);
 
@@ -118,9 +118,9 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
     @Test
     void graphDiffDetectsAdditionsAndRemovals() throws IOException {
         DesiredStateGraph initialGraph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         DesiredStateGraph mutatedGraph = compileSingleGraph(
-                "topologies/deployment/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
 
         assertThat(initialGraph.nodes()).hasSameSizeAs(mutatedGraph.nodes());
 

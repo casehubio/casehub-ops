@@ -37,9 +37,9 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
     @Test
     void detectsConfigDriftAndReconcilesDriftedNodeOnly() throws IOException {
         DesiredStateGraph initialGraph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         DesiredStateGraph driftedGraph = compileSingleGraph(
-                "topologies/deployment/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
@@ -112,9 +112,9 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
     @Test
     void graphDiffIdentifiesOnlyChangedNodes() throws IOException {
         DesiredStateGraph initialGraph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         DesiredStateGraph driftedGraph = compileSingleGraph(
-                "topologies/deployment/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
 
         assertThat(initialGraph.nodes()).hasSameSizeAs(driftedGraph.nodes());
 

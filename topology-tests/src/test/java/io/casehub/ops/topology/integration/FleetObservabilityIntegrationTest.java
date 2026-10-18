@@ -163,7 +163,7 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
                 .isInstanceOf(HealthCheckResult.Unhealthy.class);
 
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
         DesiredNode coderNode = graph.nodes().entrySet().stream()
                 .filter(e -> e.getKey().value().equals("my-llm.coder"))
                 .map(Map.Entry::getValue)
@@ -203,7 +203,7 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
 
     private void deployFleetWith(ClaudonyDeploymentTarget target) throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
         deployAllNodes(graph, target);
     }
 

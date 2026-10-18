@@ -25,7 +25,7 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
     @Test
     void registersAppsViaRealClaudony() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
 
         ClaudonyDeploymentTarget target = createClaudonyTarget(claudonyUrl);
 

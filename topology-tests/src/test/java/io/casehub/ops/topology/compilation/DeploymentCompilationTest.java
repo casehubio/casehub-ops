@@ -23,14 +23,14 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void helloLlm_hasFourNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.nodes()).hasSize(4);
     }
 
     @Test
     void helloLlm_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
                 assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
@@ -38,7 +38,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void helloLlm_eidosDependsOnManifest() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("eidos")))
                 .contains(NodeId.of("manifest"));
     }
@@ -46,7 +46,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void helloLlm_engineDependsOnEidos() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("engine")))
                 .contains(NodeId.of("eidos"));
     }
@@ -54,7 +54,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void helloLlm_llmDependsOnEngine() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
                 .contains(NodeId.of("engine"));
     }
@@ -62,7 +62,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void helloLlm_specContainsApplicationId() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         var eidosNode = graph.nodes().get(NodeId.of("eidos"));
         assertThat(eidosNode).isNotNull();
         assertThat(eidosNode.spec()).isNotNull();
@@ -73,14 +73,14 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void accountability_hasSixNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.nodes()).hasSize(6);
     }
 
     @Test
     void accountability_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
                 assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
@@ -88,7 +88,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void accountability_eidosDependsOnManifest() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("eidos")))
                 .contains(NodeId.of("manifest"));
     }
@@ -96,7 +96,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void accountability_ledgerDependsOnEidos() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("ledger")))
                 .contains(NodeId.of("eidos"));
     }
@@ -104,7 +104,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void accountability_workDependsOnEngineAndLedger() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("work")))
                 .containsExactlyInAnyOrder(NodeId.of("engine"), NodeId.of("ledger"));
     }
@@ -112,7 +112,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void accountability_llmDependsOnWork() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
                 .contains(NodeId.of("work"));
     }
@@ -121,14 +121,14 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void caseManagement_hasSevenNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.nodes()).hasSize(7);
     }
 
     @Test
     void caseManagement_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
                                                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
@@ -136,7 +136,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void caseManagement_qhorusDependsOnWorkAndLedger() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("qhorus")))
                 .containsExactlyInAnyOrder(NodeId.of("work"), NodeId.of("ledger"));
     }
@@ -144,7 +144,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void caseManagement_llmDependsOnQhorus() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
                 .contains(NodeId.of("qhorus"));
     }
@@ -155,14 +155,14 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void llmFleet_hasSixNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.nodes()).hasSize(6);
     }
 
     @Test
     void llmFleet_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
                                                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
@@ -170,7 +170,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void llmFleet_threeExpandedLlmNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.nodes().keySet().stream()
                         .map(NodeId::value)
                         .filter(id -> id.startsWith("my-llm."))
@@ -181,7 +181,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void llmFleet_allLlmNodesDependOnEngine() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         for (String llmId : List.of("my-llm.analyst", "my-llm.coder", "my-llm.assistant")) {
             assertThat(graph.dependenciesOf(NodeId.of(llmId)))
                     .as("dependencies of %s", llmId)
@@ -192,7 +192,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void llmFleet_configValuesFlowPerInstance() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
 
         var analyst = extractAppSpec(graph, "my-llm.analyst");
         assertThat(analyst.config()).containsEntry("llm.capability", "deep");

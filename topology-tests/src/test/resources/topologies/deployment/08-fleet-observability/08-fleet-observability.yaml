@@ -1,33 +1,7 @@
-# ============================================================
-# Level 06: Lifecycle — Suspend and Resume
-# ============================================================
-# Demonstrates stateful lifecycle management over a running
-# fleet. After deployment, instances can be suspended (pausing
-# all processing) and resumed (returning to healthy operation).
-#
-# Prerequisites: Level 04 (04-llm-fleet.yaml)
-#
-# What you'll learn:
-#   - How suspend/resume operates on deployed instances
-#   - How status transitions reflect lifecycle state (PRESENT → SUSPENDED → PRESENT)
-#   - How deployment targets advertise lifecycle support via supportsStatefulLifecycle()
-#   - How the reconciliation loop can distinguish "suspended by operator"
-#     from "down due to failure"
-#
-# The topology is the same Level 04 fleet — lifecycle is an
-# operational concern, not a topology change. The test exercises
-# suspend/resume through the real claudony API.
-#
-# Status transitions:
-#   Deploy   → HEALTHY (mapped to PRESENT)
-#   Suspend  → SUSPENDED
-#   Resume   → HEALTHY (mapped to PRESENT)
-#
-# Dependency graph (unchanged):
-#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst
-#                                   ├──> my-llm.coder
-#                                   └──> my-llm.assistant
-# ============================================================
+# Level 08: Fleet Observability
+# Methodology step: OPERATE — Health and Recovery
+# Prerequisites: Level 04, Level 07
+# See README.md for walkthrough
 
 desiredState:
   namespace: casehub

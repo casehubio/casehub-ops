@@ -1,27 +1,7 @@
-# ============================================================
 # Level 05: Config Drift
-# ============================================================
-# Same fleet as Level 04, but the analyst's configuration has
-# changed. When re-reconciled against the running fleet, only
-# the drifted node should be updated — coder and assistant
-# remain untouched.
-#
-# Prerequisites: Level 04 (04-llm-fleet.yaml)
-#
-# What you'll learn:
-#   - How the platform detects config drift between desired and actual state
-#   - How selective reconciliation updates only what changed
-#   - How deployment targets handle update-in-place via 409→update flow
-#
-# Changes from Level 04:
-#   - analyst: capability "deep" → "analytical"
-#   - analyst: domain "analysis" → "data-analysis"
-#
-# Dependency graph (unchanged from Level 04):
-#   manifest ──> eidos ──> engine ──┬──> my-llm.analyst  ← config changed
-#                                   ├──> my-llm.coder
-#                                   └──> my-llm.assistant
-# ============================================================
+# Methodology step: OPERATE — Drift Reconciliation
+# Prerequisites: Level 04
+# See README.md for walkthrough
 
 desiredState:
   namespace: casehub

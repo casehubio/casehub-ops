@@ -1,0 +1,47 @@
+# Level 01: Hello LLM
+# Methodology step: DEPLOY — First App
+# Prerequisites: None
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: hello-llm
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    spec:
+      applicationId: my-llm
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.capability: fast
+        llm.identity-source: eidos

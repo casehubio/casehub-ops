@@ -1,0 +1,64 @@
+# Level 07: Topology Mutations
+# Methodology step: OPERATE — Declarative Mutations
+# Prerequisites: Level 04
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: llm-fleet
+
+data:
+  llm-fleet:
+    inline: |
+      name:STRING,role:STRING,capability:STRING,archetype:STRING,adjective:STRING,domain:STRING
+      analyst,analyst,deep,investigator,methodical,analysis
+      coder,developer,fast,engineer,pragmatic,software-engineering
+      researcher,researcher,thorough,scholar,curious,knowledge-discovery
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  my-llm:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: llm
+      in: llm-fleet
+    spec:
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/my-llm-app:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        llm.agent-id: my-llm-${each.llm.name}
+        llm.name: LLM ${each.llm.name}
+        llm.role: ${each.llm.role}
+        llm.capability: ${each.llm.capability}
+        llm.archetype: ${each.llm.archetype}
+        llm.adjective: ${each.llm.adjective}
+        llm.domain: ${each.llm.domain}
+        llm.identity-source: eidos

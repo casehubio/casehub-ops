@@ -38,7 +38,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_plansFourAdditions() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertThat(plan.flatAdditions()).hasSize(4);
         assertThat(plan.flatRemovals()).isEmpty();
@@ -47,7 +47,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_manifestBeforeEidos() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "manifest", "eidos");
     }
@@ -55,7 +55,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_eidosBeforeEngine() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "eidos", "engine");
     }
@@ -63,7 +63,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_engineBeforeLlm() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "engine", "my-llm");
     }
@@ -71,7 +71,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_executesSuccessfully() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         TransitionResult result = executeTransition(plan, "test-tenant");
         assertThat(result.outcomes().values())
@@ -81,7 +81,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void helloLlm_idempotentAfterExecution() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         executeTransition(plan, "test-tenant");
 
@@ -97,7 +97,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_plansSixAdditions() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertThat(plan.flatAdditions()).hasSize(6);
         assertThat(plan.flatRemovals()).isEmpty();
@@ -106,7 +106,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_manifestBeforeEidos() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "manifest", "eidos");
     }
@@ -114,7 +114,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_eidosBeforeEngineAndLedger() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "eidos", "engine");
         assertOrderedBefore(plan, "eidos", "ledger");
@@ -123,7 +123,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_engineAndLedgerBeforeWork() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "engine", "work");
         assertOrderedBefore(plan, "ledger", "work");
@@ -132,7 +132,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_workBeforeLlm() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         assertOrderedBefore(plan, "work", "my-llm");
     }
@@ -140,7 +140,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_executesSuccessfully() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         TransitionResult result = executeTransition(plan, "test-tenant");
         assertThat(result.outcomes().values())
@@ -150,7 +150,7 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     @Test
     void accountability_idempotentAfterExecution() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability.yaml", DEPLOYMENT_REGISTRY);
+                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
         executeTransition(plan, "test-tenant");
 
