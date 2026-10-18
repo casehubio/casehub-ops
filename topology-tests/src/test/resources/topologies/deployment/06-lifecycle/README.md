@@ -2,6 +2,7 @@
 
 **Methodology step:** OPERATE — Suspend and Resume
 **Prerequisites:** Level 04
+**Use case companion:** [UC06 Maintenance Window](../../use-cases/UC06-maintenance-window/)
 
 ## When to use this pattern
 

@@ -2,6 +2,7 @@
 
 **Methodology step:** OPERATE — Health and Recovery
 **Prerequisites:** Level 04, Level 07
+**Use case companion:** [UC08 SLA Monitoring](../../use-cases/UC08-sla-monitoring/)
 
 ## When to use this pattern
 

@@ -2,6 +2,7 @@
 
 **Methodology step:** DEPLOY — Audit Trail
 **Prerequisites:** Level 01
+**Use case companion:** [UC02 Audited Support](../../use-cases/UC02-audited-support/)
 
 ## When to use this pattern
 

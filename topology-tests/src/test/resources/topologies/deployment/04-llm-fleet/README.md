@@ -2,6 +2,7 @@
 
 **Methodology step:** DEPLOY — Fleet Scaling
 **Prerequisites:** Level 01
+**Use case companion:** [UC04 Multi-Specialist Desk](../../use-cases/UC04-multi-specialist-desk/)
 
 ## When to use this pattern
 

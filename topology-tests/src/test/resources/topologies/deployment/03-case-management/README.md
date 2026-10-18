@@ -2,6 +2,7 @@
 
 **Methodology step:** DEPLOY — Case Operations
 **Prerequisites:** Level 02
+**Use case companion:** [UC03 Escalation Flow](../../use-cases/UC03-escalation-flow/)
 
 ## When to use this pattern
 

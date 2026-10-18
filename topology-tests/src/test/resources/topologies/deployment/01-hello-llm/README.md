@@ -2,6 +2,7 @@
 
 **Methodology step:** DEPLOY — First App
 **Prerequisites:** None
+**Use case companion:** [UC01 Customer FAQ Agent](../../use-cases/UC01-customer-faq-agent/)
 
 ## When to use this pattern
 

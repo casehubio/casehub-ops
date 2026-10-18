@@ -2,6 +2,7 @@
 
 **Methodology step:** OPERATE — Drift Reconciliation
 **Prerequisites:** Level 04
+**Use case companion:** [UC05 Policy Rollout](../../use-cases/UC05-policy-rollout/)
 
 ## When to use this pattern
 

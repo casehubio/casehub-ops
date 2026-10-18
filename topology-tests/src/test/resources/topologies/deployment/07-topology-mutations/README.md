@@ -2,6 +2,7 @@
 
 **Methodology step:** OPERATE — Declarative Mutations
 **Prerequisites:** Level 04
+**Use case companion:** [UC07 Market Expansion](../../use-cases/UC07-market-expansion/)
 
 ## When to use this pattern
 
