@@ -21,6 +21,10 @@
         <!-- CaseHub foundation -->
         <dependency>
             <groupId>io.casehub</groupId>
+            <artifactId>casehub-platform-bootstrap</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.casehub</groupId>
             <artifactId>casehub-ops-api</artifactId>
         </dependency>
         <dependency>
