@@ -257,6 +257,40 @@ class DeploymentCompilationTest extends TopologyTestBase {
         assertThat(returns.config()).containsEntry("agent.escalation-threshold", "low");
     }
 
+
+// ── UC05: Policy Rollout ────────────────────────────────────────────
+
+    @Test
+    void uc05PolicyRollout_hasSixNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC05-policy-rollout/UC05-policy-rollout.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(6);
+    }
+
+    @Test
+    void uc05PolicyRollout_billingEscalationChangedToMedium() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC05-policy-rollout/UC05-policy-rollout.yaml", DEPLOYMENT_REGISTRY);
+
+        var billing = extractAppSpec(graph, "support-agent.billing");
+        assertThat(billing.config()).containsEntry("agent.escalation-threshold", "medium");
+        assertThat(billing.config()).containsEntry("agent.greeting", "How can I help with your account?");
+    }
+
+    @Test
+    void uc05PolicyRollout_technicalAndReturnsUnchanged() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC05-policy-rollout/UC05-policy-rollout.yaml", DEPLOYMENT_REGISTRY);
+
+        var technical = extractAppSpec(graph, "support-agent.technical");
+        assertThat(technical.config()).containsEntry("agent.escalation-threshold", "medium");
+        assertThat(technical.config()).containsEntry("agent.greeting", "What technical issue are you experiencing?");
+
+        var returns = extractAppSpec(graph, "support-agent.returns");
+        assertThat(returns.config()).containsEntry("agent.escalation-threshold", "low");
+        assertThat(returns.config()).containsEntry("agent.greeting", "I can help process your return.");
+    }
+
     private CaseHubApplicationSpec extractAppSpec(DesiredStateGraph graph, String nodeId) {
         var node = graph.nodes().get(NodeId.of(nodeId));
         assertThat(node).as("node %s", nodeId).isNotNull();

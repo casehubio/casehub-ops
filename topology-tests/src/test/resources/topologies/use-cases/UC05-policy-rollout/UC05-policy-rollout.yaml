@@ -1,0 +1,63 @@
+# UC05: Policy Rollout
+# Use case companion for Level 05: Config Drift
+# Prerequisites: UC04
+# See README.md for scenario walkthrough
+
+desiredState:
+  namespace: casehub
+  name: multi-specialist-desk
+
+data:
+  support-team:
+    inline: |
+      name:STRING,specialty:STRING,greeting:STRING,escalation_threshold:STRING,knowledge_base:STRING
+      billing,Billing & Payments,How can I help with your account?,medium,billing-kb
+      technical,Technical Support,What technical issue are you experiencing?,medium,tech-kb
+      returns,Returns & Refunds,I can help process your return.,low,returns-kb
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  support-agent:
+    type: casehub_application
+    dependsOn: [engine]
+    forEach:
+      as: agent
+      in: support-team
+    spec:
+      applicationId: support-${each.agent.name}
+      image: casehubio/support-agent:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        agent.id: support-${each.agent.name}
+        agent.name: ${each.agent.name} Specialist
+        agent.specialty: ${each.agent.specialty}
+        agent.greeting: ${each.agent.greeting}
+        agent.escalation-threshold: ${each.agent.escalation_threshold}
+        agent.knowledge-base: ${each.agent.knowledge_base}
+        agent.identity-source: eidos
