@@ -207,6 +207,56 @@ class DeploymentCompilationTest extends TopologyTestBase {
         assertThat(assistant.config()).containsEntry("llm.role", "assistant");
     }
 
+
+// ── UC04: Multi-Specialist Desk ─────────────────────────────────────
+
+    @Test
+    void uc04MultiSpecialistDesk_hasSixNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC04-multi-specialist-desk/UC04-multi-specialist-desk.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(6);
+    }
+
+    @Test
+    void uc04MultiSpecialistDesk_threeExpandedSupportAgents() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC04-multi-specialist-desk/UC04-multi-specialist-desk.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes().keySet().stream()
+                        .map(NodeId::value)
+                        .filter(id -> id.startsWith("support-agent."))
+                        .toList())
+                .containsExactlyInAnyOrder("support-agent.billing", "support-agent.technical", "support-agent.returns");
+    }
+
+    @Test
+    void uc04MultiSpecialistDesk_allSupportAgentsDependOnEngine() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC04-multi-specialist-desk/UC04-multi-specialist-desk.yaml", DEPLOYMENT_REGISTRY);
+        for (String agentId : List.of("support-agent.billing", "support-agent.technical", "support-agent.returns")) {
+            assertThat(graph.dependenciesOf(NodeId.of(agentId)))
+                    .as("dependencies of %s", agentId)
+                    .contains(NodeId.of("engine"));
+        }
+    }
+
+    @Test
+    void uc04MultiSpecialistDesk_configValuesFlowPerAgent() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/use-cases/UC04-multi-specialist-desk/UC04-multi-specialist-desk.yaml", DEPLOYMENT_REGISTRY);
+
+        var billing = extractAppSpec(graph, "support-agent.billing");
+        assertThat(billing.config()).containsEntry("agent.specialty", "Billing & Payments");
+        assertThat(billing.config()).containsEntry("agent.escalation-threshold", "high");
+
+        var technical = extractAppSpec(graph, "support-agent.technical");
+        assertThat(technical.config()).containsEntry("agent.specialty", "Technical Support");
+        assertThat(technical.config()).containsEntry("agent.escalation-threshold", "medium");
+
+        var returns = extractAppSpec(graph, "support-agent.returns");
+        assertThat(returns.config()).containsEntry("agent.specialty", "Returns & Refunds");
+        assertThat(returns.config()).containsEntry("agent.escalation-threshold", "low");
+    }
+
     private CaseHubApplicationSpec extractAppSpec(DesiredStateGraph graph, String nodeId) {
         var node = graph.nodes().get(NodeId.of(nodeId));
         assertThat(node).as("node %s", nodeId).isNotNull();
