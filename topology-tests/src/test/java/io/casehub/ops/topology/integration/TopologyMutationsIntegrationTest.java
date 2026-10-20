@@ -2,8 +2,10 @@ package io.casehub.ops.topology.integration;
 
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.GraphMutation;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeStatus;
+import io.casehub.desiredstate.runtime.GraphDiff;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
@@ -122,28 +124,22 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
         DesiredStateGraph mutatedGraph = compileSingleGraph(
                 "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
 
-        assertThat(initialGraph.nodes()).hasSameSizeAs(mutatedGraph.nodes());
+        var mutations = GraphDiff.computeMutations(initialGraph, mutatedGraph);
 
-        Set<String> initialFleetIds = initialGraph.nodes().keySet().stream()
-                .map(NodeId::value)
-                .filter(id -> id.startsWith("my-llm."))
-                .collect(Collectors.toSet());
-        Set<String> mutatedFleetIds = mutatedGraph.nodes().keySet().stream()
-                .map(NodeId::value)
-                .filter(id -> id.startsWith("my-llm."))
-                .collect(Collectors.toSet());
+        List<String> added = mutations.stream()
+                                      .filter(m -> m instanceof GraphMutation.AddNode<?>)
+                                      .map(GraphMutation::targetNodeId)
+                                      .toList();
+        List<String> removed = mutations.stream()
+                                        .filter(m -> m instanceof GraphMutation.RemoveNode<?>)
+                                        .map(GraphMutation::targetNodeId)
+                                        .toList();
 
-        Set<String> removed = new LinkedHashSet<>(initialFleetIds);
-        removed.removeAll(mutatedFleetIds);
         assertThat(removed).containsExactly("my-llm.assistant");
-
-        Set<String> added = new LinkedHashSet<>(mutatedFleetIds);
-        added.removeAll(initialFleetIds);
         assertThat(added).containsExactly("my-llm.researcher");
 
-        Set<String> retained = new LinkedHashSet<>(initialFleetIds);
-        retained.retainAll(mutatedFleetIds);
-        assertThat(retained).containsExactlyInAnyOrder("my-llm.analyst", "my-llm.coder");
+        assertThat(mutations.stream().filter(m -> m instanceof GraphMutation.UpdateNode<?>).count())
+                .as("No nodes updated (analyst and coder unchanged)").isZero();
 
         CaseHubApplicationSpec researcherSpec = extractAppSpec(
                 mutatedGraph.nodes().get(NodeId.of("my-llm.researcher")));

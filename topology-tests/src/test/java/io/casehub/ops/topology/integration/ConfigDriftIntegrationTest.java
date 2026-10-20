@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.GraphMutation;
 import io.casehub.desiredstate.api.NodeId;
+import io.casehub.desiredstate.runtime.GraphDiff;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
@@ -16,7 +18,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -58,17 +59,11 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         FleetLlmExerciser.assertDomainRelevant(analystBeforeLlm);
         assertThat(analystBeforeLlm.domain()).isEqualTo("analysis");
 
-        List<String> driftedAppIds = new ArrayList<>();
-        for (Map.Entry<NodeId, DesiredNode> entry : driftedGraph.nodes().entrySet()) {
-            DesiredNode initialNode = initialGraph.nodes().get(entry.getKey());
-            if (initialNode == null) continue;
-
-            CaseHubApplicationSpec driftedSpec = extractAppSpec(entry.getValue());
-            CaseHubApplicationSpec initialSpec = extractAppSpec(initialNode);
-            if (!driftedSpec.config().equals(initialSpec.config())) {
-                driftedAppIds.add(driftedSpec.applicationId());
-            }
-        }
+        var mutations = GraphDiff.computeMutations(initialGraph, driftedGraph);
+        List<String> driftedAppIds = mutations.stream()
+                .filter(m -> m instanceof GraphMutation.UpdateNode<?>)
+                .map(m -> extractAppSpec(driftedGraph.nodes().get(NodeId.of(m.targetNodeId()))).applicationId())
+                .toList();
 
         assertThat(driftedAppIds)
                 .as("Only analyst should have drifted config")
@@ -116,25 +111,21 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         DesiredStateGraph driftedGraph = compileSingleGraph(
                 "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
 
-        assertThat(initialGraph.nodes()).hasSameSizeAs(driftedGraph.nodes());
+        var mutations = GraphDiff.computeMutations(initialGraph, driftedGraph);
 
-        List<String> changedNodeIds = new ArrayList<>();
-        for (Map.Entry<NodeId, DesiredNode> entry : driftedGraph.nodes().entrySet()) {
-            DesiredNode initialNode = initialGraph.nodes().get(entry.getKey());
-            assertThat(initialNode)
-                    .as("Node %s exists in both graphs", entry.getKey().value())
-                    .isNotNull();
+        List<String> updatedNodeIds = mutations.stream()
+                                               .filter(m -> m instanceof GraphMutation.UpdateNode<?>)
+                                               .map(GraphMutation::targetNodeId)
+                                               .toList();
 
-            CaseHubApplicationSpec driftedSpec = extractAppSpec(entry.getValue());
-            CaseHubApplicationSpec initialSpec = extractAppSpec(initialNode);
-            if (!driftedSpec.config().equals(initialSpec.config())) {
-                changedNodeIds.add(entry.getKey().value());
-            }
-        }
-
-        assertThat(changedNodeIds)
+        assertThat(updatedNodeIds)
                 .as("Only the analyst fleet member should have changed config")
                 .containsExactly("my-llm.analyst");
+
+        assertThat(mutations.stream().filter(m -> m instanceof GraphMutation.AddNode<?>).count())
+                .as("No nodes added").isZero();
+        assertThat(mutations.stream().filter(m -> m instanceof GraphMutation.RemoveNode<?>).count())
+                .as("No nodes removed").isZero();
 
         CaseHubApplicationSpec initialAnalyst = extractAppSpec(
                 initialGraph.nodes().get(NodeId.of("my-llm.analyst")));
