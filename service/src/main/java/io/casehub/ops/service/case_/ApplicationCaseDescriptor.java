@@ -25,17 +25,19 @@ public final class ApplicationCaseDescriptor {
     private static List<Binding> bindings() {
         return List.of(
                 childCaseBinding("on-drift-detected", ".driftDetected",
-                        "ops", "drift-remediation", "1.0", ".driftDetected"),
+                                 "ops", "drift-remediation", "1.0", ".driftDetected"),
                 childCaseBinding("on-cve-detected", ".cveDetected",
-                        "ops", "cve-response", "1.0", ".cveData"),
+                                 "ops", "cve-response", "1.0", ".cveData"),
                 childCaseBinding("on-upgrade-requested", ".upgradeRequested",
-                        "ops", "service-upgrade", "1.0", ".upgradeSpec"),
+                                 "ops", "service-upgrade", "1.0", ".upgradeSpec"),
                 childCaseBinding("on-incident-detected", ".incidentDetected",
-                        "ops", "incident-response", "1.0", ".incidentData"),
+                                 "ops", "incident-response", "1.0", ".incidentData"),
                 childCaseBinding("on-scaling-required", ".scalingRequired",
-                        "ops", "scaling-event", "1.0", ".scalingRequired"),
+                                 "ops", "scaling-event", "1.0", ".scalingRequired"),
                 childCaseBinding("on-compliance-violation", ".complianceViolation",
-                        "ops", "compliance-remediation", "1.0", ".violationData"));
+                                 "ops", "compliance-remediation", "1.0", ".violationData"),
+                childCaseBinding("on-approval-required", ".approvalRequired",
+                                 "ops", "deployment-approval", "1.0", ".approvalRequired"));
     }
 
     private static Binding childCaseBinding(String name, String triggerFilter,

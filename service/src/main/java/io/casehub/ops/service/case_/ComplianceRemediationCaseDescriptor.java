@@ -3,6 +3,7 @@ package io.casehub.ops.service.case_;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
+import io.casehub.api.model.JudgmentTarget;
 import io.casehub.ops.service.service.ApplicationLifecycleService;
 import io.casehub.ops.service.service.NodeConvergenceTracker;
 import io.casehub.worker.api.Capability;
@@ -11,6 +12,7 @@ import io.casehub.worker.api.WorkerFunction;
 import io.casehub.worker.api.WorkerResult;
 import io.casehub.worker.api.WorkerScope;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,20 +84,28 @@ public final class ComplianceRemediationCaseDescriptor {
     private static List<Binding> bindings() {
         return List.of(
                 Binding.builder()
-                        .name("on-compliance-assessment")
-                        .on(new ContextChangeTrigger(".complianceAssessment"))
-                        .capability(Capability.of("remediate-compliance", "any", "any"))
-                        .build(),
+                       .name("on-compliance-assessment")
+                       .on(new ContextChangeTrigger(".complianceAssessment"))
+                       .capability(Capability.of("remediate-compliance", "any", "any"))
+                       .build(),
                 Binding.builder()
-                        .name("on-compliance-remediation-executed")
-                        .on(new ContextChangeTrigger(".complianceRemediationExecuted"))
-                        .capability(Capability.of("verify-compliance", "any", "any"))
-                        .build(),
+                       .name("on-compliance-remediation-executed")
+                       .on(new ContextChangeTrigger(".complianceRemediationExecuted"))
+                       .capability(Capability.of("verify-compliance", "any", "any"))
+                       .build(),
                 Binding.builder()
-                        .name("on-compliance-escalation-required")
-                        .on(new ContextChangeTrigger(".complianceEscalationRequired"))
-                        .capability(Capability.of("escalate-compliance", "any", "any"))
-                        .build());
+                       .name("on-compliance-escalation-required")
+                       .on(new ContextChangeTrigger(".complianceEscalationRequired"))
+                       .judgment(JudgmentTarget.builder()
+                                               .prompt("Compliance violation requires human review — assess risk and decide remediation approach")
+                                               .title("Compliance Escalation Review")
+                                               .outcomes(Set.of("remediate-manually", "accept-risk", "escalate"))
+                                               .expiresIn(Duration.ofHours(24))
+                                               .scope("ops/compliance-escalation")
+                                               .priority("HIGH")
+                                               .build())
+                       .contextWrite(Map.of("complianceReviewRequested", true))
+                       .build());
     }
 
     static WorkerResult assessCompliance(Map<String, Object> input) {

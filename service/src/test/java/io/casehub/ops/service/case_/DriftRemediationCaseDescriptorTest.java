@@ -57,6 +57,19 @@ class DriftRemediationCaseDescriptorTest {
     }
 
     @Test
+    void escalationBindingUsesJudgmentTarget() {
+        CaseDefinition def = DriftRemediationCaseDescriptor.build(noopTracker());
+        Binding binding = def.getBindings().stream()
+                             .filter(b -> b.getName().equals("on-escalation-required"))
+                             .findFirst().orElseThrow();
+        assertThat(binding.target()).isInstanceOf(io.casehub.api.model.JudgmentTarget.class);
+        var judgment = (io.casehub.api.model.JudgmentTarget) binding.target();
+        assertThat(judgment.outcomes()).contains("remediate", "accept-drift", "escalate-further");
+        assertThat(judgment.expiresIn()).isEqualTo(java.time.Duration.ofHours(4));
+    }
+
+
+    @Test
     void hasCompletionPredicate() {
         CaseDefinition def = DriftRemediationCaseDescriptor.build(noopTracker());
         assertThat(def.getCompletion()).isNotNull();

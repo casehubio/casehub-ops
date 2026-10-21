@@ -19,9 +19,9 @@ class ApplicationCaseDescriptorTest {
     }
 
     @Test
-    void hasSixBindings() {
+    void hasSevenBindings() {
         CaseDefinition def = ApplicationCaseDescriptor.build();
-        assertThat(def.getBindings()).hasSize(6);
+        assertThat(def.getBindings()).hasSize(7);
     }
 
     @Test
@@ -66,4 +66,20 @@ class ApplicationCaseDescriptorTest {
                     .isFalse();
         }
     }
+
+    @Test
+    void approvalBindingTargetsDeploymentApprovalCase() {
+        CaseDefinition def = ApplicationCaseDescriptor.build();
+        Binding approvalBinding = def.getBindings().stream()
+                                     .filter(b -> b.getName().equals("on-approval-required"))
+                                     .findFirst().orElseThrow();
+
+        assertThat(approvalBinding.getOn()).isInstanceOf(ContextChangeTrigger.class);
+        assertThat(approvalBinding.target()).isInstanceOf(SubCaseTarget.class);
+        var subCaseTarget = (SubCaseTarget) approvalBinding.target();
+        assertThat(subCaseTarget.subCase().namespace()).isEqualTo("ops");
+        assertThat(subCaseTarget.subCase().name()).isEqualTo("deployment-approval");
+        assertThat(subCaseTarget.subCase().version()).isEqualTo("1.0");
+    }
+
 }

@@ -64,6 +64,19 @@ class ComplianceRemediationCaseDescriptorTest {
         assertThat(binding.getOn()).isInstanceOf(ContextChangeTrigger.class);
     }
 
+    @Test
+    void escalationBindingUsesJudgmentTarget() {
+        CaseDefinition def = ComplianceRemediationCaseDescriptor.build(null, null);
+        var binding = def.getBindings().stream()
+                         .filter(b -> b.getName().equals("on-compliance-escalation-required"))
+                         .findFirst().orElseThrow();
+        assertThat(binding.target()).isInstanceOf(io.casehub.api.model.JudgmentTarget.class);
+        var judgment = (io.casehub.api.model.JudgmentTarget) binding.target();
+        assertThat(judgment.outcomes()).contains("remediate-manually", "accept-risk", "escalate");
+        assertThat(judgment.expiresIn()).isEqualTo(java.time.Duration.ofHours(24));
+    }
+
+
     // --- Assess worker: auto-fixable controls ---
 
     @Test

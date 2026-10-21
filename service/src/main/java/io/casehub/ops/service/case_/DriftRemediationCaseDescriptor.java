@@ -3,6 +3,7 @@ package io.casehub.ops.service.case_;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
+import io.casehub.api.model.JudgmentTarget;
 import io.casehub.ops.service.service.NodeConvergenceTracker;
 import io.casehub.worker.api.Capability;
 import io.casehub.worker.api.Worker;
@@ -10,11 +11,13 @@ import io.casehub.worker.api.WorkerFunction;
 import io.casehub.worker.api.WorkerResult;
 import io.casehub.worker.api.WorkerScope;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class DriftRemediationCaseDescriptor {
@@ -78,7 +81,15 @@ public final class DriftRemediationCaseDescriptor {
                 Binding.builder()
                        .name("on-escalation-required")
                        .on(new ContextChangeTrigger(".escalationRequired"))
-                       .capability(Capability.of("escalate-drift", "any", "any"))
+                       .judgment(JudgmentTarget.builder()
+                                               .prompt("Critical drift detected — review escalation data and decide remediation approach")
+                                               .title("Drift Escalation Review")
+                                               .outcomes(Set.of("remediate", "accept-drift", "escalate-further"))
+                                               .expiresIn(Duration.ofHours(4))
+                                               .scope("ops/drift-escalation")
+                                               .priority("HIGH")
+                                               .build())
+                       .contextWrite(Map.of("escalationReviewRequested", true))
                        .build());
     }
 

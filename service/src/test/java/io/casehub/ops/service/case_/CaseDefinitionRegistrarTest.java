@@ -17,13 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CaseDefinitionRegistrarTest {
 
     @Test
-    void registersSevenCaseDefinitions() {
+    void registersEightCaseDefinitions() {
         var registry = new RecordingRegistry();
         var registrar = new CaseDefinitionRegistrar(registry, new io.casehub.ops.service.service.NodeConvergenceTracker((caseId, path, value) -> {}, new com.fasterxml.jackson.databind.ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())), null);
 
         registrar.onStartup(null);
 
-        assertThat(registry.registered).hasSize(7);
+        assertThat(registry.registered).hasSize(8);
     }
 
     @Test

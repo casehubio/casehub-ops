@@ -37,7 +37,8 @@ public class CaseDefinitionRegistrar {
                 ServiceUpgradeCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 IncidentResponseCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
                 ScalingEventCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
-                ComplianceRemediationCaseDescriptor.build(applicationLifecycleService, convergenceTracker));
+                ComplianceRemediationCaseDescriptor.build(applicationLifecycleService, convergenceTracker),
+                DeploymentApprovalCaseDescriptor.build());
 
         for (CaseDefinition def : definitions) {
             registry.registerCaseDefinition(def);
