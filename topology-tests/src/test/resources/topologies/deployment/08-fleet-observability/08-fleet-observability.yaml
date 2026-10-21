@@ -17,42 +17,42 @@ data:
 
 nodes:
   manifest:
-    type: casehub_application
+    type: claudony_app
     spec:
-      applicationId: manifest
+      name: manifest
+      displayName: Manifest
+      description: Manifest service
       image: casehubio/manifest:latest
-      deploymentTarget: claudony
-      replicas: 1
 
   eidos:
-    type: casehub_application
+    type: claudony_app
     dependsOn: [manifest]
     spec:
-      applicationId: eidos
+      name: eidos
+      displayName: Eidos
+      description: Identity service
       image: casehubio/eidos:latest
-      deploymentTarget: claudony
-      replicas: 1
 
   engine:
-    type: casehub_application
+    type: claudony_app
     dependsOn: [eidos]
     spec:
-      applicationId: engine
+      name: engine
+      displayName: Engine
+      description: Engine service
       image: casehubio/engine:latest
-      deploymentTarget: claudony
-      replicas: 1
 
   my-llm:
-    type: casehub_application
+    type: claudony_app
     dependsOn: [engine]
     forEach:
       as: llm
       in: llm-fleet
     spec:
-      applicationId: my-llm-${each.llm.name}
+      name: my-llm-${each.llm.name}
+      displayName: LLM ${each.llm.name}
+      description: LLM agent ${each.llm.role}
       image: casehubio/my-llm-app:latest
-      deploymentTarget: claudony
-      replicas: 1
       config:
         llm.agent-id: my-llm-${each.llm.name}
         llm.name: LLM ${each.llm.name}
