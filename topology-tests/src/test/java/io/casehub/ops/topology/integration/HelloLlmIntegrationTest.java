@@ -3,6 +3,7 @@ package io.casehub.ops.topology.integration;
 import io.casehub.desiredstate.api.ActualState;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
+import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.desiredstate.api.StepOutcome;
 import io.casehub.desiredstate.api.TransitionResult;
@@ -49,6 +50,11 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
                     .as("Status of %s after registration", appSpec.applicationId())
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
+
+        FleetLlmExerciser.LlmResponse llmResponse =
+                FleetLlmExerciser.exercise("my-llm",
+                        extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
+        FleetLlmExerciser.assertDomainRelevant(llmResponse);
     }
 
     @Test
@@ -85,6 +91,11 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
                     .as("Status of %s after plan execution", appSpec.applicationId())
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
+
+        FleetLlmExerciser.LlmResponse llmResponse =
+                FleetLlmExerciser.exercise("my-llm",
+                        extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
+        FleetLlmExerciser.assertDomainRelevant(llmResponse);
     }
 
 

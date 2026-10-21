@@ -1,5 +1,6 @@
 package io.casehub.ops.topology.integration;
 
+import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
@@ -42,6 +43,15 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
                     .as("Status of %s after deployment", appId)
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
+
+        List<FleetLlmExerciser.LlmResponse> responses =
+                FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS, appId -> {
+                    DesiredNode node = graph.nodes().values().stream()
+                            .filter(n -> extractAppSpec(n).applicationId().equals(appId))
+                            .findFirst().orElseThrow();
+                    return extractAppSpec(node).config();
+                });
+        FleetLlmExerciser.assertFleetOperational(responses);
     }
 
     @Test
@@ -56,6 +66,15 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
 
         assertThat(llmAppIds)
                 .containsExactlyInAnyOrderElementsOf(FLEET_APP_IDS);
+
+        List<FleetLlmExerciser.LlmResponse> responses =
+                FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS, appId -> {
+                    DesiredNode node = graph.nodes().values().stream()
+                            .filter(n -> extractAppSpec(n).applicationId().equals(appId))
+                            .findFirst().orElseThrow();
+                    return extractAppSpec(node).config();
+                });
+        FleetLlmExerciser.assertFleetOperational(responses);
     }
 
 
