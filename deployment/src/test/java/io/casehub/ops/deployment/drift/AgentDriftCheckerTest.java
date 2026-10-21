@@ -36,7 +36,7 @@ class AgentDriftCheckerTest {
     void agentPresent() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(cap), null, "US", "policy", TENANCY_ID, null, null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
@@ -62,7 +62,7 @@ class AgentDriftCheckerTest {
         var cap2 = new AgentCapability("cap-b", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
 
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(cap1), null, "US", "policy", TENANCY_ID, null, null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
@@ -87,7 +87,7 @@ class AgentDriftCheckerTest {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var disp1 = AgentDisposition.builder().delegation(false).build();
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(cap), disp1, "US", "policy", TENANCY_ID, null, null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
@@ -103,7 +103,7 @@ class AgentDriftCheckerTest {
     void agentDrifted_briefingMismatch() {
         var cap = new AgentCapability("cap-a", null, null, null, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(cap), null, "US", "policy", TENANCY_ID, "Original briefing", null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
@@ -119,7 +119,7 @@ class AgentDriftCheckerTest {
         var capDesired = new AgentCapability("cap-a", null, null, 0.85, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var capActual = new AgentCapability("cap-a", null, null, 0.50, null, null, null, null, List.of(), List.of(), List.of(), Map.of(), null);
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(capActual), null, "US", "policy", TENANCY_ID, null, null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
@@ -135,7 +135,7 @@ class AgentDriftCheckerTest {
         var cap = new AgentCapability("cap-a", null, null, 0.85, 2000L, "medium", null, null, List.of("text"), List.of("text"), List.of("tag"), Map.of("java", 0.95), Set.of("cobol"));
         var disp = AgentDisposition.builder().delegation(false).build();
         var descriptor = new AgentDescriptor(
-                "agent-1", "Agent", "1.0", "anthropic", "claude", "4.6", "fp1",
+                "agent-1", "Agent", null, "1.0", "anthropic", "claude", "4.6", "fp1",
                 "domain", "slot", "disp", null, Map.of(), "worker", null, List.of(), null,
                 List.of(cap), disp, "US", "policy", TENANCY_ID, "briefing", null, List.of(), List.of(), List.of(), null, Map.of());
         agentRegistry.register(descriptor);
