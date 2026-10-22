@@ -18,6 +18,8 @@ import io.casehub.desiredstate.runtime.NodeStepExecutor;
 import io.casehub.desiredstate.runtime.SimpleTransitionExecutor;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.desiredstate.testing.MockActualStateAdapter;
+import io.casehub.ops.testing.audit.AuditCapture;
+import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -34,6 +36,8 @@ public abstract class ReconciliationTestBase extends TopologyTestBase {
     protected TransitionPlanner planner;
     protected MockActualStateAdapter actualAdapter;
     private FaultPolicyEngine faultEngine;
+    protected AuditCapture    audit;
+
 
     @BeforeEach
     void setUpReconciliation() {
@@ -43,6 +47,7 @@ public abstract class ReconciliationTestBase extends TopologyTestBase {
         actualAdapter = new MockActualStateAdapter();
         actualAdapter.setHandledTypes(allInfraTypes());
         faultEngine = new FaultPolicyEngine(List.of());
+        audit = new AuditCapture();
     }
 
     protected void setFaultPolicies(List<FaultPolicy> policies) {
@@ -66,6 +71,18 @@ public abstract class ReconciliationTestBase extends TopologyTestBase {
         SimpleTransitionExecutor executor = new SimpleTransitionExecutor(nodeStepExecutor);
         return executor.execute(plan, tenancyId);
     }
+
+    protected TransitionResult executeTransitionWithAudit(TransitionPlan plan, String tenancyId) {
+        NodeStepExecutor nodeStepExecutor = new NodeStepExecutor(
+                new DefaultNodeProvisionerRouter(List.of(provisioner)),
+                new NoOpHumanNodeHandler(),
+                new NoOpPendingApprovalHandler(),
+                (step, tid) -> new StepOutcome.Succeeded());
+        SimpleTransitionExecutor    delegate = new SimpleTransitionExecutor(nodeStepExecutor);
+        CapturingTransitionExecutor executor = new CapturingTransitionExecutor(delegate, audit);
+        return executor.execute(plan, tenancyId);
+    }
+
 
     @SuppressWarnings("unchecked")
     protected List<GraphMutation> evaluateFault(String tenancyId, FaultEvent event,
