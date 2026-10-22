@@ -1,12 +1,12 @@
 package io.casehub.ops.example.monitoring;
 
-import io.casehub.blocks.summarisation.yaml.LevelDefinition;
-import io.casehub.blocks.summarisation.yaml.PipelineCompiler;
-import io.casehub.blocks.summarisation.yaml.PipelineWrapper;
-import io.casehub.blocks.summarisation.yaml.SummariserFactory;
-import io.casehub.blocks.summarisation.yaml.SummariserRegistry;
-import io.casehub.blocks.summarisation.yaml.builtin.PhaseDetectSummariser;
-import io.casehub.blocks.summarisation.yaml.builtin.ThresholdClassifySummariser;
+import io.casehub.agency.summarisation.yaml.LevelDefinition;
+import io.casehub.agency.summarisation.yaml.PipelineCompiler;
+import io.casehub.agency.summarisation.yaml.PipelineWrapper;
+import io.casehub.agency.summarisation.yaml.SummariserFactory;
+import io.casehub.agency.summarisation.yaml.SummariserRegistry;
+import io.casehub.agency.summarisation.yaml.builtin.PhaseDetectSummariser;
+import io.casehub.agency.summarisation.yaml.builtin.ThresholdClassifySummariser;
 import io.casehub.platform.expression.MvelExpressionEngine;
 import io.casehub.yaml.jackson.YamlMappers;
 
