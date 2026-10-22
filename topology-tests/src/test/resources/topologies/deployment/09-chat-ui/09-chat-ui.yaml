@@ -1,0 +1,76 @@
+# Level 09: Chat UI
+# Methodology step: DEPLOY — Conversation Viewer
+# Prerequisites: Level 03
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: chat-ui
+
+nodes:
+  manifest:
+    type: casehub_application
+    spec:
+      applicationId: manifest
+      image: casehubio/manifest:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  eidos:
+    type: casehub_application
+    dependsOn: [manifest]
+    spec:
+      applicationId: eidos
+      image: casehubio/eidos:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  engine:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: engine
+      image: casehubio/engine:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  ledger:
+    type: casehub_application
+    dependsOn: [eidos]
+    spec:
+      applicationId: ledger
+      image: casehubio/ledger:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  work:
+    type: casehub_application
+    dependsOn: [engine, ledger]
+    spec:
+      applicationId: work
+      image: casehubio/work:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  qhorus:
+    type: casehub_application
+    dependsOn: [work, ledger]
+    spec:
+      applicationId: qhorus
+      image: casehubio/qhorus:latest
+      deploymentTarget: claudony
+      replicas: 1
+
+  chat-viewer:
+    type: casehub_application
+    dependsOn: [qhorus]
+    spec:
+      applicationId: chat-viewer
+      image: casehubio/chat-viewer:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        chat.mode: conversation-viewer
+        chat.session-source: qhorus
+        chat.channel-type: direct
+        chat.identity-source: eidos
