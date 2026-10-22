@@ -313,7 +313,7 @@ ServiceUpgradeCaseDescriptor.build(applicationLifecycleService, convergenceTrack
 
 Per-service status card showing health, replicas, image, and per-cluster deployment status.
 
-**Package:** `@casehubio/blocks-ui-service-card`
+**Package:** `@casehubio/mosaic-service-card`
 
 **Props:**
 - `serviceName: string` — display name
@@ -345,7 +345,7 @@ interface ClusterDeploymentStatus {
 Cluster management panel: list registered clusters, register new clusters,
 test connectivity, deregister.
 
-**Package:** `@casehubio/blocks-ui-cluster-panel`
+**Package:** `@casehubio/mosaic-cluster-panel`
 
 **Props:**
 - `endpoint: string` — REST base URL for cluster operations
@@ -376,7 +376,7 @@ interface ClusterInfo {
 
 Desired vs actual state diff per cluster, showing node-level status.
 
-**Package:** `@casehubio/blocks-ui-reconciliation-status`
+**Package:** `@casehubio/mosaic-reconciliation-status`
 
 **Props:**
 - `endpoint: string` — REST endpoint for reconciliation status
@@ -419,7 +419,7 @@ interface NodeReconciliationStatus {
 Multi-dimension status overview with severity aggregation. Displays N
 dimensions, each with a status indicator and severity badge.
 
-**Package:** `@casehubio/blocks-ui-dimension-dashboard`
+**Package:** `@casehubio/mosaic-dimension-dashboard`
 
 **Props:**
 - `endpoint: string` — REST endpoint for dimension data
@@ -451,7 +451,7 @@ interface DimensionView {
 
 Service dependency DAG visualisation using the existing graph rendering stack.
 
-**Package:** `@casehubio/blocks-ui-topology-viewer`
+**Package:** `@casehubio/mosaic-topology-viewer`
 
 **Props:**
 - `data?: TopologySnapshot` — static topology data for mocks
@@ -561,11 +561,11 @@ CREATE INDEX idx_cve_record_tenancy ON cve_record(tenancy_id);
 
 | Directory | Package |
 |-----------|---------|
-| `components/service-card/` | `@casehubio/blocks-ui-service-card` |
-| `components/cluster-panel/` | `@casehubio/blocks-ui-cluster-panel` |
-| `components/reconciliation-status/` | `@casehubio/blocks-ui-reconciliation-status` |
-| `components/dimension-dashboard/` | `@casehubio/blocks-ui-dimension-dashboard` |
-| `components/topology-viewer/` | `@casehubio/blocks-ui-topology-viewer` |
+| `components/service-card/` | `@casehubio/mosaic-service-card` |
+| `components/cluster-panel/` | `@casehubio/mosaic-cluster-panel` |
+| `components/reconciliation-status/` | `@casehubio/mosaic-reconciliation-status` |
+| `components/dimension-dashboard/` | `@casehubio/mosaic-dimension-dashboard` |
+| `components/topology-viewer/` | `@casehubio/mosaic-topology-viewer` |
 
 Each component follows blocks-ui conventions: Lit 3.x, vitest, dual data mode
 (endpoint/data props), `emitPagesEvent` for events, `DataSourceMixin` or

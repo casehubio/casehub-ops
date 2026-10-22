@@ -72,7 +72,7 @@ casehub-ras-api
 casehub-work
 casehub-platform (runtime scope)
 casehub-platform-expression
-casehub-blocks-summarisation-yaml
+casehub-agency-summarisation-yaml
 
 <!-- Quarkus (library-compatible) -->
 quarkus-rest

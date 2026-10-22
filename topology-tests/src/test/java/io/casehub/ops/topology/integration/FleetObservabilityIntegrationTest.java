@@ -23,6 +23,9 @@ import io.casehub.ops.claudony.ClaudonyActualStateAdapter;
 import io.casehub.ops.claudony.ClaudonyFaultPolicy;
 import io.casehub.ops.claudony.ClaudonyNodeProvisioner;
 import io.casehub.ops.claudony.HttpClaudonyFleetClient;
+import io.casehub.ops.testing.audit.AuditAssertions;
+import io.casehub.ops.testing.audit.AuditCapture;
+import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.cloudevents.CloudEvent;
 import io.smallrye.mutiny.Multi;
@@ -34,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,7 +55,7 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
     static String claudonyUrl;
 
     private ReconciliationLoop loop;
-    private List<CloudEvent> capturedEvents;
+    private AuditCapture auditCapture;
     private FailableClaudonyProvisioner provisioner;
     private HttpClaudonyFleetClient fleetClient;
     private DesiredStateGraph graph;
@@ -62,30 +64,31 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
     void setUp() throws IOException {
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
         fleetClient = new HttpClaudonyFleetClient(claudonyUrl, mapper);
-        var specHashStore = new SpecHashStore();
+        var specHashStore   = new SpecHashStore();
         var realProvisioner = new ClaudonyNodeProvisioner(fleetClient, specHashStore);
         provisioner = new FailableClaudonyProvisioner(realProvisioner);
         var actualAdapter = new ClaudonyActualStateAdapter(fleetClient, specHashStore);
 
-        capturedEvents = new CopyOnWriteArrayList<>();
+        auditCapture = new AuditCapture();
 
-        var faultEngine = new FaultPolicyEngine(List.of(new ClaudonyFaultPolicy()));
-        var planner = new TransitionPlanner();
+        var faultEngine       = new FaultPolicyEngine(List.of(new ClaudonyFaultPolicy()));
+        var planner           = new TransitionPlanner();
         var provisionerRouter = new DefaultNodeProvisionerRouter(List.of(provisioner));
         var nodeExecutor = new NodeStepExecutor(
                 provisionerRouter,
                 new NoOpHumanNodeHandler(),
                 new NoOpPendingApprovalHandler(),
                 (step, tid) -> new StepOutcome.Succeeded());
-        var executor = new SimpleTransitionExecutor(nodeExecutor);
-        var actualRouter = new DefaultActualStateAdapterRouter(List.of(actualAdapter));
-        MergedEventSource emptySource = () -> Multi.createFrom().nothing();
+        var               executor          = new SimpleTransitionExecutor(nodeExecutor);
+        var               capturingExecutor = new CapturingTransitionExecutor(executor, auditCapture);
+        var               actualRouter      = new DefaultActualStateAdapterRouter(List.of(actualAdapter));
+        MergedEventSource emptySource       = () -> Multi.createFrom().nothing();
 
-        loop = ReconciliationLoop.builder(planner, executor, actualRouter, faultEngine, emptySource)
-                .cloudEventSink(capturedEvents::add)
-                .debounceWindow(Duration.ofMillis(50))
-                .resyncInterval(Duration.ofMinutes(30))
-                .build();
+        loop = ReconciliationLoop.builder(planner, capturingExecutor, actualRouter, faultEngine, emptySource)
+                                 .cloudEventSink(auditCapture::recordCloudEvent)
+                                 .debounceWindow(Duration.ofMillis(50))
+                                 .resyncInterval(Duration.ofMinutes(30))
+                                 .build();
 
         var registry = buildTypeRegistryFrom(ClaudonyNodeSpec.class);
         graph = compileSingleGraph(YAML_PATH, registry);
@@ -103,20 +106,15 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
     void reconciliationConvergesFleet() {
         loop.start(TENANT, graph);
 
-        var completed = eventsOfType(DesiredStateEventTypes.RECONCILIATION_COMPLETED);
-        assertThat(completed)
-                .as("Initial reconciliation should emit a completed event")
-                .hasSize(1);
-
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_FAULTED))
-                .as("Clean deployment should produce no fault events")
-                .isEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
+        AuditAssertions.assertNoCloudEventsOfType(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
+        AuditAssertions.assertAllSucceeded(auditCapture);
     }
 
     @Test
     void provisionFailureEmitsFaultEvent() throws Exception {
         loop.start(TENANT, graph);
-        capturedEvents.clear();
+        auditCapture.clear();
 
         String targetNodeId = findNodeIdContaining("my-llm.analyst");
         fleetClient.deregisterApp("my-llm-analyst");
@@ -124,13 +122,9 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
 
         awaitNextCycle();
 
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_FAULTED))
-                .as("Provision failure should emit a nodeFaulted event")
-                .isNotEmpty();
-
-        assertThat(eventsOfType(DesiredStateEventTypes.RECONCILIATION_COMPLETED))
-                .as("Cycle should complete even with faults")
-                .isNotEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
+        AuditAssertions.assertNodeFailed(auditCapture, targetNodeId);
     }
 
     @Test
@@ -142,17 +136,12 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
         provisioner.failNode(targetNodeId, 1);
         awaitNextCycle();
 
-        capturedEvents.clear();
+        auditCapture.clear();
         provisioner.clearFailures();
         awaitNextCycle();
 
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_RECOVERED))
-                .as("Recovery should emit a nodeRecovered event")
-                .isNotEmpty();
-
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_FAULTED))
-                .as("Recovery cycle should have no new faults")
-                .isEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.NODE_RECOVERED);
+        AuditAssertions.assertNoCloudEventsOfType(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
     }
 
     @Test
@@ -180,28 +169,26 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
     void fullObservabilityChain() throws Exception {
         loop.start(TENANT, graph);
 
-        assertThat(eventsOfType(DesiredStateEventTypes.RECONCILIATION_COMPLETED)).hasSize(1);
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_FAULTED)).isEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
+        AuditAssertions.assertNoCloudEventsOfType(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
+        AuditAssertions.assertAllSucceeded(auditCapture);
 
         String targetNodeId = findNodeIdContaining("my-llm.analyst");
         fleetClient.deregisterApp("my-llm-analyst");
         provisioner.failNode(targetNodeId, 1);
         awaitNextCycle();
 
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_FAULTED))
-                .as("Fault phase should emit at least one nodeFaulted event")
-                .isNotEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
+        AuditAssertions.assertCloudEventForNode(auditCapture, DesiredStateEventTypes.NODE_FAULTED, targetNodeId);
 
         provisioner.clearFailures();
         awaitNextCycle();
 
-        assertThat(eventsOfType(DesiredStateEventTypes.NODE_RECOVERED))
-                .as("Recovery phase should emit nodeRecovered")
-                .isNotEmpty();
+        AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.NODE_RECOVERED);
 
-        List<String> eventTypes = capturedEvents.stream()
-                .map(CloudEvent::getType)
-                .toList();
+        List<String> eventTypes = auditCapture.cloudEvents().stream()
+                                              .map(CloudEvent::getType)
+                                              .toList();
 
         assertThat(eventTypes)
                 .as("Full chain should include completed, faulted, and recovered events")
@@ -212,29 +199,17 @@ class FleetObservabilityIntegrationTest extends TopologyTestBase {
     }
 
     private void awaitNextCycle() throws Exception {
-        int baseline = countEventsOfType(DesiredStateEventTypes.RECONCILIATION_COMPLETED);
+        int baseline = auditCapture.cloudEventCount(DesiredStateEventTypes.RECONCILIATION_COMPLETED);
         loop.requestReconciliation(TENANT);
         long deadline = System.currentTimeMillis() + 15_000;
-        while (countEventsOfType(DesiredStateEventTypes.RECONCILIATION_COMPLETED) <= baseline) {
+        while (auditCapture.cloudEventCount(DesiredStateEventTypes.RECONCILIATION_COMPLETED) <= baseline) {
             if (System.currentTimeMillis() > deadline) {
                 throw new AssertionError(
                         "Reconciliation cycle did not complete within 15s. " +
-                                "Events captured: " + capturedEvents.size());
+                        "Events captured: " + auditCapture.cloudEvents().size());
             }
             TimeUnit.MILLISECONDS.sleep(50);
         }
-    }
-
-    private int countEventsOfType(String type) {
-        return (int) capturedEvents.stream()
-                .filter(e -> e.getType().equals(type))
-                .count();
-    }
-
-    private List<CloudEvent> eventsOfType(String type) {
-        return capturedEvents.stream()
-                .filter(e -> e.getType().equals(type))
-                .toList();
     }
 
     private String findNodeIdContaining(String substring) {

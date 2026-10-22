@@ -21,7 +21,7 @@
     <dependencies>
         <dependency>
             <groupId>io.casehub</groupId>
-            <artifactId>casehub-blocks-summarisation-yaml</artifactId>
+            <artifactId>casehub-agency-summarisation-yaml</artifactId>
         </dependency>
         <dependency>
             <groupId>io.casehub</groupId>

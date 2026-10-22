@@ -658,7 +658,7 @@ Fabric8 `KubernetesMockServer`:
 
 Lit 3.x Web Components following blocks-ui conventions — OKLCH design tokens, Shadow DOM,
 container queries, `pages-event` protocol, dual data mode. New components published as
-`@casehubio/blocks-ui-ops-*` packages.
+`@casehubio/mosaic-ops-*` packages.
 
 ### Application shell
 
