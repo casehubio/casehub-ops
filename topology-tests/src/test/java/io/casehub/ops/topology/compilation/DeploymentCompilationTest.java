@@ -3,6 +3,8 @@ package io.casehub.ops.topology.compilation;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.ops.api.claudony.ClaudonyNodeSpec;
+import io.casehub.ops.api.claudony.ClaudonyPoolNodeSpec;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
@@ -290,6 +292,54 @@ class DeploymentCompilationTest extends TopologyTestBase {
         assertThat(returns.config()).containsEntry("agent.escalation-threshold", "low");
         assertThat(returns.config()).containsEntry("agent.greeting", "I can help process your return.");
     }
+// ── Level 10: Pool Deployment ──────────────────────────────────────
+
+    private static final Map<String, String> CLAUDONY_REGISTRY =
+            buildTypeRegistryFrom(ClaudonyNodeSpec.class);
+
+    @Test
+    void poolDeployment_hasFiveNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+        assertThat(graph.nodes()).hasSize(5);
+    }
+
+    @Test
+    void poolDeployment_containsPoolNode() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+        var poolNode = graph.nodes().values().stream()
+                            .filter(n -> n.spec() instanceof ClaudonyPoolNodeSpec)
+                            .findFirst();
+        assertThat(poolNode).as("graph must contain a claudony_pool node").isPresent();
+        var poolSpec = (ClaudonyPoolNodeSpec) poolNode.get().spec();
+        assertThat(poolSpec.appName()).isEqualTo("support-app");
+        assertThat(poolSpec.agentId()).isEqualTo("support-agent");
+        assertThat(poolSpec.minActive()).isEqualTo(3);
+        assertThat(poolSpec.maxActive()).isEqualTo(8);
+    }
+
+    @Test
+    void poolDeployment_poolDependsOnSupportApp() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+        var poolNodeId = graph.nodes().keySet().stream()
+                              .filter(id -> id.value().contains("support-pool"))
+                              .findFirst();
+        assertThat(poolNodeId).as("pool node ID must exist").isPresent();
+        assertThat(graph.dependenciesOf(poolNodeId.get()))
+                .as("pool must depend on support-app")
+                .contains(NodeId.of("support-app"));
+    }
+
+    @Test
+    void poolDeployment_supportAppDependsOnEngine() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("support-app")))
+                .contains(NodeId.of("engine"));
+    }
+
 
     private CaseHubApplicationSpec extractAppSpec(DesiredStateGraph graph, String nodeId) {
         var node = graph.nodes().get(NodeId.of(nodeId));

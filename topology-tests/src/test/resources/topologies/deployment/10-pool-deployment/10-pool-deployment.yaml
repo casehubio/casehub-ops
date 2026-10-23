@@ -1,0 +1,56 @@
+# Level 10: Pool Deployment
+# Methodology step: DEPLOY — Managed Instance Pool
+# Prerequisites: Level 04, Level 06
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: support-pool
+
+nodes:
+  manifest:
+    type: claudony_app
+    spec:
+      name: manifest
+      displayName: Manifest
+      description: Manifest service
+      image: casehubio/manifest:latest
+
+  eidos:
+    type: claudony_app
+    dependsOn: [manifest]
+    spec:
+      name: eidos
+      displayName: Eidos
+      description: Identity service
+      image: casehubio/eidos:latest
+
+  engine:
+    type: claudony_app
+    dependsOn: [eidos]
+    spec:
+      name: engine
+      displayName: Engine
+      description: Engine service
+      image: casehubio/engine:latest
+
+  support-app:
+    type: claudony_app
+    dependsOn: [engine]
+    spec:
+      name: support-app
+      displayName: Support Application
+      description: Customer support LLM application
+      image: casehubio/support-app:latest
+      config:
+        support.mode: pool-managed
+        support.channel: direct
+
+  support-pool:
+    type: claudony_pool
+    dependsOn: [support-app]
+    spec:
+      appName: support-app
+      agentId: support-agent
+      minActive: 3
+      maxActive: 8
