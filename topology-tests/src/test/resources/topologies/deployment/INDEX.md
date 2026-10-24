@@ -19,5 +19,8 @@ application scenarios built on the same platform capabilities.
 | 06 | [06-lifecycle/](06-lifecycle/) | OPERATE — Suspend and Resume | [UC06 Maintenance Window](../use-cases/UC06-maintenance-window/) | Suspend and resume fleet instances with status transitions |
 | 07 | [07-topology-mutations/](07-topology-mutations/) | OPERATE — Declarative Mutations | [UC07 Market Expansion](../use-cases/UC07-market-expansion/) | Declarative add/remove — prune before grow |
 | 08 | [08-fleet-observability/](08-fleet-observability/) | OPERATE — Health and Recovery | [UC08 SLA Monitoring](../use-cases/UC08-sla-monitoring/) | Health probes, status monitoring, degradation → recovery |
+| 09 | [09-chat-ui/](09-chat-ui/) | DEPLOY — Chat Interface | — | Chat UI deployment with LLM fleet backend |
+| 10 | [10-pool-deployment/](10-pool-deployment/) | DEPLOY — Managed Instance Pool | — | Pool provisioning, scaling, and unhealthy instance replacement |
+| 14 | [14-fault-recovery/](14-fault-recovery/) | OPERATE — Fault Detection and Replacement | — | Fault detection, automatic recovery, and escalation to human review |
 
 Each level folder contains the topology YAML and a README.md walkthrough.
