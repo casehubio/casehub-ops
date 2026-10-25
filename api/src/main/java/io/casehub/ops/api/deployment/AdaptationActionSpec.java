@@ -3,6 +3,7 @@ package io.casehub.ops.api.deployment;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -10,7 +11,8 @@ import java.util.Objects;
 @JsonSubTypes({
     @JsonSubTypes.Type(value = AdaptationActionSpec.ScaleActionSpec.class, name = "scale"),
     @JsonSubTypes.Type(value = AdaptationActionSpec.AddActionSpec.class, name = "add"),
-    @JsonSubTypes.Type(value = AdaptationActionSpec.UpdateActionSpec.class, name = "update")
+    @JsonSubTypes.Type(value = AdaptationActionSpec.UpdateActionSpec.class, name = "update"),
+    @JsonSubTypes.Type(value = AdaptationActionSpec.AddNodeActionSpec.class, name = "add_node")
 })
 public sealed interface AdaptationActionSpec {
 
@@ -57,4 +59,16 @@ public sealed interface AdaptationActionSpec {
             }
         }
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AddNodeActionSpec(
+            NodeTemplate template,
+            List<String> dependsOn
+    ) implements AdaptationActionSpec {
+        public AddNodeActionSpec {
+            Objects.requireNonNull(template, "template");
+            dependsOn = dependsOn != null ? List.copyOf(dependsOn) : List.of();
+        }
+    }
+
 }

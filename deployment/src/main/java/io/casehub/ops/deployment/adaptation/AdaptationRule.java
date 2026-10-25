@@ -65,6 +65,8 @@ public final class AdaptationRule {
                     case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
                     case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
                     case AdaptationActionSpec.AddActionSpec a -> new AddAction(a, compiler, factory);
+                    case AdaptationActionSpec.AddNodeActionSpec ignored ->
+                        throw new UnsupportedOperationException("AddNodeActionSpec not yet implemented");
                 };
                 actions.add(action);
             }
@@ -102,6 +104,8 @@ public final class AdaptationRule {
                     case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
                     case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
                     case AdaptationActionSpec.AddActionSpec a -> new AddAction(a, compiler, factory);
+                    case AdaptationActionSpec.AddNodeActionSpec ignored ->
+                        throw new UnsupportedOperationException("AddNodeActionSpec not yet implemented");
                 };
                 actions.add(action);
             }
@@ -176,6 +180,9 @@ public final class AdaptationRule {
                 case AdaptationActionSpec.AddActionSpec a -> {
                     DesiredStateGraph subGraph = ((CompilationResult.SingleGraph) compiler.compile(a.nodes(), factory)).graph();
                     targets.addAll(subGraph.nodes().keySet());
+                }
+                case AdaptationActionSpec.AddNodeActionSpec ignored -> {
+                    // targetNodeIds for AddNodeActionSpec requires catalog entries — handled by overload in Task 4
                 }
             }
         }
