@@ -31,18 +31,21 @@ public final class AdaptationRule {
     private final GoalCompiler<DeploymentGoals> compiler;
     private final ObjectMapper mapper;
     private final DesiredStateGraphFactory factory;
+    private final Map<String, Class<?>> nodeTypeRegistry;
 
     private AdaptationRule(
             AdaptationRuleSpec spec,
             List<Object> actions,
             GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
-            DesiredStateGraphFactory factory) {
+            DesiredStateGraphFactory factory,
+            Map<String, Class<?>> nodeTypeRegistry) {
         this.spec = Objects.requireNonNull(spec, "spec");
         this.actions = List.copyOf(actions);
         this.compiler = compiler;
         this.mapper = mapper;
         this.factory = factory;
+        this.nodeTypeRegistry = nodeTypeRegistry != null ? Map.copyOf(nodeTypeRegistry) : Map.of();
     }
 
     /**
@@ -53,27 +56,7 @@ public final class AdaptationRule {
             GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
             DesiredStateGraphFactory factory) {
-        Objects.requireNonNull(specs, "specs");
-        Objects.requireNonNull(compiler, "compiler");
-        Objects.requireNonNull(mapper, "mapper");
-        Objects.requireNonNull(factory, "factory");
-
-        List<AdaptationRule> rules = new ArrayList<>();
-        for (var spec : specs) {
-            List<Object> actions = new ArrayList<>();
-            for (var actionSpec : spec.actions()) {
-                Object action = switch (actionSpec) {
-                    case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
-                    case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
-                    case AdaptationActionSpec.AddActionSpec a -> new AddAction(a, compiler, factory);
-                    case AdaptationActionSpec.AddNodeActionSpec ignored ->
-                        throw new UnsupportedOperationException("AddNodeActionSpec not yet implemented");
-                };
-                actions.add(action);
-            }
-            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory));
-        }
-        return rules;
+        return fromSpecs(specs, compiler, mapper, factory, (Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>>) null, null);
     }
 
     /**
@@ -86,11 +69,25 @@ public final class AdaptationRule {
             ObjectMapper mapper,
             DesiredStateGraphFactory factory,
             Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> nodeTypeRegistry) {
+        return fromSpecs(specs, compiler, mapper, factory, nodeTypeRegistry, null);
+    }
+
+    /**
+     * Creates AdaptationRule instances from specs with full cross-domain node type registry.
+     */
+    public static List<AdaptationRule> fromSpecs(
+            List<AdaptationRuleSpec> specs,
+            GoalCompiler<DeploymentGoals> compiler,
+            ObjectMapper mapper,
+            DesiredStateGraphFactory factory,
+            Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> nodeTypeRegistry,
+            Map<String, Class<?>> crossDomainNodeTypeRegistry) {
         Objects.requireNonNull(specs, "specs");
-        Objects.requireNonNull(compiler, "compiler");
         Objects.requireNonNull(mapper, "mapper");
         Objects.requireNonNull(factory, "factory");
-        Objects.requireNonNull(nodeTypeRegistry, "nodeTypeRegistry");
+
+        Map<String, Class<?>> effectiveNodeTypeRegistry = crossDomainNodeTypeRegistry != null
+                ? crossDomainNodeTypeRegistry : Map.of();
 
         List<AdaptationRule> rules = new ArrayList<>();
         for (var spec : specs) {
@@ -98,19 +95,24 @@ public final class AdaptationRule {
             for (var actionSpec : spec.actions()) {
                 if (actionSpec instanceof AdaptationActionSpec.UpdateActionSpec u
                     && u.nodeType() != null
+                    && nodeTypeRegistry != null
                     && nodeTypeRegistry.containsKey(u.nodeType())) {
                     validateUpdateFields(u, nodeTypeRegistry.get(u.nodeType()), mapper);
                 }
                 Object action = switch (actionSpec) {
                     case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
                     case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
-                    case AdaptationActionSpec.AddActionSpec a -> new AddAction(a, compiler, factory);
-                    case AdaptationActionSpec.AddNodeActionSpec ignored ->
-                        throw new UnsupportedOperationException("AddNodeActionSpec not yet implemented");
+                    case AdaptationActionSpec.AddActionSpec a -> {
+                        if (compiler == null) throw new IllegalStateException(
+                                "GoalCompiler required for AddActionSpec but not provided");
+                        yield new AddAction(a, compiler, factory);
+                    }
+                    case AdaptationActionSpec.AddNodeActionSpec a ->
+                        new AddNodeAction(a, effectiveNodeTypeRegistry, mapper);
                 };
                 actions.add(action);
             }
-            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory));
+            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory, effectiveNodeTypeRegistry));
         }
         return rules;
     }
@@ -134,6 +136,14 @@ public final class AdaptationRule {
      * Applies all actions in sequence, returning the mutated graph.
      */
     public DesiredStateGraph apply(DesiredStateGraph graph, ActiveSituation situation) {
+        return apply(graph, situation, null);
+    }
+
+    /**
+     * Applies all actions in sequence with catalog entry for template resolution.
+     */
+    public DesiredStateGraph apply(DesiredStateGraph graph, ActiveSituation situation,
+                                   Map<String, String> catalogEntry) {
         Objects.requireNonNull(graph, "graph");
         Objects.requireNonNull(situation, "situation");
 
@@ -145,6 +155,7 @@ public final class AdaptationRule {
                 case ScaleAction s -> s.apply(result, situation, minConfidence);
                 case UpdateAction u -> u.apply(result, mapper);
                 case AddAction a -> a.apply(result);
+                case AddNodeAction a -> a.apply(result, catalogEntry, situation);
                 default -> throw new IllegalStateException("Unknown action type: " + action.getClass());
             };
         }
@@ -154,12 +165,17 @@ public final class AdaptationRule {
 
     /**
      * Returns the set of node IDs that this rule targets.
-     * <p>
-     * For scale actions: the base target node.
-     * For update actions: the target node.
-     * For add actions: all nodes in the inline goals.
      */
     public Set<NodeId> targetNodeIds(DesiredStateGraph graph) {
+        return targetNodeIds(graph, List.of());
+    }
+
+    /**
+     * Returns the set of node IDs that this rule targets, resolving AddNodeAction
+     * templates against the provided catalog entries.
+     */
+    public Set<NodeId> targetNodeIds(DesiredStateGraph graph,
+                                      List<Map<String, String>> resolvedCatalogEntries) {
         Objects.requireNonNull(graph, "graph");
 
         Set<NodeId> targets = new HashSet<>();
@@ -179,11 +195,19 @@ public final class AdaptationRule {
                     }
                 }
                 case AdaptationActionSpec.AddActionSpec a -> {
-                    DesiredStateGraph subGraph = ((CompilationResult.SingleGraph) compiler.compile(a.nodes(), factory)).graph();
-                    targets.addAll(subGraph.nodes().keySet());
+                    if (compiler != null) {
+                        DesiredStateGraph subGraph = ((CompilationResult.SingleGraph) compiler.compile(a.nodes(), factory)).graph();
+                        targets.addAll(subGraph.nodes().keySet());
+                    }
                 }
-                case AdaptationActionSpec.AddNodeActionSpec ignored -> {
-                    // targetNodeIds for AddNodeActionSpec requires catalog entries — handled by overload in Task 4
+                case AdaptationActionSpec.AddNodeActionSpec a -> {
+                    for (var action : actions) {
+                        if (action instanceof AddNodeAction addNode) {
+                            for (Map<String, String> entry : resolvedCatalogEntries) {
+                                targets.add(NodeId.of(addNode.resolvedNodeId(entry)));
+                            }
+                        }
+                    }
                 }
             }
         }
