@@ -1,4 +1,4 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import io.casehub.ras.api.ActiveSituation;
 import io.casehub.desiredstate.api.DesiredNode;

@@ -1,8 +1,7 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.DesiredNode;
-import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;

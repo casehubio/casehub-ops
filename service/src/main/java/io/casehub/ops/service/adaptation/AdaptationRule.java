@@ -1,4 +1,4 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.CompilationResult;
@@ -7,7 +7,8 @@ import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.desiredstate.api.GoalCompiler;
+import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ras.api.ActiveSituation;
 
 import java.util.ArrayList;
@@ -27,14 +28,14 @@ public final class AdaptationRule {
 
     private final AdaptationRuleSpec spec;
     private final List<Object> actions;
-    private final DeploymentGoalCompiler compiler;
+    private final GoalCompiler<DeploymentGoals> compiler;
     private final ObjectMapper mapper;
     private final DesiredStateGraphFactory factory;
 
     private AdaptationRule(
             AdaptationRuleSpec spec,
             List<Object> actions,
-            DeploymentGoalCompiler compiler,
+            GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
             DesiredStateGraphFactory factory) {
         this.spec = Objects.requireNonNull(spec, "spec");
@@ -49,7 +50,7 @@ public final class AdaptationRule {
      */
     public static List<AdaptationRule> fromSpecs(
             List<AdaptationRuleSpec> specs,
-            DeploymentGoalCompiler compiler,
+            GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
             DesiredStateGraphFactory factory) {
         Objects.requireNonNull(specs, "specs");
@@ -81,7 +82,7 @@ public final class AdaptationRule {
      */
     public static List<AdaptationRule> fromSpecs(
             List<AdaptationRuleSpec> specs,
-            DeploymentGoalCompiler compiler,
+            GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
             DesiredStateGraphFactory factory,
             Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> nodeTypeRegistry) {

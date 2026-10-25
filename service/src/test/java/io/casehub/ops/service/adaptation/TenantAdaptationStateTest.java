@@ -1,4 +1,4 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.ras.api.ActiveSituation;
@@ -10,7 +10,7 @@ import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
-import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.desiredstate.api.GoalCompiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,9 +26,14 @@ class TenantAdaptationStateTest {
 
     private final DesiredStateGraphFactory factory = new DefaultDesiredStateGraphFactory();
     private final ObjectMapper mapper = new ObjectMapper();
-    private final DeploymentGoalCompiler compiler = new DeploymentGoalCompiler();
+    private final GoalCompiler<DeploymentGoals> compiler = (goals, f) -> {
+        var nodes = new java.util.ArrayList<io.casehub.desiredstate.api.DesiredNode>();
+        var deps = new java.util.ArrayList<io.casehub.desiredstate.api.Dependency>();
+        for (var e : goals.agents()) { nodes.add(new io.casehub.desiredstate.api.DesiredNode(io.casehub.desiredstate.api.NodeId.of(e.spec().nodeId()), e.spec(), io.casehub.desiredstate.api.HumanGating.NONE)); }
+        return io.casehub.desiredstate.api.CompilationResult.single(f.of(nodes, deps));
+    };
 
-    private AdaptationRule scaleRule;
+    private AdaptationRule  scaleRule;
     private DeploymentGoals goals;
 
     @BeforeEach
@@ -52,7 +57,7 @@ class TenantAdaptationStateTest {
     @Test
     void updateSituationTracksAndRetrievesBySituationId() {
         var state = new TenantAdaptationState(goals, List.of(scaleRule),
-            Map.of("volatility-spike", Duration.ofMinutes(30)));
+                                              Map.of("volatility-spike", Duration.ofMinutes(30)));
         var situation = new ActiveSituation("volatility-spike", "key1", "t1",
             0.85, Map.of(), Instant.now(), Instant.now(), 1);
 

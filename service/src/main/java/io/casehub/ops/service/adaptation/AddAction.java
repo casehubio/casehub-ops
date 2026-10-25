@@ -1,10 +1,11 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec.AddActionSpec;
-import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.desiredstate.api.GoalCompiler;
+import io.casehub.ops.api.deployment.DeploymentGoals;
 
 import java.util.Objects;
 
@@ -17,10 +18,10 @@ import java.util.Objects;
 final class AddAction {
 
     private final AddActionSpec spec;
-    private final DeploymentGoalCompiler compiler;
+    private final GoalCompiler<DeploymentGoals> compiler;
     private final DesiredStateGraphFactory factory;
 
-    AddAction(AddActionSpec spec, DeploymentGoalCompiler compiler, DesiredStateGraphFactory factory) {
+    AddAction(AddActionSpec spec, GoalCompiler<DeploymentGoals> compiler, DesiredStateGraphFactory factory) {
         this.spec = Objects.requireNonNull(spec, "spec");
         this.compiler = Objects.requireNonNull(compiler, "compiler");
         this.factory = Objects.requireNonNull(factory, "factory");

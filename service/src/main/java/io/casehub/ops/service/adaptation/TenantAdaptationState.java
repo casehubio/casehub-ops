@@ -1,4 +1,4 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ras.api.ActiveSituation;
@@ -11,16 +11,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-final class TenantAdaptationState {
+public final class TenantAdaptationState {
 
-    private final DeploymentGoals goals;
+    private final DeploymentGoals      goals;
     private final List<AdaptationRule> rules;
     private final Map<String, Boolean> activePerRule = new HashMap<>();
     private final Map<String, Instant> lastChangePerRule = new HashMap<>();
     private final Map<String, ActiveSituation> trackedSituations = new HashMap<>();
     private final Map<String, Duration> situationClearanceWindows;
 
-    TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules,
+    public TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules,
                           Map<String, Duration> situationClearanceWindows) {
         this.goals = Objects.requireNonNull(goals, "goals");
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
@@ -28,23 +28,23 @@ final class TenantAdaptationState {
             Objects.requireNonNull(situationClearanceWindows, "situationClearanceWindows"));
     }
 
-    TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules) {
+    public TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules) {
         this(goals, rules, Map.of());
     }
 
-    DeploymentGoals goals() {
+    public DeploymentGoals goals() {
         return goals;
     }
 
-    List<AdaptationRule> rules() {
+    public List<AdaptationRule> rules() {
         return rules;
     }
 
-    void updateSituation(ActiveSituation situation) {
+    public void updateSituation(ActiveSituation situation) {
         trackedSituations.put(situation.situationId(), situation);
     }
 
-    Optional<ActiveSituation> activeSituationFor(AdaptationRule rule) {
+    public Optional<ActiveSituation> activeSituationFor(AdaptationRule rule) {
         if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) {
             return Optional.ofNullable(trackedSituations.get(pt.situation()));
         }
@@ -52,7 +52,7 @@ final class TenantAdaptationState {
                 "Use allQualifyingSituations() for LLM triggers");
     }
 
-    boolean clearSituation(String situationId) {
+    public boolean clearSituation(String situationId) {
         ActiveSituation removed = trackedSituations.remove(situationId);
         if (removed == null) return false;
         for (AdaptationRule rule : rules) {
@@ -64,7 +64,7 @@ final class TenantAdaptationState {
         return true;
     }
 
-    boolean shouldActivate(AdaptationRule rule, ActiveSituation situation) {
+    public boolean shouldActivate(AdaptationRule rule, ActiveSituation situation) {
         boolean currentlyActive = activePerRule.getOrDefault(rule.name(), false);
 
         double threshold;
@@ -102,16 +102,16 @@ final class TenantAdaptationState {
     }
 
 
-    boolean isRuleActive(String ruleName) {
+    public boolean isRuleActive(String ruleName) {
         return activePerRule.getOrDefault(ruleName, false);
     }
 
-    List<ActiveSituation> trackedSituationSnapshot() {
+    public List<ActiveSituation> trackedSituationSnapshot() {
         return List.copyOf(trackedSituations.values());
     }
 
 
-    void clearAbsentSituations() {
+    public void clearAbsentSituations() {
         Instant now = Instant.now();
         var iter = trackedSituations.entrySet().iterator();
         while (iter.hasNext()) {

@@ -1,4 +1,4 @@
-package io.casehub.ops.deployment.adaptation;
+package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.DesiredNode;
@@ -12,7 +12,10 @@ import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
-import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.desiredstate.api.CompilationResult;
+import io.casehub.desiredstate.api.Dependency;
+import io.casehub.desiredstate.api.GoalCompiler;
+import io.casehub.desiredstate.api.HumanGating;
 import io.casehub.ras.api.ActiveSituation;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +33,7 @@ class AdaptationRuleTest {
 
     @Test
     void fromSpecsCreatesRules() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var ruleSpec = new AdaptationRuleSpec("scale-on-load", trigger, List.of(scaleAction));
@@ -43,14 +46,14 @@ class AdaptationRuleTest {
 
     @Test
     void emptySpecsProducesEmptyRules() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var rules = AdaptationRule.fromSpecs(List.of(), compiler, mapper, factory);
         assertThat(rules).isEmpty();
     }
 
     @Test
     void applyDispatchesToScaleAction() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var ruleSpec = new AdaptationRuleSpec("scale-on-load", trigger, List.of(scaleAction));
@@ -75,7 +78,7 @@ class AdaptationRuleTest {
 
     @Test
     void applyDispatchesToUpdateAction() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
             "risk-policy",
@@ -107,7 +110,7 @@ class AdaptationRuleTest {
 
     @Test
     void applyDispatchesToAddAction() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("expand-capacity", 0.75, null, null);
         var newAgent = new AgentNodeSpec(
             "new-agent", "New Agent", "new-slot",
@@ -141,7 +144,7 @@ class AdaptationRuleTest {
 
     @Test
     void targetNodeIdsReturnsAllAffectedNodes() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
@@ -175,7 +178,7 @@ class AdaptationRuleTest {
 
     @Test
     void multipleActionsAppliedInSequence() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger = new PatternTrigger("combined", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 3);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
@@ -219,7 +222,7 @@ class AdaptationRuleTest {
 
     @Test
     void fromSpecs_updateAction_unknownField_throwsAtParseTime() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
@@ -241,7 +244,7 @@ class AdaptationRuleTest {
 
     @Test
     void fromSpecs_updateAction_validFields_passesWithRegistry() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
@@ -260,7 +263,7 @@ class AdaptationRuleTest {
 
     @Test
     void fromSpecs_updateAction_nullNodeType_skipsValidation() {
-        var compiler = new DeploymentGoalCompiler();
+        GoalCompiler<DeploymentGoals> compiler = createTestCompiler();
         var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
@@ -277,6 +280,18 @@ class AdaptationRuleTest {
         assertThat(rules).hasSize(1);
     }
 
+
+    private GoalCompiler<DeploymentGoals> createTestCompiler() {
+        return (goals, f) -> {
+            var nodes = new java.util.ArrayList<DesiredNode>();
+            var deps = new java.util.ArrayList<Dependency>();
+            for (var e : goals.agents()) { nodes.add(new DesiredNode(NodeId.of(e.spec().nodeId()), e.spec(), HumanGating.NONE)); for (String d : e.dependsOn()) { deps.add(new Dependency(NodeId.of(e.spec().nodeId()), NodeId.of(d))); } }
+            for (var e : goals.trust()) { nodes.add(new DesiredNode(NodeId.of(e.spec().nodeId()), e.spec(), HumanGating.NONE)); }
+            for (var e : goals.endpoints()) { nodes.add(new DesiredNode(NodeId.of(e.spec().nodeId()), e.spec(), HumanGating.NONE)); }
+            for (var e : goals.detections()) { nodes.add(new DesiredNode(NodeId.of(e.spec().nodeId()), e.spec(), HumanGating.NONE)); }
+            return CompilationResult.single(f.of(nodes, deps));
+        };
+    }
 
     private DesiredNode createAgentNode(String agentId) {
         var spec = new AgentNodeSpec(

@@ -10,6 +10,8 @@ import io.casehub.desiredstate.api.SituationRecompiler;
 import io.casehub.ops.api.deployment.AdaptationSnapshotProvider;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
+import io.casehub.ops.service.adaptation.AdaptationRule;
+import io.casehub.ops.service.adaptation.TenantAdaptationState;
 import io.casehub.ras.api.ActiveSituation;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;

@@ -691,13 +691,13 @@ git commit -m "feat(#25): AdaptationRuleSpec types, DeploymentGoals.adaptations,
 
 **Repo:** casehub-ops
 **Files:**
-- Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/AdaptationRule.java`
-- Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/ScaleAction.java`
-- Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/AddAction.java`
-- Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/UpdateAction.java`
-- Test: `deployment/src/test/java/io/casehub/ops/deployment/adaptation/AdaptationRuleTest.java`
-- Test: `deployment/src/test/java/io/casehub/ops/deployment/adaptation/ScaleActionTest.java`
-- Test: `deployment/src/test/java/io/casehub/ops/deployment/adaptation/UpdateActionTest.java`
+- Create: `../../service/src/main/java/io/casehub/ops/service/adaptation/AdaptationRule.java`
+- Create: `../../service/src/main/java/io/casehub/ops/service/adaptation/ScaleAction.java`
+- Create: `../../service/src/main/java/io/casehub/ops/service/adaptation/AddAction.java`
+- Create: `../../service/src/main/java/io/casehub/ops/service/adaptation/UpdateAction.java`
+- Test: `../../service/src/test/java/io/casehub/ops/service/adaptation/AdaptationRuleTest.java`
+- Test: `../../service/src/test/java/io/casehub/ops/service/adaptation/ScaleActionTest.java`
+- Test: `../../service/src/test/java/io/casehub/ops/service/adaptation/UpdateActionTest.java`
 
 **Interfaces:**
 - Consumes: `AdaptationRuleSpec`, `AdaptationActionSpec.*`, `ActiveSituation`, `DesiredStateGraph`, `DesiredNode`, `NodeId`, `AgentNodeSpec.withAgentId()`
@@ -822,7 +822,7 @@ git commit -m "feat(#25): AdaptationRule domain logic — scale, add, update act
 **Repo:** casehub-ops
 **Files:**
 - Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/AdaptiveTopologyManager.java`
-- Create: `deployment/src/main/java/io/casehub/ops/deployment/adaptation/TenantAdaptationState.java`
+- Create: `../../service/src/main/java/io/casehub/ops/service/adaptation/TenantAdaptationState.java`
 - Test: `deployment/src/test/java/io/casehub/ops/deployment/adaptation/AdaptiveTopologyManagerTest.java`
 
 **Interfaces:**
