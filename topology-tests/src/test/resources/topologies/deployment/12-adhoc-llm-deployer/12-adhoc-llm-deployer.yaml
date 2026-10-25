@@ -1,0 +1,61 @@
+# Level 12: Ad-hoc LLM Deployer
+# Methodology step: OPERATE — Autonomous Deployment
+# Prerequisites: Level 08 (fleet observability), Level 10 (pool deployment)
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: adhoc-llm-deployer
+
+data:
+  specialist-catalog:
+    inline: |
+      name:STRING,role:STRING,domain:STRING,archetype:STRING,knowledge-base:STRING
+      product-x-specialist,specialist,product-x,expert,kb-product-x
+      product-y-specialist,specialist,product-y,expert,kb-product-y
+      escalation-specialist,escalation,incident-response,coordinator,kb-escalation
+
+nodes:
+  manifest:
+    type: claudony_app
+    spec:
+      name: manifest
+      displayName: Manifest
+      description: Manifest service
+      image: casehubio/manifest:latest
+
+  eidos:
+    type: claudony_app
+    dependsOn: [manifest]
+    spec:
+      name: eidos
+      displayName: Eidos
+      description: Identity service
+      image: casehubio/eidos:latest
+
+  engine:
+    type: claudony_app
+    dependsOn: [eidos]
+    spec:
+      name: engine
+      displayName: Engine
+      description: Engine service
+      image: casehubio/engine:latest
+
+  deployer:
+    type: claudony_app
+    dependsOn: [engine]
+    spec:
+      name: deployer
+      displayName: Deployer LLM
+      description: Autonomous deployer — monitors RAS situations, deploys specialist instances
+      image: casehubio/my-llm-app:latest
+      config:
+        llm.agent-id: deployer
+        llm.name: Deployer
+        llm.role: deployer
+        llm.capability: deployment-decision
+        llm.archetype: orchestrator
+        llm.domain: fleet-management
+        llm.identity-source: eidos
+        deployer.specialist-catalog: specialist-catalog
