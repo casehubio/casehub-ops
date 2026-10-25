@@ -292,12 +292,7 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
         }
     }
 
-    private static ActiveSituation findTrackedSituation(TenantAdaptationState state, String situationId) {
-        return state.trackedSituationSnapshot().stream()
-                    .filter(s -> s.situationId().equals(situationId))
-                    .findFirst()
-                    .orElse(null);
-    }
+    private static ActiveSituation findTrackedSituation(TenantAdaptationState state, String situationId) {return state.getTrackedSituation(situationId).orElse(null);}
 
 
 }

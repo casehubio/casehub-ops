@@ -175,6 +175,11 @@ public final class TenantAdaptationState {
         return activePerRule.getOrDefault(ruleName, false);
     }
 
+
+    public Optional<ActiveSituation> getTrackedSituation(String situationId) {
+        return Optional.ofNullable(trackedSituations.get(situationId));
+    }
+
     public List<ActiveSituation> trackedSituationSnapshot() {
         return List.copyOf(trackedSituations.values());
     }
