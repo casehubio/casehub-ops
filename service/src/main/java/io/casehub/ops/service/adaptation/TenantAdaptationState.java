@@ -1,6 +1,9 @@
 package io.casehub.ops.service.adaptation;
 
+import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.ops.api.deployment.DeploymentGoals;
+import io.casehub.ops.api.deployment.LlmDecision;
+import io.casehub.ops.api.deployment.LlmEvaluatedTrigger;
 import io.casehub.ras.api.ActiveSituation;
 
 import java.time.Duration;
@@ -14,15 +17,18 @@ import java.util.Optional;
 public final class TenantAdaptationState {
 
     private final DeploymentGoals      goals;
+    private final DesiredStateGraph    baseGraph;
     private final List<AdaptationRule> rules;
     private final Map<String, Boolean> activePerRule = new HashMap<>();
     private final Map<String, Instant> lastChangePerRule = new HashMap<>();
     private final Map<String, ActiveSituation> trackedSituations = new HashMap<>();
     private final Map<String, Duration> situationClearanceWindows;
+    private final Map<String, Map<String, LlmDecision>> llmDecisionCache = new HashMap<>();
 
     public TenantAdaptationState(DeploymentGoals goals, List<AdaptationRule> rules,
                           Map<String, Duration> situationClearanceWindows) {
         this.goals = Objects.requireNonNull(goals, "goals");
+        this.baseGraph = null;
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
         this.situationClearanceWindows = Map.copyOf(
             Objects.requireNonNull(situationClearanceWindows, "situationClearanceWindows"));
@@ -32,8 +38,21 @@ public final class TenantAdaptationState {
         this(goals, rules, Map.of());
     }
 
+    public TenantAdaptationState(DesiredStateGraph baseGraph, List<AdaptationRule> rules,
+                          Map<String, Duration> situationClearanceWindows) {
+        this.goals = null;
+        this.baseGraph = Objects.requireNonNull(baseGraph, "baseGraph");
+        this.rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
+        this.situationClearanceWindows = Map.copyOf(
+            Objects.requireNonNull(situationClearanceWindows, "situationClearanceWindows"));
+    }
+
     public DeploymentGoals goals() {
         return goals;
+    }
+
+    public DesiredStateGraph baseGraph() {
+        return baseGraph;
     }
 
     public List<AdaptationRule> rules() {
@@ -41,7 +60,16 @@ public final class TenantAdaptationState {
     }
 
     public void updateSituation(ActiveSituation situation) {
+        ActiveSituation previous = trackedSituations.get(situation.situationId());
         trackedSituations.put(situation.situationId(), situation);
+        if (previous != null && previous.confidence() != situation.confidence()) {
+            for (var ruleCache : llmDecisionCache.values()) {
+                LlmDecision cached = ruleCache.get(situation.situationId());
+                if (cached != null && cached.isReject()) {
+                    ruleCache.remove(situation.situationId());
+                }
+            }
+        }
     }
 
     public Optional<ActiveSituation> activeSituationFor(AdaptationRule rule) {
@@ -50,6 +78,32 @@ public final class TenantAdaptationState {
         }
         throw new UnsupportedOperationException(
                 "Use allQualifyingSituations() for LLM triggers");
+    }
+
+    public List<ActiveSituation> allQualifyingSituations(AdaptationRule rule) {
+        if (!(rule.trigger() instanceof LlmEvaluatedTrigger lt)) {
+            throw new UnsupportedOperationException(
+                    "allQualifyingSituations() is only for LLM triggers");
+        }
+        return trackedSituations.values().stream()
+                .filter(s -> s.confidence() >= lt.minConfidence())
+                .toList();
+    }
+
+    public void cacheLlmDecision(String ruleName, String situationId, LlmDecision decision) {
+        llmDecisionCache.computeIfAbsent(ruleName, k -> new HashMap<>())
+                .put(situationId, decision);
+    }
+
+    public Optional<LlmDecision> getCachedDecision(String ruleName, String situationId) {
+        Map<String, LlmDecision> ruleCache = llmDecisionCache.get(ruleName);
+        if (ruleCache == null) return Optional.empty();
+        return Optional.ofNullable(ruleCache.get(situationId));
+    }
+
+    public Map<String, LlmDecision> getCachedDecisions(String ruleName) {
+        Map<String, LlmDecision> ruleCache = llmDecisionCache.get(ruleName);
+        return ruleCache != null ? Map.copyOf(ruleCache) : Map.of();
     }
 
     public boolean clearSituation(String situationId) {
@@ -61,44 +115,59 @@ public final class TenantAdaptationState {
                 lastChangePerRule.put(rule.name(), Instant.now());
             }
         }
+        for (var ruleCache : llmDecisionCache.values()) {
+            ruleCache.remove(situationId);
+        }
         return true;
     }
 
     public boolean shouldActivate(AdaptationRule rule, ActiveSituation situation) {
-        boolean currentlyActive = activePerRule.getOrDefault(rule.name(), false);
+        if (rule.trigger() instanceof io.casehub.ops.api.deployment.LlmEvaluatedTrigger lt) {
+            String compositeKey = rule.name() + ":" + situation.situationId();
+            boolean currentlyActive = activePerRule.getOrDefault(compositeKey, false);
+            boolean shouldBeActive = situation.confidence() >= lt.minConfidence();
 
-        double threshold;
-        Duration cooldownDuration;
-        if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) {
-            threshold = currentlyActive ? pt.effectiveDeactivateBelow() : pt.minConfidence();
-            cooldownDuration = pt.effectiveCooldown();
-        } else if (rule.trigger() instanceof io.casehub.ops.api.deployment.LlmEvaluatedTrigger lt) {
-            threshold = lt.minConfidence();
-            cooldownDuration = lt.effectiveCooldown();
-        } else {
-            return false;
-        }
-
-        boolean shouldBeActive = situation.confidence() >= threshold;
-
-        if (shouldBeActive != currentlyActive) {
-            if (!cooldownDuration.isZero()) {
-                Instant lastChange = lastChangePerRule.get(rule.name());
-                if (lastChange != null) {
-                    Duration elapsed = Duration.between(lastChange, Instant.now());
-                    if (elapsed.compareTo(cooldownDuration) < 0) {
-                        return currentlyActive;
+            if (shouldBeActive != currentlyActive) {
+                Duration cooldownDuration = lt.effectiveCooldown();
+                if (!cooldownDuration.isZero()) {
+                    Instant lastChange = lastChangePerRule.get(compositeKey);
+                    if (lastChange != null) {
+                        Duration elapsed = Duration.between(lastChange, Instant.now());
+                        if (elapsed.compareTo(cooldownDuration) < 0) {
+                            return currentlyActive;
+                        }
                     }
                 }
+                lastChangePerRule.put(compositeKey, Instant.now());
+                activePerRule.put(compositeKey, shouldBeActive);
             }
+            return shouldBeActive;
         }
 
-        if (shouldBeActive != currentlyActive) {
-            lastChangePerRule.put(rule.name(), Instant.now());
-            activePerRule.put(rule.name(), shouldBeActive);
+        if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) {
+            boolean currentlyActive = activePerRule.getOrDefault(rule.name(), false);
+            double threshold = currentlyActive ? pt.effectiveDeactivateBelow() : pt.minConfidence();
+            Duration cooldownDuration = pt.effectiveCooldown();
+
+            boolean shouldBeActive = situation.confidence() >= threshold;
+
+            if (shouldBeActive != currentlyActive) {
+                if (!cooldownDuration.isZero()) {
+                    Instant lastChange = lastChangePerRule.get(rule.name());
+                    if (lastChange != null) {
+                        Duration elapsed = Duration.between(lastChange, Instant.now());
+                        if (elapsed.compareTo(cooldownDuration) < 0) {
+                            return currentlyActive;
+                        }
+                    }
+                }
+                lastChangePerRule.put(rule.name(), Instant.now());
+                activePerRule.put(rule.name(), shouldBeActive);
+            }
+            return shouldBeActive;
         }
 
-        return shouldBeActive;
+        return false;
     }
 
 
@@ -122,10 +191,7 @@ public final class TenantAdaptationState {
                 sitId, Duration.ofMinutes(5));
             if (Duration.between(sit.lastSignal(), now).compareTo(clearanceWindow) > 0) {
                 for (AdaptationRule rule : rules) {
-                    if (!(rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) || !pt.situation().equals(sitId)) {
-                        continue;
-                    }
-                    {
+                    if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt && pt.situation().equals(sitId)) {
                         Boolean wasActive = activePerRule.get(rule.name());
                         if (wasActive != null && wasActive) {
                             Duration cd = pt.effectiveCooldown();
@@ -140,6 +206,9 @@ public final class TenantAdaptationState {
                             lastChangePerRule.put(rule.name(), now);
                         }
                     }
+                }
+                for (var ruleCache : llmDecisionCache.values()) {
+                    ruleCache.remove(sitId);
                 }
                 iter.remove();
             }

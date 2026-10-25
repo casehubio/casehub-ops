@@ -2,10 +2,13 @@ package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.ras.api.ActiveSituation;
+import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
+import io.casehub.ops.api.deployment.LlmDecision;
+import io.casehub.ops.api.deployment.LlmEvaluatedTrigger;
 import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
@@ -151,5 +154,134 @@ class TenantAdaptationStateTest {
 
         state.clearAbsentSituations();
         assertThat(state.activeSituationFor(scaleRule)).isEmpty();
+    }
+
+    // --- LLM trigger tests ---
+
+    private AdaptationRule createLlmRule(String name) {
+        var trigger = new LlmEvaluatedTrigger(
+                "deployer", "catalog", 0.5, Duration.ofMinutes(1), Duration.ofSeconds(30));
+        var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
+        var ruleSpec = new AdaptationRuleSpec(name, trigger, List.of(scaleAction));
+        return AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory).get(0);
+    }
+
+    @Test
+    void allQualifyingSituationsReturnsMatchingSituations() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var high = new ActiveSituation("surge-1", "k1", "t1", 0.8, Map.of(), Instant.now(), Instant.now(), 0);
+        var medium = new ActiveSituation("surge-2", "k2", "t1", 0.6, Map.of(), Instant.now(), Instant.now(), 0);
+        var low = new ActiveSituation("minor", "k3", "t1", 0.3, Map.of(), Instant.now(), Instant.now(), 0);
+
+        state.updateSituation(high);
+        state.updateSituation(medium);
+        state.updateSituation(low);
+
+        List<ActiveSituation> qualifying = state.allQualifyingSituations(llmRule);
+        assertThat(qualifying).hasSize(2);
+        assertThat(qualifying).extracting(ActiveSituation::situationId)
+                .containsExactlyInAnyOrder("surge-1", "surge-2");
+    }
+
+    @Test
+    void cacheLlmDecisionAndRetrieve() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var decision = new LlmDecision("deploy", Map.of("name", "specialist-x"));
+        state.cacheLlmDecision("llm-rule", "surge-1", decision);
+
+        Optional<LlmDecision> cached = state.getCachedDecision("llm-rule", "surge-1");
+        assertThat(cached).isPresent();
+        assertThat(cached.get().isDeploy()).isTrue();
+        assertThat(cached.get().selectedCatalogEntry().get("name")).isEqualTo("specialist-x");
+    }
+
+    @Test
+    void getCachedDecisionsReturnsAllForRule() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        state.cacheLlmDecision("llm-rule", "surge-1", new LlmDecision("deploy", Map.of("name", "a")));
+        state.cacheLlmDecision("llm-rule", "surge-2", new LlmDecision("deploy", Map.of("name", "b")));
+
+        Map<String, LlmDecision> all = state.getCachedDecisions("llm-rule");
+        assertThat(all).hasSize(2);
+        assertThat(all).containsKeys("surge-1", "surge-2");
+    }
+
+    @Test
+    void rejectDecisionInvalidatedOnConfidenceChange() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var sit = new ActiveSituation("surge-1", "k1", "t1", 0.6, Map.of(), Instant.now(), Instant.now(), 0);
+        state.updateSituation(sit);
+        state.cacheLlmDecision("llm-rule", "surge-1", new LlmDecision("reject", null));
+
+        var updated = new ActiveSituation("surge-1", "k1", "t1", 0.95, Map.of(), Instant.now(), Instant.now(), 1);
+        state.updateSituation(updated);
+
+        assertThat(state.getCachedDecision("llm-rule", "surge-1")).isEmpty();
+    }
+
+    @Test
+    void deployDecisionRetainedOnConfidenceChange() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var sit = new ActiveSituation("surge-1", "k1", "t1", 0.6, Map.of(), Instant.now(), Instant.now(), 0);
+        state.updateSituation(sit);
+        state.cacheLlmDecision("llm-rule", "surge-1", new LlmDecision("deploy", Map.of("name", "x")));
+
+        var updated = new ActiveSituation("surge-1", "k1", "t1", 0.95, Map.of(), Instant.now(), Instant.now(), 1);
+        state.updateSituation(updated);
+
+        assertThat(state.getCachedDecision("llm-rule", "surge-1")).isPresent();
+        assertThat(state.getCachedDecision("llm-rule", "surge-1").get().isDeploy()).isTrue();
+    }
+
+    @Test
+    void clearSituationRemovesCachedDecision() {
+        var llmRule = createLlmRule("llm-rule");
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var sit = new ActiveSituation("surge-1", "k1", "t1", 0.8, Map.of(), Instant.now(), Instant.now(), 0);
+        state.updateSituation(sit);
+        state.cacheLlmDecision("llm-rule", "surge-1", new LlmDecision("deploy", Map.of("name", "x")));
+
+        state.clearSituation("surge-1");
+
+        assertThat(state.getCachedDecision("llm-rule", "surge-1")).isEmpty();
+    }
+
+    @Test
+    void shouldActivateUsesCompositeKeyForLlmTrigger() {
+        var trigger = new LlmEvaluatedTrigger(
+                "deployer", "catalog", 0.5, Duration.ofHours(1), Duration.ofSeconds(30));
+        var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
+        var ruleSpec = new AdaptationRuleSpec("llm-cooldown", trigger, List.of(scaleAction));
+        var llmRule = AdaptationRule.fromSpecs(List.of(ruleSpec), compiler, mapper, factory).get(0);
+        var state = new TenantAdaptationState(goals, List.of(llmRule));
+
+        var sit1 = new ActiveSituation("surge-1", "k1", "t1", 0.8, Map.of(), Instant.now(), Instant.now(), 0);
+        var sit2 = new ActiveSituation("surge-2", "k2", "t1", 0.9, Map.of(), Instant.now(), Instant.now(), 0);
+
+        state.updateSituation(sit1);
+        state.updateSituation(sit2);
+
+        assertThat(state.shouldActivate(llmRule, sit1)).isTrue();
+        assertThat(state.shouldActivate(llmRule, sit2)).isTrue();
+    }
+
+    @Test
+    void baseGraphStoredAndRetrieved() {
+        var llmRule = createLlmRule("llm-rule");
+        DesiredStateGraph graph = factory.of(List.of(), List.of());
+        var state = new TenantAdaptationState(graph, List.of(llmRule), Map.of());
+
+        assertThat(state.baseGraph()).isSameAs(graph);
     }
 }
