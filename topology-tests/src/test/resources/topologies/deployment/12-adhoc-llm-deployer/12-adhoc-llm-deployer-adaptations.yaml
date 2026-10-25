@@ -1,0 +1,33 @@
+# Level 12: Ad-hoc LLM Deployer — Adaptation Rules
+# Parsed separately from the topology YAML (YamlGraph doesn't support adaptations: yet)
+# See AdaptationRuleCompiler for the post-processing path
+
+adaptations:
+  - name: deploy-specialist-on-surge
+    trigger:
+      type: llm-evaluated
+      agent: deployer
+      catalog: specialist-catalog
+      minConfidence: 0.5
+      timeout: PT30S
+    actions:
+      - type: add_node
+        template:
+          nodeId: specialist-${catalog.name}
+          nodeType: claudony_app
+          spec:
+            name: specialist-${catalog.name}
+            displayName: ${catalog.name}
+            description: Ad-hoc specialist for ${catalog.domain}
+            image: casehubio/my-llm-app:latest
+            config:
+              llm.agent-id: specialist-${catalog.name}
+              llm.name: ${catalog.name}
+              llm.role: ${catalog.role}
+              llm.domain: ${catalog.domain}
+              llm.archetype: ${catalog.archetype}
+              llm.knowledge-base: ${catalog.knowledge-base}
+              llm.identity-source: eidos
+              llm.deployed-by: deployer
+              llm.source-situation: ${situation.id}
+        dependsOn: [engine]
