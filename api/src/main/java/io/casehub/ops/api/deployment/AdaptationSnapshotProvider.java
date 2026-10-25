@@ -17,7 +17,12 @@ public interface AdaptationSnapshotProvider {
         }
     }
 
-    record ActiveRuleInfo(String ruleName, String situationId, boolean active) {}
+    record ActiveRuleInfo(String ruleName, String triggerType,
+                          List<String> situationIds, boolean active) {
+        public ActiveRuleInfo {
+            situationIds = situationIds != null ? List.copyOf(situationIds) : List.of();
+        }
+    }
 
     record TrackedSituationInfo(
             String situationId, double confidence,

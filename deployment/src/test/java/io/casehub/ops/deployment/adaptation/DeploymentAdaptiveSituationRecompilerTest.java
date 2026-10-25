@@ -9,10 +9,10 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
+import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.TrustPolicyNodeSpec;
 import io.casehub.ops.deployment.DeploymentGoalCompiler;
 import io.casehub.ras.api.ActiveSituation;
@@ -251,4 +251,188 @@ class DeploymentAdaptiveSituationRecompilerTest {
         }
         throw new AssertionError("Expected CompilationResult.Single, got: " + result.getClass());
     }
+
+    @Test
+    void recompileWithLlmTriggerCallsEvaluatorAndAddsNode() {
+        var trigger = new io.casehub.ops.api.deployment.LlmEvaluatedTrigger(
+                "deployer", "specialist-catalog", 0.5,
+                null, java.time.Duration.ofSeconds(30));
+        var template = new io.casehub.ops.api.deployment.NodeTemplate(
+                "specialist-${catalog.name}", "claudony_app",
+                Map.of("name", "specialist-${catalog.name}",
+                       "displayName", "${catalog.name}",
+                       "description", "test specialist",
+                       "image", "casehubio/my-llm-app:latest"));
+        var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
+                template, List.of("engine"));
+        var ruleSpec = new AdaptationRuleSpec("deploy-specialist", trigger, List.of(addNodeAction));
+
+        var crossDomainRegistry = Map.<String, Class<?>>of(
+                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+
+        var engineSpec = new io.casehub.ops.api.claudony.ClaudonyAppNodeSpec(
+                "engine", "Engine", "Engine service", "casehubio/engine:latest", Map.of());
+        var engineNode = new io.casehub.desiredstate.api.DesiredNode(
+                NodeId.of("engine"), engineSpec, io.casehub.desiredstate.api.HumanGating.NONE);
+        var llmBaseGraph = graphFactory.of(List.of(engineNode), List.of());
+
+        var catalogEntries = List.of(
+                Map.of("name", "product-x-specialist", "role", "specialist", "domain", "product-x"),
+                Map.of("name", "product-y-specialist", "role", "specialist", "domain", "product-y"));
+        var rules = io.casehub.ops.service.adaptation.AdaptationRule.fromSpecs(
+                List.of(ruleSpec), null, mapper, graphFactory, null, crossDomainRegistry)
+                .stream().map(r -> r.withCatalogEntries(catalogEntries)).toList();
+
+        var evaluator = new io.casehub.ops.service.adaptation.LlmTriggerEvaluator(
+                (agentName, prompt, timeout) -> java.util.Optional.of(
+                        "{\"action\": \"deploy\", \"entry\": \"product-x-specialist\"}"));
+        recompiler.setLlmEvaluator(evaluator);
+        recompiler.register("t-llm", llmBaseGraph, rules, Map.of());
+
+        var situation = new ActiveSituation("surge-alert", "k1", "t-llm",
+                                            0.8, Map.of(), Instant.now(), Instant.now(), 1);
+
+        var result = recompiler.recompile("t-llm", llmBaseGraph, emptyActual,
+                                          situation, graphFactory);
+
+        assertThat(result).isPresent();
+        var adapted = extractGraph(result.get());
+        assertThat(adapted.nodes()).containsKey(NodeId.of("specialist-product-x-specialist"));
+    }
+
+    @Test
+    void recompileWithLlmTriggerCachesDecision() {
+        var trigger = new io.casehub.ops.api.deployment.LlmEvaluatedTrigger(
+                "deployer", "catalog", 0.5,
+                null, java.time.Duration.ofSeconds(30));
+        var template = new io.casehub.ops.api.deployment.NodeTemplate(
+                "specialist-${catalog.name}", "claudony_app",
+                Map.of("name", "specialist-${catalog.name}",
+                       "displayName", "${catalog.name}",
+                       "description", "test", "image", "img:latest"));
+        var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
+                template, List.of());
+        var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
+
+        var crossDomainRegistry = Map.<String, Class<?>>of(
+                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+        var llmBaseGraph = graphFactory.of(List.of(), List.of());
+
+        var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));
+        var rules = io.casehub.ops.service.adaptation.AdaptationRule.fromSpecs(
+                List.of(ruleSpec), null, mapper, graphFactory, null, crossDomainRegistry)
+                .stream().map(r -> r.withCatalogEntries(catalogEntries)).toList();
+
+        java.util.concurrent.atomic.AtomicInteger invokeCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        var evaluator = new io.casehub.ops.service.adaptation.LlmTriggerEvaluator(
+                (agentName, prompt, timeout) -> {
+                    invokeCount.incrementAndGet();
+                    return java.util.Optional.of(
+                            "{\"action\": \"deploy\", \"entry\": \"spec-a\"}");
+                });
+        recompiler.setLlmEvaluator(evaluator);
+        recompiler.register("t-cache", llmBaseGraph, rules, Map.of());
+
+        var situation = new ActiveSituation("alert", "k1", "t-cache",
+                                            0.8, Map.of(), Instant.now(), Instant.now(), 1);
+
+        recompiler.recompile("t-cache", llmBaseGraph, emptyActual, situation, graphFactory);
+        recompiler.recompile("t-cache", llmBaseGraph, emptyActual, situation, graphFactory);
+
+        assertThat(invokeCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    void situationResolvedRemovesLlmDeployedNode() {
+        var trigger = new io.casehub.ops.api.deployment.LlmEvaluatedTrigger(
+                "deployer", "catalog", 0.5,
+                null, java.time.Duration.ofSeconds(30));
+        var template = new io.casehub.ops.api.deployment.NodeTemplate(
+                "specialist-${catalog.name}", "claudony_app",
+                Map.of("name", "specialist-${catalog.name}",
+                       "displayName", "${catalog.name}",
+                       "description", "test", "image", "img:latest"));
+        var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
+                template, List.of());
+        var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
+
+        var crossDomainRegistry = Map.<String, Class<?>>of(
+                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+        var llmBaseGraph = graphFactory.of(List.of(), List.of());
+
+        var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));
+        var rules = io.casehub.ops.service.adaptation.AdaptationRule.fromSpecs(
+                List.of(ruleSpec), null, mapper, graphFactory, null, crossDomainRegistry)
+                .stream().map(r -> r.withCatalogEntries(catalogEntries)).toList();
+
+        var evaluator = new io.casehub.ops.service.adaptation.LlmTriggerEvaluator(
+                (agentName, prompt, timeout) -> java.util.Optional.of(
+                        "{\"action\": \"deploy\", \"entry\": \"spec-a\"}"));
+        recompiler.setLlmEvaluator(evaluator);
+        recompiler.register("t-resolve", llmBaseGraph, rules, Map.of());
+
+        var situation = new ActiveSituation("alert", "k1", "t-resolve",
+                                            0.8, Map.of(), Instant.now(), Instant.now(), 1);
+
+        var adapted = extractGraph(recompiler.recompile("t-resolve", llmBaseGraph,
+                                                        emptyActual, situation, graphFactory).orElseThrow());
+        assertThat(adapted.nodes()).containsKey(NodeId.of("specialist-spec-a"));
+
+        var afterResolve = recompiler.situationResolved("t-resolve", "alert",
+                                                        adapted, emptyActual, graphFactory);
+
+        assertThat(afterResolve).isPresent();
+        var resolved = extractGraph(afterResolve.get());
+        assertThat(resolved.nodes()).doesNotContainKey(NodeId.of("specialist-spec-a"));
+    }
+
+    @Test
+    void concurrentSituationsDeployMultipleSpecialists() {
+        var trigger = new io.casehub.ops.api.deployment.LlmEvaluatedTrigger(
+                "deployer", "catalog", 0.5,
+                null, java.time.Duration.ofSeconds(30));
+        var template = new io.casehub.ops.api.deployment.NodeTemplate(
+                "specialist-${catalog.name}", "claudony_app",
+                Map.of("name", "specialist-${catalog.name}",
+                       "displayName", "${catalog.name}",
+                       "description", "test", "image", "img:latest"));
+        var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
+                template, List.of());
+        var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
+
+        var crossDomainRegistry = Map.<String, Class<?>>of(
+                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+        var llmBaseGraph = graphFactory.of(List.of(), List.of());
+
+        var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));
+        var rules = io.casehub.ops.service.adaptation.AdaptationRule.fromSpecs(
+                List.of(ruleSpec), null, mapper, graphFactory, null, crossDomainRegistry)
+                .stream().map(r -> r.withCatalogEntries(catalogEntries)).toList();
+
+        java.util.concurrent.atomic.AtomicInteger callNum = new java.util.concurrent.atomic.AtomicInteger(0);
+        var evaluator = new io.casehub.ops.service.adaptation.LlmTriggerEvaluator(
+                (agentName, prompt, timeout) -> {
+                    int    n     = callNum.incrementAndGet();
+                    String entry = n == 1 ? "spec-a" : "spec-b";
+                    return java.util.Optional.of(
+                            "{\"action\": \"deploy\", \"entry\": \"" + entry + "\"}");
+                });
+        recompiler.setLlmEvaluator(evaluator);
+        recompiler.register("t-concurrent", llmBaseGraph, rules, Map.of());
+
+        var sit1 = new ActiveSituation("alert-1", "k1", "t-concurrent",
+                                       0.8, Map.of(), Instant.now(), Instant.now(), 1);
+        recompiler.recompile("t-concurrent", llmBaseGraph, emptyActual, sit1, graphFactory);
+
+        var sit2 = new ActiveSituation("alert-2", "k2", "t-concurrent",
+                                       0.9, Map.of(), Instant.now(), Instant.now(), 1);
+        var result = recompiler.recompile("t-concurrent", llmBaseGraph, emptyActual,
+                                          sit2, graphFactory);
+
+        assertThat(result).isPresent();
+        var adapted = extractGraph(result.get());
+        assertThat(adapted.nodes()).containsKey(NodeId.of("specialist-spec-a"));
+        assertThat(adapted.nodes()).containsKey(NodeId.of("specialist-spec-b"));
+    }
+
 }

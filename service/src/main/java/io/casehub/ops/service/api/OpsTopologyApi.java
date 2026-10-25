@@ -73,7 +73,7 @@ public class OpsTopologyApi {
             AdaptationSnapshot adaptation = adaptationProvider.get().getAdaptationSnapshot(tenancyId);
             topologyAdaptation = new TopologyAdaptation(
                     adaptation.activeRules().stream()
-                            .map(r -> new AdaptationRuleStatus(r.ruleName(), r.situationId(), r.active()))
+                            .map(r -> new AdaptationRuleStatus(r.ruleName(), r.triggerType(), r.situationIds(), r.active()))
                             .toList(),
                     adaptation.trackedSituations().stream()
                             .map(s -> new SituationStatus(s.situationId(), s.confidence(), s.since(), s.lastSignal()))
@@ -97,7 +97,8 @@ public class OpsTopologyApi {
     public record TopologyAdaptation(List<AdaptationRuleStatus> activeRules,
                                      List<SituationStatus> trackedSituations) {}
 
-    public record AdaptationRuleStatus(String ruleName, String situationId, boolean active) {}
+    public record AdaptationRuleStatus(String ruleName, String triggerType,
+                                       List<String> situationIds, boolean active) {}
 
     public record SituationStatus(String situationId, double confidence,
                                   Instant since, Instant lastSignal) {}

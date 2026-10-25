@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.DesiredStateGraphFactory;
+import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.desiredstate.api.GoalCompiler;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ras.api.ActiveSituation;
 
@@ -32,6 +32,8 @@ public final class AdaptationRule {
     private final ObjectMapper mapper;
     private final DesiredStateGraphFactory factory;
     private final Map<String, Class<?>> nodeTypeRegistry;
+    private final List<Map<String, String>> catalogEntries;
+
 
     private AdaptationRule(
             AdaptationRuleSpec spec,
@@ -39,13 +41,15 @@ public final class AdaptationRule {
             GoalCompiler<DeploymentGoals> compiler,
             ObjectMapper mapper,
             DesiredStateGraphFactory factory,
-            Map<String, Class<?>> nodeTypeRegistry) {
-        this.spec = Objects.requireNonNull(spec, "spec");
-        this.actions = List.copyOf(actions);
-        this.compiler = compiler;
-        this.mapper = mapper;
-        this.factory = factory;
+            Map<String, Class<?>> nodeTypeRegistry,
+            List<Map<String, String>> catalogEntries) {
+        this.spec             = Objects.requireNonNull(spec, "spec");
+        this.actions          = List.copyOf(actions);
+        this.compiler         = compiler;
+        this.mapper           = mapper;
+        this.factory          = factory;
         this.nodeTypeRegistry = nodeTypeRegistry != null ? Map.copyOf(nodeTypeRegistry) : Map.of();
+        this.catalogEntries   = catalogEntries != null ? List.copyOf(catalogEntries) : List.of();
     }
 
     /**
@@ -112,7 +116,7 @@ public final class AdaptationRule {
                 };
                 actions.add(action);
             }
-            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory, effectiveNodeTypeRegistry));
+            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory, effectiveNodeTypeRegistry, null));
         }
         return rules;
     }
@@ -131,6 +135,16 @@ public final class AdaptationRule {
     public io.casehub.ops.api.deployment.AdaptationTrigger trigger() {
         return spec.trigger();
     }
+
+    public List<Map<String, String>> catalogEntries() {
+        return catalogEntries;
+    }
+
+    public AdaptationRule withCatalogEntries(List<Map<String, String>> entries) {
+        return new AdaptationRule(spec, actions, compiler, mapper, factory,
+                                  nodeTypeRegistry, entries);
+    }
+
 
     /**
      * Applies all actions in sequence, returning the mutated graph.

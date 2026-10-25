@@ -81,8 +81,7 @@ public class LlmTriggerEvaluator {
     private Optional<Map<String, String>> lookupCatalogEntry(
             String entryName, List<Map<String, String>> catalogEntries) {
         for (Map<String, String> entry : catalogEntries) {
-            String keyValue = entry.values().iterator().next();
-            if (entryName.equals(keyValue)) {
+            if (entry.containsValue(entryName)) {
                 return Optional.of(entry);
             }
         }

@@ -55,7 +55,8 @@ class DeploymentAdaptiveSituationRecompilerSnapshotTest {
 
         assertThat(snapshot.activeRules()).hasSize(1);
         assertThat(snapshot.activeRules().get(0).ruleName()).isEqualTo("scale-risk");
-        assertThat(snapshot.activeRules().get(0).situationId()).isEqualTo("volatility-spike");
+        assertThat(snapshot.activeRules().get(0).triggerType()).isEqualTo("pattern");
+        assertThat(snapshot.activeRules().get(0).situationIds()).containsExactly("volatility-spike");
         assertThat(snapshot.activeRules().get(0).active()).isFalse();
         assertThat(snapshot.trackedSituations()).isEmpty();
     }
