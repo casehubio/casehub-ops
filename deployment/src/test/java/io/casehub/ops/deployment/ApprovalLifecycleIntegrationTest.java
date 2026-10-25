@@ -136,7 +136,8 @@ class ApprovalLifecycleIntegrationTest {
     @Test
     void autoApprove_lowRiskNodeProvisionsDirect() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
         var node = new DesiredNode(NodeId.of("ch-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
@@ -299,6 +300,16 @@ class ApprovalLifecycleIntegrationTest {
         public Channel setAdminInstances(UUID channelId, List<String> adminInstances) {
             return channels.values().stream().filter(ch -> ch.id().equals(channelId)).findFirst().orElse(null);
         }
+
+        @Override
+        public Channel setProtocols(UUID channelId, List<String> protocols) {return null;}
+
+        @Override
+        public Channel setProtocolParticipants(UUID channelId, List<String> protocolParticipants) {return null;}
+
+        @Override
+        public Channel setPolicyOverrides(UUID channelId, Map<String, String> policyOverrides) {return null;}
+
     }
 
     static class StubEndpointRegistry implements EndpointRegistry {

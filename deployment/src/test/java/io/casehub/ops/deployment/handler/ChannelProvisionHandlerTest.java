@@ -1,15 +1,5 @@
 package io.casehub.ops.deployment.handler;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.casehub.desiredstate.api.DeprovisionContext;
 import io.casehub.desiredstate.api.DeprovisionResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
@@ -17,10 +7,19 @@ import io.casehub.desiredstate.api.ProvisionContext;
 import io.casehub.desiredstate.api.ProvisionResult;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
-import io.casehub.qhorus.api.channel.ChannelSemantic;
-import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.api.channel.ChannelCreateRequest;
+import io.casehub.qhorus.api.channel.ChannelSemantic;
+import io.casehub.qhorus.api.message.MessageType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,7 +52,8 @@ class ChannelProvisionHandlerTest {
                 null, // inboundConnectorId
                 null, // externalKey
                 null, // outboundConnectorId
-                null // outboundDestination
+                null, // outboundDestination
+                null, null, null
         );
 
         ProvisionResult result = handler.provision(spec, new ProvisionContext("test-tenancy", emptyGraph));
@@ -85,7 +85,8 @@ class ChannelProvisionHandlerTest {
                 null,
                 50,
                 5,
-                null, null, null, null
+                null, null, null, null,
+                null, null, null
         );
         handler.provision(initialSpec, new ProvisionContext("test-tenancy", emptyGraph));
         Channel initial = stub.findByName("events").orElseThrow();
@@ -103,7 +104,8 @@ class ChannelProvisionHandlerTest {
                 null,
                 200,
                 20,
-                null, null, null, null
+                null, null, null, null,
+                null, null, null
         );
 
         ProvisionResult result = handler.provision(updatedSpec, new ProvisionContext("test-tenancy", emptyGraph));
@@ -129,7 +131,8 @@ class ChannelProvisionHandlerTest {
                 ChannelSemantic.EPHEMERAL,
                 Set.of(), Set.of(),
                 null, null, null, null, null,
-                null, null, null, null
+                null, null, null, null,
+                null, null, null
         );
         handler.provision(spec, new ProvisionContext("test-tenancy", emptyGraph));
         assertThat(stub.findByName("temp-channel")).isPresent();
@@ -148,13 +151,66 @@ class ChannelProvisionHandlerTest {
                 ChannelSemantic.LAST_WRITE,
                 Set.of(), Set.of(),
                 null, null, null, null, null,
-                null, null, null, null
+                null, null, null, null,
+                null, null, null
         );
 
         DeprovisionResult result = handler.deprovision(spec, new DeprovisionContext("test-tenancy", emptyGraph));
 
         assertThat(result).isInstanceOf(DeprovisionResult.Success.class);
     }
+
+    @Test
+    void provisionCreatesChannelWithProtocolsAndPolicyOverrides() {
+        var spec = new ChannelNodeSpec(
+                "negotiation-ch",
+                "Negotiation channel",
+                ChannelSemantic.APPEND,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                List.of("NEGOTIATION"),
+                List.of("agent-a", "agent-b"),
+                Map.of("negotiation.acceptance", "majority", "negotiation.max-rounds", "3")
+        );
+
+        handler.provision(spec, new ProvisionContext("test-tenancy", emptyGraph));
+
+        Channel created = stub.findByName("negotiation-ch").orElseThrow();
+        assertThat(created.protocols()).containsExactly("NEGOTIATION");
+        assertThat(created.protocolParticipants()).containsExactly("agent-a", "agent-b");
+        assertThat(created.policyOverrides()).containsEntry("negotiation.acceptance", "majority");
+        assertThat(created.policyOverrides()).containsEntry("negotiation.max-rounds", "3");
+    }
+
+    @Test
+    void provisionUpdateRemovesExtraPolicyOverrideKeys() {
+        var initialSpec = new ChannelNodeSpec(
+                "policy-ch",
+                "Policy channel",
+                ChannelSemantic.APPEND,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null,
+                Map.of("negotiation.acceptance", "majority", "extra.key", "val")
+        );
+        handler.provision(initialSpec, new ProvisionContext("test-tenancy", emptyGraph));
+
+        var updatedSpec = new ChannelNodeSpec(
+                "policy-ch",
+                "Policy channel",
+                ChannelSemantic.APPEND,
+                null, null, null, null, null, null, null,
+                null, null, null, null,
+                null, null,
+                Map.of("negotiation.acceptance", "unanimous")
+        );
+        handler.provision(updatedSpec, new ProvisionContext("test-tenancy", emptyGraph));
+
+        Channel updated = stub.findByName("policy-ch").orElseThrow();
+        assertThat(updated.policyOverrides()).containsEntry("negotiation.acceptance", "unanimous");
+        assertThat(updated.policyOverrides()).doesNotContainKey("extra.key");
+    }
+
 
     static class StubChannelOps implements ChannelProvisionHandler.ChannelOperations {
         private final Map<String, Channel> channels = new ConcurrentHashMap<>();
@@ -177,6 +233,8 @@ class ChannelProvisionHandlerTest {
                     .rateLimitPerInstance(req.rateLimitPerInstance())
                     .allowedTypes(req.allowedTypes())
                     .deniedTypes(req.deniedTypes())
+                    .protocols(req.protocols())
+                    .protocolParticipants(req.protocolParticipants())
                     .build();
             channels.put(ch.name(), ch);
             return ch;
@@ -215,6 +273,49 @@ class ChannelProvisionHandlerTest {
         public Channel setAdminInstances(UUID channelId, List<String> adminInstances) {
             Channel ch = findById(channelId);
             Channel updated = ch.toBuilder().adminInstances(adminInstances).build();
+            channels.put(updated.name(), updated);
+            return updated;
+        }
+
+        @Override
+        public Channel setProtocols(UUID channelId, List<String> protocols) {
+            Channel ch = findById(channelId);
+            Channel updated = ch.toBuilder().protocols(protocols).build();
+            channels.put(updated.name(), updated);
+            return updated;
+        }
+
+        @Override
+        public Channel setProtocolParticipants(UUID channelId, List<String> protocolParticipants) {
+            Channel ch = findById(channelId);
+            Channel updated = ch.toBuilder().protocolParticipants(protocolParticipants).build();
+            channels.put(updated.name(), updated);
+            return updated;
+        }
+
+        @Override
+        public Channel setPolicyOverrides(UUID channelId, Map<String, String> policyOverrides) {
+            Channel ch = findById(channelId);
+            Map<String, String> merged;
+            if (policyOverrides == null) {
+                merged = null;
+            } else {
+                merged = new java.util.LinkedHashMap<>();
+                if (ch.policyOverrides() != null) {
+                    merged.putAll(ch.policyOverrides());
+                }
+                for (var entry : policyOverrides.entrySet()) {
+                    if (entry.getValue() == null) {
+                        merged.remove(entry.getKey());
+                    } else {
+                        merged.put(entry.getKey(), entry.getValue());
+                    }
+                }
+                if (merged.isEmpty()) {
+                    merged = null;
+                }
+            }
+            Channel updated = ch.toBuilder().policyOverrides(merged).build();
             channels.put(updated.name(), updated);
             return updated;
         }

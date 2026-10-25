@@ -154,4 +154,30 @@ class DeploymentGoalLoaderTest {
                 null, null, null, null, null, null, null, null, null, null,
                 java.util.List.of(), null, null, null, null, java.util.List.of());
     }
+
+    @Test
+    void channelYamlDeserializesProtocolsAndPolicyOverrides(@TempDir Path tempDir) throws IOException {
+        Files.writeString(tempDir.resolve("channels.yaml"),
+                          """
+                          channels:
+                            - spec:
+                                name: test/review
+                                semantic: APPEND
+                                protocols: [NEGOTIATION]
+                                protocol-participants: [agent-a, agent-b]
+                                policy-overrides:
+                                  negotiation.acceptance: majority
+                                  negotiation.max-rounds: "3"
+                              dependsOn: []
+                          """);
+
+        DeploymentGoals goals = loader.loadDirectory(tempDir.toString());
+
+        assertThat(goals.channels()).hasSize(1);
+        var spec = goals.channels().get(0).spec();
+        assertThat(spec.protocols()).containsExactly("NEGOTIATION");
+        assertThat(spec.protocolParticipants()).containsExactly("agent-a", "agent-b");
+        assertThat(spec.policyOverrides()).containsEntry("negotiation.acceptance", "majority");
+        assertThat(spec.policyOverrides()).containsEntry("negotiation.max-rounds", "3");
+    }
 }

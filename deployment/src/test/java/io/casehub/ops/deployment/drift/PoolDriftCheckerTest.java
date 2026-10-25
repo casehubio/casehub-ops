@@ -92,7 +92,8 @@ class PoolDriftCheckerTest {
         var spec = new io.casehub.ops.api.deployment.ChannelNodeSpec(
                 "ch1", "desc", io.casehub.qhorus.api.channel.ChannelSemantic.APPEND,
                 null, null, null, null, null, null, null,
-                null, null, null, null);
+                null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.UNKNOWN, checker.check(spec, TENANCY_ID));
     }

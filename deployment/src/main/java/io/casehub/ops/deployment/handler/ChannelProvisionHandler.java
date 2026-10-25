@@ -1,6 +1,8 @@
 package io.casehub.ops.deployment.handler;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -29,6 +31,9 @@ public class ChannelProvisionHandler {
         Channel setRateLimits(UUID channelId, Integer perChannel, Integer perInstance);
         Channel setAllowedWriters(UUID channelId, List<String> allowedWriters);
         Channel setAdminInstances(UUID channelId, List<String> adminInstances);
+        Channel setProtocols(UUID channelId, List<String> protocols);
+        Channel setProtocolParticipants(UUID channelId, List<String> protocolParticipants);
+        Channel setPolicyOverrides(UUID channelId, Map<String, String> policyOverrides);
     }
 
     private final ChannelOperations ops;
@@ -43,6 +48,9 @@ public class ChannelProvisionHandler {
             @Override public Channel setRateLimits(UUID id, Integer pc, Integer pi) { return channelService.setRateLimits(id, pc, pi); }
             @Override public Channel setAllowedWriters(UUID id, List<String> w) { return channelService.setAllowedWriters(id, w); }
             @Override public Channel setAdminInstances(UUID id, List<String> a) { return channelService.setAdminInstances(id, a); }
+            @Override public Channel setProtocols(UUID id, List<String> p) { return channelService.setProtocols(id, p); }
+            @Override public Channel setProtocolParticipants(UUID id, List<String> p) { return channelService.setProtocolParticipants(id, p); }
+            @Override public Channel setPolicyOverrides(UUID id, Map<String, String> p) { return channelService.setPolicyOverrides(id, p); }
         };
     }
 
@@ -53,18 +61,31 @@ public class ChannelProvisionHandler {
     public ProvisionResult provision(ChannelNodeSpec spec, ProvisionContext context) {
         Optional<Channel> existing = ops.findByName(spec.name());
         if (existing.isPresent()) {
-            updateMutableFields(existing.get().id(), spec);
+            updateMutableFields(existing.get(), spec);
             return new ProvisionResult.Success();
         }
 
-        var request = new ChannelCreateRequest(
-                spec.name(), spec.description(), spec.semantic(),
-                toList(spec.barrierContributors()), toList(spec.allowedWriters()), toList(spec.adminInstances()),
-                spec.rateLimitPerChannel(), spec.rateLimitPerInstance(),
-                spec.allowedTypes(), spec.deniedTypes(),
-                spec.inboundConnectorId(), spec.externalKey(),
-                spec.outboundConnectorId(), spec.outboundDestination());
-        ops.create(request);
+        var request = ChannelCreateRequest.builder(spec.name())
+                .description(spec.description())
+                .semantic(spec.semantic())
+                .barrierContributors(toList(spec.barrierContributors()))
+                .allowedWriters(toList(spec.allowedWriters()))
+                .adminInstances(toList(spec.adminInstances()))
+                .rateLimitPerChannel(spec.rateLimitPerChannel())
+                .rateLimitPerInstance(spec.rateLimitPerInstance())
+                .allowedTypes(spec.allowedTypes())
+                .deniedTypes(spec.deniedTypes())
+                .protocols(spec.protocols())
+                .protocolParticipants(spec.protocolParticipants())
+                .inboundConnectorId(spec.inboundConnectorId())
+                .externalKey(spec.externalKey())
+                .outboundConnectorId(spec.outboundConnectorId())
+                .outboundDestination(spec.outboundDestination())
+                .build();
+        Channel created = ops.create(request);
+        if (spec.policyOverrides() != null) {
+            ops.setPolicyOverrides(created.id(), spec.policyOverrides());
+        }
         return new ProvisionResult.Success();
     }
 
@@ -76,11 +97,30 @@ public class ChannelProvisionHandler {
         return new DeprovisionResult.Success();
     }
 
-    private void updateMutableFields(UUID channelId, ChannelNodeSpec spec) {
+    private void updateMutableFields(Channel existing, ChannelNodeSpec spec) {
+        UUID channelId = existing.id();
         ops.setTypeConstraints(channelId, spec.allowedTypes(), spec.deniedTypes());
         ops.setRateLimits(channelId, spec.rateLimitPerChannel(), spec.rateLimitPerInstance());
         ops.setAllowedWriters(channelId, toList(spec.allowedWriters()));
         ops.setAdminInstances(channelId, toList(spec.adminInstances()));
+        ops.setProtocols(channelId, spec.protocols());
+        ops.setProtocolParticipants(channelId, spec.protocolParticipants());
+        ops.setPolicyOverrides(channelId, computePolicyOverrideDiff(spec.policyOverrides(), existing.policyOverrides()));
+    }
+
+    private static Map<String, String> computePolicyOverrideDiff(Map<String, String> desired, Map<String, String> actual) {
+        if (desired == null) {
+            return null;
+        }
+        Map<String, String> diff = new LinkedHashMap<>(desired);
+        if (actual != null) {
+            for (String key : actual.keySet()) {
+                if (!desired.containsKey(key)) {
+                    diff.put(key, null);
+                }
+            }
+        }
+        return diff;
     }
 
     private static List<String> toList(String csv) {

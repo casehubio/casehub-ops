@@ -404,7 +404,8 @@ class DeploymentGoalCompilerTest {
     private ChannelNodeSpec testChannel(String name) {
         return new ChannelNodeSpec(name, null, ChannelSemantic.APPEND,
                 null, null, null, null, null, null, null,
-                null, null, null, null);
+                null, null, null, null,
+                null, null, null);
     }
 }
 

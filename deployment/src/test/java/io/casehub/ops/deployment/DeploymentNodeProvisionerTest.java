@@ -114,7 +114,8 @@ class DeploymentNodeProvisionerTest {
     @Test
     void dispatchesChannelToHandler() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
         var node = new DesiredNode(NodeId.of("ch1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
@@ -150,7 +151,8 @@ class DeploymentNodeProvisionerTest {
     @Test
     void deprovisionRemovesSpecHash() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
         var node = new DesiredNode(NodeId.of("ch1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         provisioner.provision(node, new ProvisionContext("tenant-1", emptyGraph));
         assertThat(specHashStore.hasDrifted(NodeId.of("ch1"), spec)).isFalse();
@@ -188,7 +190,8 @@ class DeploymentNodeProvisionerTest {
     @Test
     void lowRiskNodeProvisionsDirect() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
         var node = new DesiredNode(NodeId.of("ch-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
         var context = new ProvisionContext("tenant-1", emptyGraph);
 
@@ -338,6 +341,16 @@ class DeploymentNodeProvisionerTest {
         public Channel setAdminInstances(UUID channelId, List<String> adminInstances) {
             return channels.values().stream().filter(ch -> ch.id().equals(channelId)).findFirst().orElse(null);
         }
+
+        @Override
+        public Channel setProtocols(UUID channelId, List<String> protocols) {return null;}
+
+        @Override
+        public Channel setProtocolParticipants(UUID channelId, List<String> protocolParticipants) {return null;}
+
+        @Override
+        public Channel setPolicyOverrides(UUID channelId, Map<String, String> policyOverrides) {return null;}
+
     }
 
     static class StubEndpointRegistry implements EndpointRegistry {

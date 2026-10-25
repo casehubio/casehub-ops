@@ -42,6 +42,8 @@ class StubChannelOperations implements ChannelProvisionHandler.ChannelOperations
                 .allowedWriters(req.allowedWriters())
                 .adminInstances(req.adminInstances())
                 .barrierContributors(req.barrierContributors())
+                .protocols(req.protocols())
+                .protocolParticipants(req.protocolParticipants())
                 .build();
         channels.put(ch.name(), ch);
         channelStore.put(ch, tenancyId);
@@ -105,4 +107,44 @@ class StubChannelOperations implements ChannelProvisionHandler.ChannelOperations
         }
         return null;
     }
+
+    @Override
+    public Channel setProtocols(UUID channelId, List<String> protocols) {
+        for (Channel ch : channels.values()) {
+            if (ch.id().equals(channelId)) {
+                Channel updated = ch.toBuilder().protocols(protocols).build();
+                channels.put(updated.name(), updated);
+                channelStore.put(updated, tenancyId);
+                return updated;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Channel setProtocolParticipants(UUID channelId, List<String> protocolParticipants) {
+        for (Channel ch : channels.values()) {
+            if (ch.id().equals(channelId)) {
+                Channel updated = ch.toBuilder().protocolParticipants(protocolParticipants).build();
+                channels.put(updated.name(), updated);
+                channelStore.put(updated, tenancyId);
+                return updated;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Channel setPolicyOverrides(UUID channelId, Map<String, String> policyOverrides) {
+        for (Channel ch : channels.values()) {
+            if (ch.id().equals(channelId)) {
+                Channel updated = ch.toBuilder().policyOverrides(policyOverrides).build();
+                channels.put(updated.name(), updated);
+                channelStore.put(updated, tenancyId);
+                return updated;
+            }
+        }
+        return null;
+    }
+
 }

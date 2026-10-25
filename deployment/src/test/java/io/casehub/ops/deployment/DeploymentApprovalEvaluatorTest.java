@@ -35,7 +35,8 @@ class DeploymentApprovalEvaluatorTest {
     @Test
     void channelAutoApproves() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
         var node = new DesiredNode(NodeId.of("ch-1"), spec, io.casehub.desiredstate.api.HumanGating.NONE);
 
         var decision = evaluator.evaluate(node, StepAction.PROVISION, "tenant-1");

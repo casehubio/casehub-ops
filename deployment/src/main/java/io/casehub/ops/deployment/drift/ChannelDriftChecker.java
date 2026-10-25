@@ -4,7 +4,6 @@ import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.NodeDriftChecker;
-import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.api.channel.ChannelConnectorBinding;
 import io.casehub.qhorus.api.store.ChannelBindingStore;
@@ -14,6 +13,8 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -78,6 +79,15 @@ public class ChannelDriftChecker implements NodeDriftChecker {
         if (!csvListMatch("barrierContributors", channelSpec.name(), channelSpec.barrierContributors(), ch.barrierContributors())) {
             drifted = true;
         }
+        if (!listMatch("protocols", channelSpec.name(), channelSpec.protocols(), ch.protocols())) {
+            drifted = true;
+        }
+        if (!listMatch("protocolParticipants", channelSpec.name(), channelSpec.protocolParticipants(), ch.protocolParticipants())) {
+            drifted = true;
+        }
+        if (!mapMatch("policyOverrides", channelSpec.name(), channelSpec.policyOverrides(), ch.policyOverrides())) {
+            drifted = true;
+        }
 
         // Binding comparison — always check, even if fields already drifted
         if (!bindingMatch(channelSpec, ch.id())) {
@@ -115,6 +125,26 @@ public class ChannelDriftChecker implements NodeDriftChecker {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private boolean listMatch(String fieldName, String channelName, List<String> desired, List<String> actual) {
+        Set<String> desiredSet = desired != null ? new TreeSet<>(desired) : Set.of();
+        Set<String> actualSet  = actual != null ? new TreeSet<>(actual) : Set.of();
+        if (desiredSet.equals(actualSet)) {
+            return true;
+        }
+        LOG.debugf("channel %s: %s drifted [%s → %s]", channelName, fieldName, desiredSet, actualSet);
+        return false;
+    }
+
+    private boolean mapMatch(String fieldName, String channelName, Map<String, String> desired, Map<String, String> actual) {
+        Map<String, String> desiredMap = desired != null ? desired : Map.of();
+        Map<String, String> actualMap  = actual != null ? actual : Map.of();
+        if (desiredMap.equals(actualMap)) {
+            return true;
+        }
+        LOG.debugf("channel %s: %s drifted [%s → %s]", channelName, fieldName, desiredMap, actualMap);
+        return false;
     }
 
     private boolean bindingMatch(ChannelNodeSpec spec, java.util.UUID channelId) {

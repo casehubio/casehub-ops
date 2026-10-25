@@ -1,7 +1,10 @@
 package io.casehub.ops.api.deployment;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.desiredstate.api.NodeType;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
@@ -22,7 +25,10 @@ public record ChannelNodeSpec(
         String inboundConnectorId,
         String externalKey,
         String outboundConnectorId,
-        String outboundDestination
+        String outboundDestination,
+        List<String> protocols,
+        @JsonAlias("protocol-participants") List<String> protocolParticipants,
+        @JsonAlias("policy-overrides") Map<String, String> policyOverrides
 ) implements DeploymentNodeSpec {
 
     public ChannelNodeSpec {
@@ -34,6 +40,9 @@ public record ChannelNodeSpec(
         }
         allowedTypes = allowedTypes != null ? Set.copyOf(allowedTypes) : null;
         deniedTypes = deniedTypes != null ? Set.copyOf(deniedTypes) : null;
+        protocols = protocols != null ? List.copyOf(protocols) : null;
+        protocolParticipants = protocolParticipants != null ? List.copyOf(protocolParticipants) : null;
+        policyOverrides = policyOverrides != null ? Map.copyOf(policyOverrides) : null;
     }
 
     @Override

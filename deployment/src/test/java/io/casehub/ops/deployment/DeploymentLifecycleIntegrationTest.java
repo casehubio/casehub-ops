@@ -136,7 +136,8 @@ class DeploymentLifecycleIntegrationTest {
                 "1.0", "fp1", "domain", "slot", "disp", null, Map.of(), List.of(agentCap), agentDisp, "US", "policy", "Reviews code quality", List.of(claudonyConfig));
 
         var channelSpec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         var caseTypeSpec = new CaseTypeNodeSpec("io.casehub.devtown", "pr-review", "1.0", "PR Review", "Automated", "test-case-defs/pr-review.yaml", null);
 

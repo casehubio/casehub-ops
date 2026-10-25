@@ -2,10 +2,10 @@ package io.casehub.ops.deployment.drift;
 
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
-import io.casehub.qhorus.api.channel.ChannelSemantic;
-import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.api.channel.ChannelConnectorBinding;
+import io.casehub.qhorus.api.channel.ChannelSemantic;
+import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.api.store.ChannelBindingStore;
 import io.casehub.qhorus.api.store.CrossTenantChannelStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +77,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:tenant-1", ch);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         // Found under tenant-1
         assertEquals(NodeStatus.PRESENT, checker.check(spec, "tenant-1"));
@@ -97,7 +98,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
     }
@@ -105,7 +107,8 @@ class ChannelDriftCheckerTest {
     @Test
     void channelAbsent() {
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.COMMAND), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.ABSENT, checker.check(spec, TENANCY_ID));
     }
@@ -121,7 +124,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                Set.of(MessageType.EVENT), Set.of(), null, null, null, null, null, null, null, null, null);
+                Set.of(MessageType.EVENT), Set.of(), null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -137,7 +141,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", "desc", ChannelSemantic.APPEND,
-                null, null, null, null, null, 200, null, null, null, null, null);
+                null, null, null, null, null, 200, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -168,7 +173,8 @@ class ChannelDriftCheckerTest {
 
         var spec = new ChannelNodeSpec("dev/work", "Work channel", ChannelSemantic.APPEND,
                 Set.of(MessageType.COMMAND), null, "agent-1,agent-2", "admin-1", "contrib-1,contrib-2",
-                100, 10, null, null, null, null);
+                100, 10, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
     }
@@ -183,7 +189,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", "New description", ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -198,7 +205,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, "alice,bob", null, null, null, null, null, null, null, null);
+                null, null, "alice,bob", null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
     }
@@ -213,7 +221,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, "alice,bob", null, null, null, null, null, null, null, null);
+                null, null, "alice,bob", null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -228,7 +237,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, "admin-new", null, null, null, null, null, null, null);
+                null, null, null, "admin-new", null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -243,7 +253,8 @@ class ChannelDriftCheckerTest {
         channels.put("dev/work:" + TENANCY_ID, ch);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, "contrib-new", null, null, null, null, null, null);
+                null, null, null, null, "contrib-new", null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -262,7 +273,8 @@ class ChannelDriftCheckerTest {
         bindings.put(channelId, binding);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#general");
+                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#general",
+                null, null, null);
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
     }
@@ -281,7 +293,8 @@ class ChannelDriftCheckerTest {
         bindings.put(channelId, binding);
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#new-channel");
+                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#new-channel",
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -296,7 +309,8 @@ class ChannelDriftCheckerTest {
         // No binding in bindings map
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#general");
+                null, null, null, null, null, null, null, "slack", "C12345", "slack", "#general",
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -316,7 +330,8 @@ class ChannelDriftCheckerTest {
 
         // Spec has no binding fields (all null)
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
     }
@@ -331,8 +346,106 @@ class ChannelDriftCheckerTest {
         // No binding in bindings map, no binding in spec
 
         var spec = new ChannelNodeSpec("dev/work", null, ChannelSemantic.APPEND,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
 
         assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
     }
+
+    @Test
+    void protocolsDrifted() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("proto-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .protocols(List.of("VOTING"))
+                            .build();
+        channels.put("proto-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("proto-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       List.of("NEGOTIATION"), null, null);
+
+        assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
+    }
+
+    @Test
+    void protocolsMatch() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("proto-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .protocols(List.of("NEGOTIATION"))
+                            .build();
+        channels.put("proto-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("proto-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       List.of("NEGOTIATION"), null, null);
+
+        assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
+    }
+
+    @Test
+    void protocolParticipantsDrifted() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("proto-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .protocolParticipants(List.of("agent-a"))
+                            .build();
+        channels.put("proto-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("proto-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       null, List.of("agent-a", "agent-b"), null);
+
+        assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
+    }
+
+    @Test
+    void policyOverridesDrifted() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("policy-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .policyOverrides(Map.of("negotiation.acceptance", "unanimous"))
+                            .build();
+        channels.put("policy-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("policy-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       null, null, Map.of("negotiation.acceptance", "majority"));
+
+        assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
+    }
+
+    @Test
+    void policyOverridesExtraKeysAreDrift() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("policy-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .policyOverrides(Map.of("negotiation.acceptance", "majority", "extra.key", "val"))
+                            .build();
+        channels.put("policy-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("policy-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       null, null, Map.of("negotiation.acceptance", "majority"));
+
+        assertEquals(NodeStatus.DRIFTED, checker.check(spec, TENANCY_ID));
+    }
+
+    @Test
+    void policyOverridesMatch() {
+        UUID id = UUID.randomUUID();
+        Channel ch = Channel.builder("policy-ch")
+                            .id(id).semantic(ChannelSemantic.APPEND)
+                            .policyOverrides(Map.of("negotiation.acceptance", "majority"))
+                            .build();
+        channels.put("policy-ch:" + TENANCY_ID, ch);
+
+        var spec = new ChannelNodeSpec("policy-ch", null, ChannelSemantic.APPEND,
+                                       null, null, null, null, null, null, null, null, null, null, null,
+                                       null, null, Map.of("negotiation.acceptance", "majority"));
+
+        assertEquals(NodeStatus.PRESENT, checker.check(spec, TENANCY_ID));
+    }
+
 }
