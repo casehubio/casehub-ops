@@ -45,15 +45,18 @@ final class TenantAdaptationState {
     }
 
     Optional<ActiveSituation> activeSituationFor(AdaptationRule rule) {
-        return Optional.ofNullable(
-            trackedSituations.get(rule.trigger().situation()));
+        if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) {
+            return Optional.ofNullable(trackedSituations.get(pt.situation()));
+        }
+        throw new UnsupportedOperationException(
+                "Use allQualifyingSituations() for LLM triggers");
     }
 
     boolean clearSituation(String situationId) {
         ActiveSituation removed = trackedSituations.remove(situationId);
         if (removed == null) return false;
         for (AdaptationRule rule : rules) {
-            if (rule.trigger().situation().equals(situationId)) {
+            if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt && pt.situation().equals(situationId)) {
                 activePerRule.put(rule.name(), false);
                 lastChangePerRule.put(rule.name(), Instant.now());
             }
@@ -64,19 +67,26 @@ final class TenantAdaptationState {
     boolean shouldActivate(AdaptationRule rule, ActiveSituation situation) {
         boolean currentlyActive = activePerRule.getOrDefault(rule.name(), false);
 
-        double threshold = currentlyActive
-            ? rule.trigger().effectiveDeactivateBelow()
-            : rule.trigger().minConfidence();
+        double threshold;
+        Duration cooldownDuration;
+        if (rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) {
+            threshold = currentlyActive ? pt.effectiveDeactivateBelow() : pt.minConfidence();
+            cooldownDuration = pt.effectiveCooldown();
+        } else if (rule.trigger() instanceof io.casehub.ops.api.deployment.LlmEvaluatedTrigger lt) {
+            threshold = lt.minConfidence();
+            cooldownDuration = lt.effectiveCooldown();
+        } else {
+            return false;
+        }
 
         boolean shouldBeActive = situation.confidence() >= threshold;
 
         if (shouldBeActive != currentlyActive) {
-            Duration cooldown = rule.trigger().effectiveCooldown();
-            if (!cooldown.isZero()) {
+            if (!cooldownDuration.isZero()) {
                 Instant lastChange = lastChangePerRule.get(rule.name());
                 if (lastChange != null) {
                     Duration elapsed = Duration.between(lastChange, Instant.now());
-                    if (elapsed.compareTo(cooldown) < 0) {
+                    if (elapsed.compareTo(cooldownDuration) < 0) {
                         return currentlyActive;
                     }
                 }
@@ -112,14 +122,17 @@ final class TenantAdaptationState {
                 sitId, Duration.ofMinutes(5));
             if (Duration.between(sit.lastSignal(), now).compareTo(clearanceWindow) > 0) {
                 for (AdaptationRule rule : rules) {
-                    if (rule.trigger().situation().equals(sitId)) {
+                    if (!(rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt) || !pt.situation().equals(sitId)) {
+                        continue;
+                    }
+                    {
                         Boolean wasActive = activePerRule.get(rule.name());
                         if (wasActive != null && wasActive) {
-                            Duration cooldown = rule.trigger().effectiveCooldown();
-                            if (!cooldown.isZero()) {
+                            Duration cd = pt.effectiveCooldown();
+                            if (!cd.isZero()) {
                                 Instant lastChange = lastChangePerRule.get(rule.name());
                                 if (lastChange != null &&
-                                    Duration.between(lastChange, now).compareTo(cooldown) < 0) {
+                                    Duration.between(lastChange, now).compareTo(cd) < 0) {
                                     continue;
                                 }
                             }

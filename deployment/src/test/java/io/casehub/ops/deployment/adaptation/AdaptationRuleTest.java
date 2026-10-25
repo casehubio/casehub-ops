@@ -7,7 +7,7 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.ops.api.deployment.AdaptationTrigger;
+import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
@@ -31,7 +31,7 @@ class AdaptationRuleTest {
     @Test
     void fromSpecsCreatesRules() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("high-load", 0.7, null, null);
+        var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var ruleSpec = new AdaptationRuleSpec("scale-on-load", trigger, List.of(scaleAction));
 
@@ -51,7 +51,7 @@ class AdaptationRuleTest {
     @Test
     void applyDispatchesToScaleAction() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("high-load", 0.7, null, null);
+        var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var ruleSpec = new AdaptationRuleSpec("scale-on-load", trigger, List.of(scaleAction));
 
@@ -76,7 +76,7 @@ class AdaptationRuleTest {
     @Test
     void applyDispatchesToUpdateAction() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var trigger = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
             "risk-policy",
             "trust_policy",
@@ -108,7 +108,7 @@ class AdaptationRuleTest {
     @Test
     void applyDispatchesToAddAction() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("expand-capacity", 0.75, null, null);
+        var trigger = new PatternTrigger("expand-capacity", 0.75, null, null);
         var newAgent = new AgentNodeSpec(
             "new-agent", "New Agent", "new-slot",
             "anthropic", "claude", "opus-4.6-2026",
@@ -142,7 +142,7 @@ class AdaptationRuleTest {
     @Test
     void targetNodeIdsReturnsAllAffectedNodes() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("high-load", 0.7, null, null);
+        var trigger = new PatternTrigger("high-load", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
             "risk-policy",
@@ -176,7 +176,7 @@ class AdaptationRuleTest {
     @Test
     void multipleActionsAppliedInSequence() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger = new AdaptationTrigger("combined", 0.7, null, null);
+        var trigger = new PatternTrigger("combined", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 3);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
             "risk-policy",
@@ -220,7 +220,7 @@ class AdaptationRuleTest {
     @Test
     void fromSpecs_updateAction_unknownField_throwsAtParseTime() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
                 "trust_policy",
@@ -242,7 +242,7 @@ class AdaptationRuleTest {
     @Test
     void fromSpecs_updateAction_validFields_passesWithRegistry() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
                 "trust_policy",
@@ -261,7 +261,7 @@ class AdaptationRuleTest {
     @Test
     void fromSpecs_updateAction_nullNodeType_skipsValidation() {
         var compiler = new DeploymentGoalCompiler();
-        var trigger  = new AdaptationTrigger("policy-change", 0.8, null, null);
+        var trigger  = new PatternTrigger("policy-change", 0.8, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec(
                 "risk-policy",
                 null,

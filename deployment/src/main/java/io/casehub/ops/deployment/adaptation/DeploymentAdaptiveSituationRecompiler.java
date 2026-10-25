@@ -162,10 +162,11 @@ public class DeploymentAdaptiveSituationRecompiler implements SituationRecompile
         synchronized (state) {
             List<AdaptationSnapshotProvider.ActiveRuleInfo> ruleInfos =
                     state.rules().stream()
-                         .map(rule -> new AdaptationSnapshotProvider.ActiveRuleInfo(
-                                 rule.name(),
-                                 rule.trigger().situation(),
-                                 state.isRuleActive(rule.name())))
+                         .map(rule -> {
+                                 String sitId = rule.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt ? pt.situation() : null;
+                                 return new AdaptationSnapshotProvider.ActiveRuleInfo(
+                                         rule.name(), sitId, state.isRuleActive(rule.name()));
+                         })
                          .toList();
 
             List<AdaptationSnapshotProvider.TrackedSituationInfo> sitInfos =

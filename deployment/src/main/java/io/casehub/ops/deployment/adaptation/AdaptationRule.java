@@ -133,7 +133,7 @@ public final class AdaptationRule {
         Objects.requireNonNull(situation, "situation");
 
         DesiredStateGraph result = graph;
-        double minConfidence = spec.trigger().minConfidence();
+        double minConfidence = spec.trigger() instanceof io.casehub.ops.api.deployment.PatternTrigger pt ? pt.minConfidence() : 0.0;
 
         for (var action : actions) {
             result = switch (action) {

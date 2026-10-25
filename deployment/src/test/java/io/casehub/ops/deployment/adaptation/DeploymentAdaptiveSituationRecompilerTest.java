@@ -9,7 +9,7 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.ops.api.deployment.AdaptationTrigger;
+import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
@@ -47,11 +47,11 @@ class DeploymentAdaptiveSituationRecompilerTest {
         recompiler.mapper = mapper;
         recompiler.meterRegistry = meterRegistry;
 
-        var scaleTrigger = new AdaptationTrigger("volatility-spike", 0.7, 0.5, Duration.ofMinutes(5));
+        var scaleTrigger = new PatternTrigger("volatility-spike", 0.7, 0.5, Duration.ofMinutes(5));
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var scaleRule = new AdaptationRuleSpec("scale-risk", scaleTrigger, List.of(scaleAction));
 
-        var updateTrigger = new AdaptationTrigger("market-anomaly", 0.6, null, null);
+        var updateTrigger = new PatternTrigger("market-anomaly", 0.6, null, null);
         var updateAction = new AdaptationActionSpec.UpdateActionSpec("trade-execution", "trust",
             Map.of("threshold", 0.9));
         var updateRule = new AdaptationRuleSpec("tighten-trust", updateTrigger, List.of(updateAction));
@@ -210,7 +210,7 @@ class DeploymentAdaptiveSituationRecompilerTest {
 
     @Test
     void recompileIncrementsConflictCounterWhenRulesOverlap() {
-        var trigger     = new AdaptationTrigger("volatility-spike", 0.7, null, null);
+        var trigger     = new PatternTrigger("volatility-spike", 0.7, null, null);
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 3);
         var rule1       = new AdaptationRuleSpec("scale-risk", trigger, List.of(scaleAction));
 

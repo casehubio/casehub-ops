@@ -5,7 +5,7 @@ import io.casehub.desiredstate.api.DesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec;
 import io.casehub.ops.api.deployment.AdaptationRuleSpec;
-import io.casehub.ops.api.deployment.AdaptationTrigger;
+import io.casehub.ops.api.deployment.PatternTrigger;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.GoalEntry;
@@ -86,7 +86,7 @@ class DeploymentAdaptiveSituationRecompilerSnapshotTest {
     }
 
     private DeploymentGoals goalsWithScaleRule() {
-        var trigger = new AdaptationTrigger("volatility-spike", 0.7, 0.5, Duration.ofMinutes(5));
+        var trigger = new PatternTrigger("volatility-spike", 0.7, 0.5, Duration.ofMinutes(5));
         var scaleAction = new AdaptationActionSpec.ScaleActionSpec("risk-agent", 1, 5);
         var ruleSpec = new AdaptationRuleSpec("scale-risk", trigger, List.of(scaleAction));
         return new DeploymentGoals(

@@ -10,7 +10,7 @@ class AdaptationRuleSpecTest {
 
     @Test
     void rejectsNullName() {
-        var trigger = new AdaptationTrigger("sit", 0.7, null, null);
+        var trigger = new PatternTrigger("sit", 0.7, null, null);
         var action = new AdaptationActionSpec.ScaleActionSpec("target", 1, 5);
         assertThrows(NullPointerException.class, () ->
             new AdaptationRuleSpec(null, trigger, List.of(action)));
@@ -18,32 +18,32 @@ class AdaptationRuleSpecTest {
 
     @Test
     void rejectsEmptyActions() {
-        var trigger = new AdaptationTrigger("sit", 0.7, null, null);
+        var trigger = new PatternTrigger("sit", 0.7, null, null);
         assertThrows(IllegalArgumentException.class, () ->
             new AdaptationRuleSpec("rule", trigger, List.of()));
     }
 
     @Test
     void triggerDeactivateBelowDefaultsToMinConfidence() {
-        var trigger = new AdaptationTrigger("sit", 0.7, null, null);
+        var trigger = new PatternTrigger("sit", 0.7, null, null);
         assertEquals(0.7, trigger.effectiveDeactivateBelow());
     }
 
     @Test
     void triggerDeactivateBelowUsesExplicitValue() {
-        var trigger = new AdaptationTrigger("sit", 0.7, 0.5, null);
+        var trigger = new PatternTrigger("sit", 0.7, 0.5, null);
         assertEquals(0.5, trigger.effectiveDeactivateBelow());
     }
 
     @Test
     void triggerRejectsMinConfidenceOfOne() {
         assertThrows(IllegalArgumentException.class, () ->
-            new AdaptationTrigger("sit", 1.0, null, null));
+            new PatternTrigger("sit", 1.0, null, null));
     }
 
     @Test
     void triggerCooldownDefaultsToZero() {
-        var trigger = new AdaptationTrigger("sit", 0.7, null, null);
+        var trigger = new PatternTrigger("sit", 0.7, null, null);
         assertEquals(Duration.ZERO, trigger.effectiveCooldown());
     }
 
