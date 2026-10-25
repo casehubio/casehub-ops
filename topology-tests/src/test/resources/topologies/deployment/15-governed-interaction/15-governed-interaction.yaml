@@ -1,0 +1,44 @@
+# Level 15: Governed Interaction
+# Methodology step: GOVERN — Negotiation Patterns
+# Prerequisites: Level 01
+# See README.md for walkthrough
+
+desiredState:
+  namespace: casehub
+  name: governed-interaction
+
+nodes:
+  coordinator:
+    type: agent
+    spec:
+      agentId: coordinator
+      name: Design Coordinator
+      slot: worker
+
+  reviewer-1:
+    type: agent
+    dependsOn: [coordinator]
+    spec:
+      agentId: reviewer-1
+      name: Reviewer Alpha
+      slot: worker
+
+  reviewer-2:
+    type: agent
+    dependsOn: [coordinator]
+    spec:
+      agentId: reviewer-2
+      name: Reviewer Beta
+      slot: worker
+
+  design-review:
+    type: channel
+    dependsOn: [coordinator, reviewer-1, reviewer-2]
+    spec:
+      name: design-review
+      semantic: APPEND
+      protocols: [NEGOTIATION]
+      protocolParticipants: [coordinator, reviewer-1, reviewer-2]
+      policyOverrides:
+        negotiation.acceptance: majority
+        negotiation.max-rounds: "3"

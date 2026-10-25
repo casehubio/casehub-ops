@@ -108,6 +108,8 @@
             <artifactId>casehub-platform-agent-langchain4j-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- TODO(#188): add langchain4j Jlama integration once artifact coordinates are confirmed -->
+        <!-- Platform prerequisite: manifest must support Jlama via langchain4j ChatModelAgentProvider -->
         <dependency>
             <groupId>io.casehub</groupId>
             <artifactId>casehub-eidos-core</artifactId>

@@ -444,6 +444,39 @@ class DeploymentCompilationTest extends TopologyTestBase {
         assertThat(graph2.nodes().keySet()).isEqualTo(graph.nodes().keySet());
         assertThat(graph2.dependencies()).isEqualTo(graph.dependencies());
     }
+// ── Level 15: Governed Interaction ────────────────────────────────────
+
+    @Test
+    void governedInteraction_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void governedInteraction_channelHasProtocols() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        var channelNode = graph.nodes().get(NodeId.of("design-review"));
+        assertThat(channelNode.spec()).isInstanceOf(io.casehub.ops.api.deployment.ChannelNodeSpec.class);
+        var channelSpec = (io.casehub.ops.api.deployment.ChannelNodeSpec) channelNode.spec();
+        assertThat(channelSpec.protocols()).containsExactly("NEGOTIATION");
+        assertThat(channelSpec.protocolParticipants()).containsExactly("coordinator", "reviewer-1", "reviewer-2");
+        assertThat(channelSpec.policyOverrides()).containsEntry("negotiation.acceptance", "majority");
+        assertThat(channelSpec.policyOverrides()).containsEntry("negotiation.max-rounds", "3");
+    }
+
+    @Test
+    void governedInteraction_channelDependsOnAgents() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("design-review")))
+                .containsExactlyInAnyOrder(NodeId.of("coordinator"), NodeId.of("reviewer-1"), NodeId.of("reviewer-2"));
+    }
+
 
     private CaseHubApplicationSpec extractAppSpec(DesiredStateGraph graph, String nodeId) {
         var node = graph.nodes().get(NodeId.of(nodeId));

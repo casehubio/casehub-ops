@@ -2,6 +2,7 @@ package io.casehub.ops.api.deployment;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.eidos.api.AgentCapability;
 import io.casehub.eidos.api.AgentDescriptor;
 import io.casehub.eidos.api.AgentDisposition;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@NodeTypeId("agent")
 public record AgentNodeSpec(
         String agentId,
         String name,

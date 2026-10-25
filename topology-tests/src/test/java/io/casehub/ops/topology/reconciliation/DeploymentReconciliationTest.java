@@ -2,9 +2,9 @@ package io.casehub.ops.topology.reconciliation;
 
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.StepOutcome;
 import io.casehub.desiredstate.api.TransitionPlan;
 import io.casehub.desiredstate.api.TransitionResult;
-import io.casehub.desiredstate.api.StepOutcome;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
 import io.casehub.ops.api.infra.InfraNodeSpec;
 import org.junit.jupiter.api.BeforeEach;
@@ -160,4 +160,43 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
         assertThat(replan.flatAdditions()).isEmpty();
         assertThat(replan.flatRemovals()).isEmpty();
     }
+// ── Level 15: Governed Interaction ────────────────────────────────────
+
+    @Test
+    void governedInteraction_compilesWithChannelProtocols() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+        var channelNode = graph.nodes().get(io.casehub.desiredstate.api.NodeId.of("design-review"));
+        assertThat(channelNode.spec()).isInstanceOf(io.casehub.ops.api.deployment.ChannelNodeSpec.class);
+        var channelSpec = (io.casehub.ops.api.deployment.ChannelNodeSpec) channelNode.spec();
+        assertThat(channelSpec.protocols()).containsExactly("NEGOTIATION");
+        assertThat(channelSpec.protocolParticipants()).containsExactly("coordinator", "reviewer-1", "reviewer-2");
+        assertThat(channelSpec.policyOverrides()).containsEntry("negotiation.acceptance", "majority");
+        assertThat(channelSpec.policyOverrides()).containsEntry("negotiation.max-rounds", "3");
+    }
+
+    @Test
+    void governedInteraction_channelDependsOnAgents() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        TransitionPlan plan = planFromEmpty(graph);
+        assertOrderedBefore(plan, "coordinator", "design-review");
+        assertOrderedBefore(plan, "reviewer-1", "design-review");
+        assertOrderedBefore(plan, "reviewer-2", "design-review");
+    }
+
+    @Test
+    void governedInteraction_executesSuccessfully() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        TransitionPlan   plan   = planFromEmpty(graph);
+        TransitionResult result = executeTransition(plan, "test-tenant");
+        assertThat(result.outcomes().values())
+                .allMatch(o -> o instanceof StepOutcome.Succeeded);
+    }
+
 }

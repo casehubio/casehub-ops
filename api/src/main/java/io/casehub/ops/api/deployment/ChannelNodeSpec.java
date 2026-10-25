@@ -7,10 +7,12 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.NodeTypeId;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@NodeTypeId("channel")
 public record ChannelNodeSpec(
         String name,
         String description,
