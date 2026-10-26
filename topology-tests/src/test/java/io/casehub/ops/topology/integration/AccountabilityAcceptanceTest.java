@@ -20,7 +20,6 @@ import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.ops.api.SpecHashStore;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.claudony.ClaudonyActualStateAdapter;
-import io.casehub.ops.claudony.ClaudonyDeploymentTarget;
 import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
