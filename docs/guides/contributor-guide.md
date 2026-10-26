@@ -20,7 +20,8 @@ api (shared types, SPIs)
  +-- container (Podman container provisioning)
  +-- claudony (claudony fleet deployment target)
  +-- app (K8s ops console, embeds engine + desiredstate runtime)
- +-- testing (shared test fixtures, no sources)
+ +-- testing (shared test fixtures: TargetEnvironment, EnvironmentAwareNodeProvisioner)
+ +-- topology-tests (topology YAML verification, multi-env integration tests)
 ```
 
 ### The SPI Quad Pattern
@@ -519,6 +520,41 @@ All domain modules use: `casehub-desiredstate` (runtime, for `DefaultDesiredStat
 
 ---
 
+## Multi-Environment Topology Testing
+
+The topology test suite supports deploying the same topology YAML to different target environments without YAML changes. Environment selection is a runtime concern via the `casehub.topology.target-environment` system property.
+
+### TargetEnvironment Abstraction (testing/)
+
+`io.casehub.ops.testing.env.TargetEnvironment` -- enum: `LOCAL`, `K8S`, `PODMAN`. `current()` reads the system property (defaults to `LOCAL`).
+
+`io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner` -- `NodeProvisioner` implementation that delegates `casehub_application` provisioning to any `ApplicationDeploymentTarget`. This generalizes the claudony-specific `ClaudonyNodeProvisioner` pattern.
+
+### Environment Wiring (topology-tests/)
+
+`io.casehub.ops.topology.env` package in topology-tests provides the heavy wiring:
+
+| Class | Purpose |
+|-------|---------|
+| `TargetEnvironmentFactory` | Creates the correct `ApplicationDeploymentTarget` per environment (claudony for LOCAL, fabric8 for K8S, Podman REST API for PODMAN) |
+| `KubernetesDeploymentTarget` | `ApplicationDeploymentTarget` using fabric8 client -- creates K8s Deployment + Service per application |
+| `K3dClusterExtension` | JUnit 5 extension managing testcontainers k3s cluster lifecycle. Injects `KubernetesClient` via `@K3dClient` annotation |
+| `PodmanEnvironmentExtension` | JUnit 5 extension managing Podman test network and container cleanup. Injects `PodmanClient` via `@PodmanEndpoint` annotation |
+
+### Maven Profiles
+
+| Profile | System property | Use case |
+|---------|----------------|----------|
+| `-Pintegration-live` | `local` (default) | Existing claudony-based integration tests |
+| `-Ptarget-k8s` | `k8s` | Deploy topology to k3s cluster via testcontainers |
+| `-Ptarget-podman` | `podman` | Deploy topology to Podman containers |
+
+### Module Placement Rationale
+
+Lightweight abstractions (`TargetEnvironment`, `EnvironmentAwareNodeProvisioner`) live in `testing/` because they depend only on `casehub-ops-api` and `casehub-desiredstate-api`. Heavy wiring (`TargetEnvironmentFactory`, lifecycle extensions, `KubernetesDeploymentTarget`) lives in `topology-tests/` where the required dependencies (claudony, container, fabric8, testcontainers) already exist.
+
+---
+
 ## Current State
 
 Active development. Key completed milestones:
@@ -533,6 +569,7 @@ Active development. Key completed milestones:
 - Credential rotation and scaling events (#51, #53, #54, #55)
 - Scaling trigger mechanism -- REST + RAS situation-driven (#56)
 - K8s-aware FaultPolicy with threshold escalation (#45)
+- Multi-environment topology deployment -- same YAML to local/K8s/Podman (#150)
 
 Open design issues: cross-domain dependency graphs (#23), deployment drift remediation strategies (#22), operational efficiency (#31), service-as-case modelling (#30).
 
@@ -553,3 +590,4 @@ Design specs and implementation plans live in the `docs/` directory:
 | `docs/superpowers/specs/2026-06-29-adaptive-ops-design.md` | Adaptive topology |
 | `docs/superpowers/specs/2026-07-05-ops-console-app-design.md` | Ops console design |
 | `docs/superpowers/specs/2026-07-06-ops-console-phase2-kubernetes-design.md` | K8s integration design |
+| `docs/specs/issue-117-deployment-profiles-bootstrap/2026-10-14-deployment-profiles-bootstrap-design.md` | Deployment profiles and bootstrap |

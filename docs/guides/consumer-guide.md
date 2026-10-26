@@ -27,7 +27,7 @@ Each domain module implements the full desiredstate SPI quad -- `GoalCompiler`, 
 | `app` | `casehub-ops-app` | Ops console: Quarkus application for K8s microservice lifecycle management. Embeds casehub-engine and casehub-desiredstate runtime. REST API, JPA entities, Flyway migrations, fabric8 K8s integration |
 | `container` | `casehub-ops-container` | Container provisioning: Podman REST API for app containers, databases, networks, volumes. `PodmanDeploymentTarget` for casehub_application deploy-via-Podman |
 | `claudony` | `casehub-ops-claudony` | Claudony fleet management: (1) `ClaudonyDeploymentTarget` — deployment module's bridge for ad-hoc app deployment via `targetId="claudony"`, (2) standalone desiredstate domain — declarative fleet management with `claudony_app` and `claudony_pool` node types, full SPI Quad |
-| `testing` | `casehub-ops-testing` | Shared test fixtures: dependency aggregator POM for `casehub-ops-api`, `casehub-desiredstate-testing`, `casehub-platform-testing`. No Java sources |
+| `testing` | `casehub-ops-testing` | Shared test fixtures: `TargetEnvironment` enum, `EnvironmentAwareNodeProvisioner` (multi-env deployment abstraction), plus dependency aggregation for `casehub-ops-api`, `casehub-desiredstate-testing`, `casehub-platform-testing` |
 
 ---
 
