@@ -5,6 +5,8 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import io.casehub.ops.testing.env.TargetEnvironment;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,6 +21,8 @@ public class ServiceClusterExtension implements BeforeAllCallback, AfterAllCallb
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
+        if (TargetEnvironment.current() != TargetEnvironment.LOCAL) return;
+
         ServiceCluster cluster = context.getRequiredTestClass()
                 .getAnnotation(ServiceCluster.class);
         if (cluster == null) return;

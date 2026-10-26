@@ -50,7 +50,7 @@ public class TargetEnvironmentFactory {
     private static PodmanDeploymentTarget createPodmanTarget() {
         String socketPath = System.getProperty(
             "casehub.container.podman.socket", "/var/run/podman/podman.sock");
-        Vertx vertx = Vertx.vertx();
+        Vertx vertx = Vertx.vertx(new io.vertx.core.VertxOptions().setPreferNativeTransport(true));
         WebClient webClient = WebClient.create(vertx);
         PodmanClient podmanClient = new PodmanClient(webClient,
             SocketAddress.domainSocketAddress(socketPath));
