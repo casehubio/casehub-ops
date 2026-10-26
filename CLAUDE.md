@@ -27,6 +27,7 @@ mvn --batch-mode install
 mvn --batch-mode -o test -pl app      # app/ tests — offline avoids GitHub Packages metadata hang
 mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
 mvn --batch-mode test -pl topology-tests -Pintegration-live  # real-instance integration tests (requires Docker + claudony jar)
+mvn --batch-mode test -pl topology-tests -Pintegration-live -Dcasehub.topology.allow-image-fallback=true  # multi-env tests with nginx:alpine fallback (no pre-built images needed)
 ```
 
 ## Module Structure

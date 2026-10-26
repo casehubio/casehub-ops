@@ -540,6 +540,39 @@ The topology test suite supports deploying the same topology YAML to different t
 | `KubernetesDeploymentTarget` | `ApplicationDeploymentTarget` using fabric8 client -- creates K8s Deployment + Service per application |
 | `K3dClusterExtension` | JUnit 5 extension managing testcontainers k3s cluster lifecycle. Injects `KubernetesClient` via `@K3dClient` annotation |
 | `PodmanEnvironmentExtension` | JUnit 5 extension managing Podman test network and container cleanup. Injects `PodmanClient` via `@PodmanEndpoint` annotation |
+| `ImageResolver` (testing/) | Resolves container image refs per service. Checks local Docker daemon; fails fast if missing (unless `-Dcasehub.topology.allow-image-fallback=true`) |
+
+### Container Image Build
+
+Multi-env tests deploy real CaseHub service images when available. Currently only claudony has a container image.
+
+**Building the claudony image:**
+
+```bash
+# From the casehub family root:
+cd claudony
+mvn -pl app package -DskipTests
+docker build -t casehubio/claudony:0.4-SNAPSHOT .
+```
+
+**Running multi-env tests:**
+
+```bash
+# K8S (requires Docker for k3s testcontainer):
+mvn test -pl topology-tests -Pintegration-live -Dcasehub.topology.target-environment=k8s
+
+# Podman (requires running Podman socket):
+mvn test -pl topology-tests -Pintegration-live -Dcasehub.topology.target-environment=podman
+
+# Without building images (degraded mode -- nginx:alpine fallback):
+mvn test -pl topology-tests -Pintegration-live -Dcasehub.topology.allow-image-fallback=true
+```
+
+**Adding images for new services:**
+
+1. Create a `Dockerfile` in the service repo root (see `claudony/Dockerfile` as reference)
+2. Build convention: `casehubio/<service>:${project.version}`
+3. `ImageResolver` auto-discovers locally built images -- no ops repo config needed
 
 ### Maven Profiles
 

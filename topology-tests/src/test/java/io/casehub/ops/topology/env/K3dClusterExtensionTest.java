@@ -14,4 +14,11 @@ class K3dClusterExtensionTest {
         System.clearProperty("casehub.topology.target-environment");
         assertThat(TargetEnvironment.current()).isEqualTo(TargetEnvironment.LOCAL);
     }
+
+    @Test
+    void buildCtrImportCommandFormatsCorrectly() {
+        String[] cmd = K3dClusterExtension.buildCtrImportCommand("/tmp/claudony.tar");
+        assertThat(cmd).containsExactly("ctr", "images", "import", "/tmp/claudony.tar");
+    }
+
 }

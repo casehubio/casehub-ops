@@ -1,6 +1,9 @@
 package io.casehub.ops.topology.env;
 
+import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.TargetEnvironment;
+import io.casehub.ops.topology.integration.Service;
+import io.casehub.ops.topology.integration.ServiceCluster;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -29,21 +32,23 @@ public class K3dClusterExtension implements BeforeAllCallback, AfterAllCallback 
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        if (TargetEnvironment.current() != TargetEnvironment.K8S) return;
+        if (TargetEnvironment.current() != TargetEnvironment.K8S) {return;}
 
         K3sContainer k3s = new K3sContainer(DockerImageName.parse("rancher/k3s:v1.31.2-k3s1"));
         k3s.start();
         context.getStore(NAMESPACE).put("k3s", k3s);
 
-        String kubeConfig = k3s.getKubeConfigYaml();
-        Config config = Config.fromKubeconfig(kubeConfig);
-        KubernetesClient client = new KubernetesClientBuilder().withConfig(config).build();
+        String           kubeConfig = k3s.getKubeConfigYaml();
+        Config           config     = Config.fromKubeconfig(kubeConfig);
+        KubernetesClient client     = new KubernetesClientBuilder().withConfig(config).build();
         context.getStore(NAMESPACE).put("client", client);
 
         client.namespaces().resource(
-            new NamespaceBuilder().withNewMetadata()
-                .withName(TEST_NAMESPACE).endMetadata().build()
-        ).create();
+                new NamespaceBuilder().withNewMetadata()
+                                      .withName(TEST_NAMESPACE).endMetadata().build()
+                                    ).create();
+
+        importImages(k3s, context);
 
         injectClient(context.getRequiredTestClass(), client);
     }
@@ -58,6 +63,51 @@ public class K3dClusterExtension implements BeforeAllCallback, AfterAllCallback 
             .remove("k3s", K3sContainer.class);
         if (k3s != null) k3s.stop();
     }
+
+    static String[] buildCtrImportCommand(String tarPath) {
+        return new String[]{"ctr", "images", "import", tarPath};
+    }
+
+    private void importImages(K3sContainer k3s, ExtensionContext context) {
+        ServiceCluster cluster = context.getRequiredTestClass()
+                                        .getAnnotation(ServiceCluster.class);
+        if (cluster == null) {return;}
+
+        boolean allowFallback = Boolean.getBoolean(ImageResolver.FALLBACK_PROPERTY);
+        String  version       = System.getProperty("casehub.version", "0.4-SNAPSHOT");
+
+        for (Service svc : cluster.services()) {
+            String imageRef = ImageResolver.resolve(svc.name(), version, allowFallback);
+            if (ImageResolver.FALLBACK_IMAGE.equals(imageRef)) {
+                System.out.printf("  [k3d] skipping import for %s (using fallback)%n", svc.name());
+                continue;
+            }
+            java.nio.file.Path tarFile = null;
+            try {
+                tarFile = java.nio.file.Files.createTempFile(svc.name(), ".tar");
+                Process save = new ProcessBuilder("docker", "save", imageRef, "-o", tarFile.toString())
+                                       .redirectErrorStream(true).start();
+                if (save.waitFor() != 0) {
+                    throw new IllegalStateException("docker save failed for " + imageRef);
+                }
+                k3s.copyFileToContainer(
+                        org.testcontainers.utility.MountableFile.forHostPath(tarFile),
+                        "/tmp/" + svc.name() + ".tar");
+                var result = k3s.execInContainer(buildCtrImportCommand("/tmp/" + svc.name() + ".tar"));
+                if (result.getExitCode() != 0) {
+                    throw new IllegalStateException("ctr import failed: " + result.getStderr());
+                }
+                System.out.printf("  [k3d] imported %s into k3s containerd%n", imageRef);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to import image " + imageRef + " into k3s", e);
+            } finally {
+                if (tarFile != null) {
+                    try {java.nio.file.Files.deleteIfExists(tarFile);} catch (java.io.IOException ignored) {}
+                }
+            }
+        }
+    }
+
 
     private void injectClient(Class<?> testClass, KubernetesClient client)
             throws IllegalAccessException {

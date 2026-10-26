@@ -18,6 +18,7 @@ import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
+import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.casehub.ops.topology.integration.FleetLlmExerciser;
@@ -55,10 +56,10 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
 
-        ApplicationDeploymentTarget target = createTargetForEnv(env);
-        var provisioner = new EnvironmentAwareNodeProvisioner(target);
-        var planner = new TransitionPlanner();
-        var plan = planner.plan(graph, new ActualState(Map.of()));
+        ApplicationDeploymentTarget target      = createTargetForEnv(env);
+        var                         provisioner = new EnvironmentAwareNodeProvisioner(target);
+        var                         planner     = new TransitionPlanner();
+        var                         plan        = planner.plan(graph, new ActualState(Map.of()));
 
         assertThat(plan.flatAdditions())
                 .as("Plan should have additions for all 4 nodes")
@@ -70,19 +71,23 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                 new NoOpHumanNodeHandler(),
                 new NoOpPendingApprovalHandler(),
                 (step, tid) -> new StepOutcome.Succeeded());
-        var executor = new SimpleTransitionExecutor(nodeExecutor);
-        TransitionResult result = executor.execute(plan, "multi-env-test");
+        var              executor = new SimpleTransitionExecutor(nodeExecutor);
+        TransitionResult result   = executor.execute(plan, "multi-env-test");
 
         if (env == TargetEnvironment.LOCAL) {
             assertThat(result.outcomes().values())
                     .as("All transition steps should succeed on %s", env)
                     .allMatch(o -> o instanceof StepOutcome.Succeeded);
         } else {
+            boolean allowFallback = Boolean.getBoolean(ImageResolver.FALLBACK_PROPERTY);
+            String  version       = System.getProperty("casehub.version", "0.4-SNAPSHOT");
             for (DesiredNode node : graph.nodes().values()) {
-                CaseHubApplicationSpec appSpec = extractAppSpec(node);
-                DeployResult deployResult = target.deploy("nginx:alpine",
-                        new DeployConfig(appSpec.applicationId(), appSpec.replicas(), Map.of(), Map.of()));
-                System.out.printf("  [multi-env] deploy(%s) → %s%n", appSpec.applicationId(), deployResult);
+                CaseHubApplicationSpec appSpec  = extractAppSpec(node);
+                String                 imageRef = ImageResolver.resolve(appSpec.applicationId(), version, allowFallback);
+                DeployResult deployResult = target.deploy(imageRef,
+                                                          new DeployConfig(appSpec.applicationId(), appSpec.replicas(), Map.of(), Map.of()));
+                System.out.printf("  [multi-env] deploy(%s, image=%s) → %s%n",
+                                  appSpec.applicationId(), imageRef, deployResult);
                 assertThat(deployResult)
                         .as("Deploy %s on %s", appSpec.applicationId(), env)
                         .isInstanceOf(DeployResult.Success.class);
@@ -91,7 +96,7 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
 
         for (DesiredNode node : graph.nodes().values()) {
             CaseHubApplicationSpec appSpec = extractAppSpec(node);
-            NodeStatus status = target.status(appSpec.applicationId());
+            NodeStatus             status  = target.status(appSpec.applicationId());
             System.out.printf("  [multi-env] status(%s) → %s%n", appSpec.applicationId(), status);
             assertThat(status)
                     .as("Status of %s on %s after deployment", appSpec.applicationId(), env)
@@ -104,12 +109,12 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
             try {
                 FleetLlmExerciser.LlmResponse llmResponse =
                         FleetLlmExerciser.exercise("my-llm",
-                                extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
+                                                   extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
                 FleetLlmExerciser.assertDomainRelevant(llmResponse);
                 System.out.printf("  [multi-env] LLM exercise passed on LOCAL%n");
             } catch (Exception e) {
                 System.out.printf("  [multi-env] LLM exercise skipped — %s: %s%n",
-                        e.getClass().getSimpleName(), e.getMessage());
+                                  e.getClass().getSimpleName(), e.getMessage());
             }
         }
 
@@ -124,11 +129,10 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                         .as("K3dClient must be injected for K8S environment")
                         .isNotNull();
                 yield new KubernetesDeploymentTarget(
-                        k3dClient, K3dClusterExtension.TEST_NAMESPACE, "nginx:alpine");
+                        k3dClient, K3dClusterExtension.TEST_NAMESPACE, null);
             }
-            case PODMAN -> new ImageOverridingTarget(
-                    TargetEnvironmentFactory.createTarget(TargetEnvironment.PODMAN, Map.of()),
-                    "nginx:alpine");
+            case PODMAN -> TargetEnvironmentFactory.createTarget(
+                    TargetEnvironment.PODMAN, Map.of());
         };
     }
 
