@@ -22,8 +22,7 @@ public class TargetEnvironmentFactory {
         return switch (env) {
             case LOCAL -> createClaudonyTarget(
                 endpoints.getOrDefault("claudony", "http://localhost:8080"));
-            case K8S -> throw new UnsupportedOperationException(
-                "K8S target — use KubernetesDeploymentTarget directly (see #152)");
+            case K8S -> createK8sTarget(endpoints);
             case PODMAN -> createPodmanTarget();
         };
     }
@@ -38,6 +37,14 @@ public class TargetEnvironmentFactory {
         mapper.registerModule(new JavaTimeModule());
         HttpClaudonyFleetClient client = new HttpClaudonyFleetClient(url, mapper);
         return new ClaudonyDeploymentTarget(client);
+    }
+
+    private static KubernetesDeploymentTarget createK8sTarget(Map<String, String> endpoints) {
+        io.fabric8.kubernetes.client.KubernetesClient client =
+            new io.fabric8.kubernetes.client.KubernetesClientBuilder().build();
+        String namespace = endpoints.getOrDefault("k8s-namespace", "casehub-test");
+        String imageOverride = endpoints.get("k8s-image-override");
+        return new KubernetesDeploymentTarget(client, namespace, imageOverride);
     }
 
     private static PodmanDeploymentTarget createPodmanTarget() {
