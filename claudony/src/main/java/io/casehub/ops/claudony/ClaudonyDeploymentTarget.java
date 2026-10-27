@@ -18,7 +18,7 @@ import java.util.Map;
 public class ClaudonyDeploymentTarget implements ApplicationDeploymentTarget {
 
     private final ClaudonyFleetClient fleetClient;
-    private final Map<String, String> serviceUrls = new HashMap<>();
+    private final Map<String, String> serviceUrls = new java.util.concurrent.ConcurrentHashMap<>();
 
 
     @Inject

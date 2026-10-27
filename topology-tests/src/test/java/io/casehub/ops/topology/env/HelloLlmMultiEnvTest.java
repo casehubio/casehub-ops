@@ -4,7 +4,6 @@ import io.casehub.desiredstate.api.ActualState;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
-import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.desiredstate.api.StepOutcome;
 import io.casehub.desiredstate.api.TransitionResult;
 import io.casehub.desiredstate.runtime.DefaultNodeProvisionerRouter;
@@ -19,6 +18,7 @@ import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.ImageResolver;
+import io.casehub.ops.testing.env.ServiceHealthWaiter;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.casehub.ops.topology.integration.FleetLlmExerciser;
@@ -56,36 +56,89 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
 
-        ApplicationDeploymentTarget target      = createTargetForEnv(env);
-        var                         provisioner = new EnvironmentAwareNodeProvisioner(target);
-        var                         planner     = new TransitionPlanner();
-        var                         plan        = planner.plan(graph, new ActualState(Map.of()));
+        ApplicationDeploymentTarget target = createTargetForEnv(env);
+        try {
+            deployAllToTarget(graph, target, env);
 
-        assertThat(plan.flatAdditions())
-                .as("Plan should have additions for all 4 nodes")
-                .hasSize(4);
+            for (DesiredNode node : graph.nodes().values()) {
+                CaseHubApplicationSpec     appSpec = extractAppSpec(node);
+                java.util.Optional<String> url     = target.serviceUrl(appSpec.applicationId());
+                System.out.printf("  [multi-env] serviceUrl(%s) → %s%n",
+                                  appSpec.applicationId(), url.orElse("empty"));
+                assertThat(url)
+                        .as("Service URL for %s on %s", appSpec.applicationId(), env)
+                        .isPresent();
 
-        var router = new DefaultNodeProvisionerRouter(List.of(provisioner));
-        var nodeExecutor = new NodeStepExecutor(
-                router,
-                new NoOpHumanNodeHandler(),
-                new NoOpPendingApprovalHandler(),
-                (step, tid) -> new StepOutcome.Succeeded());
-        var              executor = new SimpleTransitionExecutor(nodeExecutor);
-        TransitionResult result   = executor.execute(plan, "multi-env-test");
+                ServiceHealthWaiter.waitForReady(url.get(),
+                                                 new DeployConfig(appSpec.applicationId(), appSpec.replicas(),
+                                                                  Map.of(), Map.of()).healthPath(),
+                                                 java.time.Duration.ofSeconds(60));
 
+                assertHttpOk(url.get() + "/q/health/ready");
+                System.out.printf("  [multi-env] %s healthy on %s%n",
+                                  appSpec.applicationId(), env);
+            }
+
+            if (env == TargetEnvironment.LOCAL) {
+                try {
+                    FleetLlmExerciser.LlmResponse llmResponse =
+                            FleetLlmExerciser.exercise("my-llm",
+                                                       extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
+                    FleetLlmExerciser.assertDomainRelevant(llmResponse);
+                    System.out.printf("  [multi-env] LLM exercise passed on LOCAL%n");
+                } catch (Exception e) {
+                    System.out.printf("  [multi-env] LLM exercise skipped — %s: %s%n",
+                                      e.getClass().getSimpleName(), e.getMessage());
+                }
+            }
+        } finally {
+            undeploy(graph, target);
+            target.close();
+        }
+    }
+
+    private void deployAllToTarget(DesiredStateGraph graph,
+                                   ApplicationDeploymentTarget target,
+                                   TargetEnvironment env) {
         if (env == TargetEnvironment.LOCAL) {
+            var provisioner = new EnvironmentAwareNodeProvisioner(target);
+            var planner     = new TransitionPlanner();
+            var plan        = planner.plan(graph, new ActualState(Map.of()));
+
+            assertThat(plan.flatAdditions())
+                    .as("Plan should have additions for all 4 nodes")
+                    .hasSize(4);
+
+            var router = new DefaultNodeProvisionerRouter(List.of(provisioner));
+            var nodeExecutor = new NodeStepExecutor(
+                    router,
+                    new NoOpHumanNodeHandler(),
+                    new NoOpPendingApprovalHandler(),
+                    (step, tid) -> new StepOutcome.Succeeded());
+            var              executor = new SimpleTransitionExecutor(nodeExecutor);
+            TransitionResult result   = executor.execute(plan, "multi-env-test");
+
             assertThat(result.outcomes().values())
                     .as("All transition steps should succeed on %s", env)
                     .allMatch(o -> o instanceof StepOutcome.Succeeded);
+
+            if (target instanceof io.casehub.ops.claudony.ClaudonyDeploymentTarget claudony
+                && claudonyUrl != null) {
+                for (DesiredNode node : graph.nodes().values()) {
+                    CaseHubApplicationSpec appSpec = extractAppSpec(node);
+                    claudony.registerServiceUrl(appSpec.applicationId(), claudonyUrl);
+                }
+            }
         } else {
             boolean allowFallback = Boolean.getBoolean(ImageResolver.FALLBACK_PROPERTY);
             String  version       = System.getProperty("casehub.version", "0.4-SNAPSHOT");
             for (DesiredNode node : graph.nodes().values()) {
-                CaseHubApplicationSpec appSpec  = extractAppSpec(node);
-                String                 imageRef = ImageResolver.resolve(appSpec.applicationId(), version, allowFallback);
+                CaseHubApplicationSpec appSpec = extractAppSpec(node);
+                String imageRef = ImageResolver.resolve(
+                        appSpec.applicationId(), version, allowFallback);
                 DeployResult deployResult = target.deploy(imageRef,
-                                                          new DeployConfig(appSpec.applicationId(), appSpec.replicas(), Map.of(), Map.of()));
+                                                          new DeployConfig(appSpec.applicationId(), appSpec.replicas(),
+                                                                           Map.of(), Map.of()));
                 System.out.printf("  [multi-env] deploy(%s, image=%s) → %s%n",
                                   appSpec.applicationId(), imageRef, deployResult);
                 assertThat(deployResult)
@@ -93,32 +146,6 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                         .isInstanceOf(DeployResult.Success.class);
             }
         }
-
-        for (DesiredNode node : graph.nodes().values()) {
-            CaseHubApplicationSpec appSpec = extractAppSpec(node);
-            NodeStatus             status  = target.status(appSpec.applicationId());
-            System.out.printf("  [multi-env] status(%s) → %s%n", appSpec.applicationId(), status);
-            assertThat(status)
-                    .as("Status of %s on %s after deployment", appSpec.applicationId(), env)
-                    .isNotEqualTo(NodeStatus.ABSENT);
-        }
-
-        System.out.printf("  [multi-env] All 4 nodes deployed successfully on %s%n", env);
-
-        if (env == TargetEnvironment.LOCAL) {
-            try {
-                FleetLlmExerciser.LlmResponse llmResponse =
-                        FleetLlmExerciser.exercise("my-llm",
-                                                   extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-                FleetLlmExerciser.assertDomainRelevant(llmResponse);
-                System.out.printf("  [multi-env] LLM exercise passed on LOCAL%n");
-            } catch (Exception e) {
-                System.out.printf("  [multi-env] LLM exercise skipped — %s: %s%n",
-                                  e.getClass().getSimpleName(), e.getMessage());
-            }
-        }
-
-        undeploy(graph, target);
     }
 
     private ApplicationDeploymentTarget createTargetForEnv(TargetEnvironment env) {
@@ -134,6 +161,20 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
             case PODMAN -> TargetEnvironmentFactory.createTarget(
                     TargetEnvironment.PODMAN, Map.of());
         };
+    }
+
+    private static void assertHttpOk(String url) throws IOException {
+        java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
+                                                  java.net.URI.create(url).toURL().openConnection();
+        conn.setConnectTimeout(2000);
+        conn.setReadTimeout(2000);
+        try {
+            assertThat(conn.getResponseCode())
+                    .as("HTTP GET %s", url)
+                    .isEqualTo(200);
+        } finally {
+            conn.disconnect();
+        }
     }
 
     private void undeploy(DesiredStateGraph graph, ApplicationDeploymentTarget target) {
