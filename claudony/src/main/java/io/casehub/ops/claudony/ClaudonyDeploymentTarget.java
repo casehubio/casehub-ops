@@ -18,6 +18,8 @@ import java.util.Map;
 public class ClaudonyDeploymentTarget implements ApplicationDeploymentTarget {
 
     private final ClaudonyFleetClient fleetClient;
+    private final Map<String, String> serviceUrls = new HashMap<>();
+
 
     @Inject
     public ClaudonyDeploymentTarget(final ClaudonyFleetClient fleetClient) {
@@ -90,6 +92,16 @@ public class ClaudonyDeploymentTarget implements ApplicationDeploymentTarget {
             return new DeployResult.Failed("Claudony resume failed: " + e.getMessage());
         }
     }
+
+    public void registerServiceUrl(String instanceId, String url) {
+        serviceUrls.put(instanceId, url);
+    }
+
+    @Override
+    public java.util.Optional<String> serviceUrl(String instanceId) {
+        return java.util.Optional.ofNullable(serviceUrls.get(instanceId));
+    }
+
 
     private DeployResult deployAsUpdate(final String name, final ClaudonyAppSpec spec) {
         try {
