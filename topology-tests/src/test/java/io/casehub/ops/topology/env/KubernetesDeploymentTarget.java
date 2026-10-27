@@ -22,6 +22,8 @@ public class KubernetesDeploymentTarget implements ApplicationDeploymentTarget {
     private final KubernetesClient client;
     private final String namespace;
     private final String imageOverride;
+    private final Map<String, io.fabric8.kubernetes.client.LocalPortForward> portForwards = new java.util.HashMap<>();
+
 
     public KubernetesDeploymentTarget(KubernetesClient client,
                                        String namespace,
@@ -112,5 +114,31 @@ public class KubernetesDeploymentTarget implements ApplicationDeploymentTarget {
         return s == NodeStatus.PRESENT
             ? new HealthCheckResult.Healthy(instanceId)
             : new HealthCheckResult.Unhealthy(instanceId, "Status: " + s);
+    }
+
+    @Override
+    public java.util.Optional<String> serviceUrl(String instanceId) {
+        io.fabric8.kubernetes.client.LocalPortForward existing = portForwards.get(instanceId);
+        if (existing != null) {
+            return java.util.Optional.of("http://localhost:" + existing.getLocalPort());
+        }
+        try {
+            io.fabric8.kubernetes.client.LocalPortForward pf = client.services()
+                                                                     .inNamespace(namespace)
+                                                                     .withName(instanceId)
+                                                                     .portForward(8080);
+            portForwards.put(instanceId, pf);
+            return java.util.Optional.of("http://localhost:" + pf.getLocalPort());
+        } catch (Exception e) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    @Override
+    public void close() {
+        for (io.fabric8.kubernetes.client.LocalPortForward pf : portForwards.values()) {
+            try {pf.close();} catch (java.io.IOException ignored) {}
+        }
+        portForwards.clear();
     }
 }

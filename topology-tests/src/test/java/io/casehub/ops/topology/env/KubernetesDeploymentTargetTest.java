@@ -94,4 +94,14 @@ class KubernetesDeploymentTargetTest {
         var dep = client.apps().deployments().inNamespace("test").withName("my-app").get();
         assertThat(dep.getSpec().getReplicas()).isEqualTo(3);
     }
+
+    @Test
+    void serviceUrl_returnsEmptyBeforeDeploy() {
+        assertThat(target.serviceUrl("nonexistent")).isEmpty();
+    }
+
+    @Test
+    void close_succeedsWithNoPortForwards() {
+        target.close();
+    }
 }
