@@ -30,7 +30,7 @@ public class PodmanDeploymentTarget implements ApplicationDeploymentTarget {
             var env = new HashMap<String, String>();
             config.config().forEach((k, v) -> env.put(k, String.valueOf(v)));
             var request = new PodmanClient.CreateContainerRequest(
-                    config.applicationId(), imageRef, java.util.Map.of(), env);
+                    config.applicationId(), imageRef, java.util.Map.of(8080, 0), env);
             var containerId = podmanClient.createContainer(request).await().indefinitely();
             podmanClient.startContainer(containerId).await().indefinitely();
             return new DeployResult.Success(containerId);
@@ -72,4 +72,18 @@ public class PodmanDeploymentTarget implements ApplicationDeploymentTarget {
             ? new HealthCheckResult.Healthy(instanceId)
             : new HealthCheckResult.Unhealthy(instanceId, "Container not running");
     }
+
+    @Override
+    public java.util.Optional<String> serviceUrl(String instanceId) {
+        try {
+            Integer hostPort = podmanClient.getMappedPort(instanceId, 8080)
+                                           .await().indefinitely();
+            return hostPort != null
+                   ? java.util.Optional.of("http://localhost:" + hostPort)
+                   : java.util.Optional.empty();
+        } catch (Exception e) {
+            return java.util.Optional.empty();
+        }
+    }
+
 }

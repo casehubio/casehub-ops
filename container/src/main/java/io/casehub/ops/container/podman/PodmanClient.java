@@ -3,17 +3,16 @@ package io.casehub.ops.container.podman;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.BackPressureStrategy;
-import io.vertx.core.parsetools.JsonEventType;
-import io.vertx.core.parsetools.JsonParser;
-import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.core.parsetools.JsonEventType;
+import io.vertx.core.parsetools.JsonParser;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.codec.BodyCodec;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -156,6 +155,21 @@ public class PodmanClient {
     public Uni<Void> pullImage(String image) {
         return toUni(post("/images/pull").addQueryParam("reference", image).send()).replaceWithVoid();
     }
+
+    public Uni<Integer> getMappedPort(String nameOrId, int containerPort) {
+        return toUni(get("/containers/" + nameOrId + "/json").send())
+                       .map(resp -> {
+                           var body            = new JsonObject(resp.bodyAsString());
+                           var networkSettings = body.getJsonObject("NetworkSettings");
+                           if (networkSettings == null) {return null;}
+                           var ports = networkSettings.getJsonObject("Ports");
+                           if (ports == null) {return null;}
+                           var bindings = ports.getJsonArray(containerPort + "/tcp");
+                           if (bindings == null || bindings.isEmpty()) {return null;}
+                           return Integer.parseInt(bindings.getJsonObject(0).getString("HostPort"));
+                       });
+    }
+
 
     public Multi<JsonObject> events(String type) {
         return Multi.createFrom().<JsonObject>emitter(emitter -> {
