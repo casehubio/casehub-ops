@@ -23,8 +23,8 @@ class KubernetesDeploymentTargetTest {
     @BeforeEach
     void setUp() {
         client.namespaces().resource(
-            new NamespaceBuilder().withNewMetadata().withName("test").endMetadata().build()
-        ).create();
+                new NamespaceBuilder().withNewMetadata().withName("test").endMetadata().build()
+                                    ).create();
         target = new KubernetesDeploymentTarget(client, "test", null);
     }
 
@@ -41,9 +41,44 @@ class KubernetesDeploymentTargetTest {
 
         assertThat(result).isInstanceOf(DeployResult.Success.class);
         assertThat(client.apps().deployments().inNamespace("test").withName("my-app").get())
-            .isNotNull();
-        assertThat(client.services().inNamespace("test").withName("my-app").get())
-            .isNotNull();
+                .isNotNull();
+        var svc = client.services().inNamespace("test").withName("my-app").get();
+        assertThat(svc).isNotNull();
+        assertThat(svc.getSpec().getType()).isEqualTo("NodePort");
+    }
+
+    @Test
+    void deploy_assignsDeterministicNodePort() {
+        var config = new DeployConfig("my-app", 1, Map.of(), Map.of());
+        target.deploy("casehubio/my-app:latest", config);
+
+        var svc      = client.services().inNamespace("test").withName("my-app").get();
+        int nodePort = svc.getSpec().getPorts().get(0).getNodePort();
+        assertThat(nodePort).isBetween(30080, 30099);
+        assertThat(nodePort).isEqualTo(KubernetesDeploymentTarget.assignNodePort("my-app"));
+    }
+
+    @Test
+    void serviceUrl_returnsNodePortUrl() {
+        var config = new DeployConfig("my-app", 1, Map.of(), Map.of());
+        target.deploy("casehubio/my-app:latest", config);
+
+        var url = target.serviceUrl("my-app");
+        assertThat(url).isPresent();
+        int expectedPort = KubernetesDeploymentTarget.assignNodePort("my-app");
+        assertThat(url.get()).isEqualTo("http://localhost:" + expectedPort);
+    }
+
+    @Test
+    void serviceUrl_usesNodeHostAndPortMappings() {
+        var mappings = Map.of(KubernetesDeploymentTarget.assignNodePort("my-app"), 9999);
+        target = new KubernetesDeploymentTarget(client, "test", null, "k3s-host", mappings);
+        var config = new DeployConfig("my-app", 1, Map.of(), Map.of());
+        target.deploy("casehubio/my-app:latest", config);
+
+        var url = target.serviceUrl("my-app");
+        assertThat(url).isPresent();
+        assertThat(url.get()).isEqualTo("http://k3s-host:9999");
     }
 
     @Test
@@ -55,7 +90,7 @@ class KubernetesDeploymentTargetTest {
 
         assertThat(result).isInstanceOf(DeployResult.Success.class);
         assertThat(client.apps().deployments().inNamespace("test").withName("my-app").get())
-            .isNull();
+                .isNull();
     }
 
     @Test
@@ -72,7 +107,7 @@ class KubernetesDeploymentTargetTest {
 
         var dep = client.apps().deployments().inNamespace("test").withName("my-app").get();
         assertThat(dep.getSpec().getTemplate().getSpec().getContainers().get(0).getImage())
-            .isEqualTo("override:latest");
+                .isEqualTo("override:latest");
     }
 
     @Test
@@ -81,7 +116,7 @@ class KubernetesDeploymentTargetTest {
 
         target.deploy("casehubio/my-app:latest", config);
 
-        var dep = client.apps().deployments().inNamespace("test").withName("my-app").get();
+        var dep     = client.apps().deployments().inNamespace("test").withName("my-app").get();
         var envVars = dep.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
         assertThat(envVars).anyMatch(e -> "MY_VAR".equals(e.getName()) && "my-value".equals(e.getValue()));
     }
@@ -102,7 +137,22 @@ class KubernetesDeploymentTargetTest {
     }
 
     @Test
-    void close_succeedsWithNoPortForwards() {
+    void close_succeeds() {
         target.close();
+    }
+
+    @Test
+    void assignNodePort_isDeterministic() {
+        int port1 = KubernetesDeploymentTarget.assignNodePort("my-app");
+        int port2 = KubernetesDeploymentTarget.assignNodePort("my-app");
+        assertThat(port1).isEqualTo(port2);
+    }
+
+    @Test
+    void assignNodePort_isInRange() {
+        for (String name : java.util.List.of("a", "b", "c", "engine", "eidos", "manifest")) {
+            int port = KubernetesDeploymentTarget.assignNodePort(name);
+            assertThat(port).isBetween(30080, 30099);
+        }
     }
 }

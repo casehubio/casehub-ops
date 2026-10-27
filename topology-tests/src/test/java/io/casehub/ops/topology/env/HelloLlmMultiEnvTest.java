@@ -51,6 +51,11 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
 
     @K3dClusterExtension.K3dClient
     static io.fabric8.kubernetes.client.KubernetesClient k3dClient;
+    @K3dClusterExtension.K3dNodeHost
+    static String                                        k3dNodeHost;
+    @K3dClusterExtension.K3dPortMappings
+    static java.util.Map<Integer, Integer>               k3dPortMappings;
+
 
     @Test
     void deploysTopologyViaTransitionPlanner() throws IOException {
@@ -160,7 +165,8 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                         .as("K3dClient must be injected for K8S environment")
                         .isNotNull();
                 yield new KubernetesDeploymentTarget(
-                        k3dClient, K3dClusterExtension.TEST_NAMESPACE, null);
+                        k3dClient, K3dClusterExtension.TEST_NAMESPACE, null,
+                        k3dNodeHost, k3dPortMappings != null ? k3dPortMappings : Map.of());
             }
             case PODMAN -> TargetEnvironmentFactory.createTarget(
                     TargetEnvironment.PODMAN, Map.of());
