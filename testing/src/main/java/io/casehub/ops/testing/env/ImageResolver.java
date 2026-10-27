@@ -70,7 +70,12 @@ public final class ImageResolver {
             Process proc = new ProcessBuilder("docker", "images", "-q", imageRef)
                                    .redirectErrorStream(true).start();
             String output = new String(proc.getInputStream().readAllBytes()).trim();
-            int    exit   = proc.waitFor();
+            boolean finished = proc.waitFor(5, java.util.concurrent.TimeUnit.MINUTES);
+            if (!finished) {
+                proc.destroyForcibly();
+                return false;
+            }
+            int exit = proc.exitValue();
             return exit == 0 && !output.isEmpty();
         } catch (Exception e) {
             return false;
@@ -81,8 +86,16 @@ public final class ImageResolver {
         try {
             Process proc = new ProcessBuilder("docker", "pull", imageRef)
                                    .redirectErrorStream(true).start();
-            String output = new String(proc.getInputStream().readAllBytes()).trim();
-            int    exit   = proc.waitFor();
+            java.util.concurrent.Future<String> outputFuture =
+                    java.util.concurrent.Executors.newSingleThreadExecutor().submit(
+                            () -> new String(proc.getInputStream().readAllBytes()).trim());
+            boolean finished = proc.waitFor(5, java.util.concurrent.TimeUnit.MINUTES);
+            if (!finished) {
+                proc.destroyForcibly();
+                return false;
+            }
+            String output = outputFuture.get(10, java.util.concurrent.TimeUnit.SECONDS);
+            int exit = proc.exitValue();
             if (exit == 0) {
                 System.out.printf("  [image-resolver] pulled %s (digest: %s)%n",
                                   imageRef, extractDigest(output));
@@ -95,9 +108,16 @@ public final class ImageResolver {
 
     private static void tagImage(String source, String target) {
         try {
-            new ProcessBuilder("docker", "tag", source, target)
-                    .redirectErrorStream(true).start().waitFor();
-        } catch (Exception ignored) {}
+            Process proc = new ProcessBuilder("docker", "tag", source, target)
+                    .redirectErrorStream(true).start();
+            int exit = proc.waitFor();
+            if (exit != 0) {
+                System.err.printf("  [image-resolver] docker tag %s → %s failed (exit %d)%n",
+                        source, target, exit);
+            }
+        } catch (Exception e) {
+            System.err.printf("  [image-resolver] docker tag failed: %s%n", e.getMessage());
+        }
     }
 
     private static String extractDigest(String pullOutput) {

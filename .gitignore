@@ -1,4 +1,5 @@
 target/
+!**/src/**/target/
 *.class
 *.jar
 *.log

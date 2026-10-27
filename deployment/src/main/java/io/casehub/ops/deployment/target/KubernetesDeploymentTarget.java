@@ -149,7 +149,6 @@ public class KubernetesDeploymentTarget implements ApplicationDeploymentTarget {
     public void close() {}
 
     public static int assignNodePort(String serviceName) {
-        int hash = Math.abs(serviceName.hashCode());
-        return 30080 + (hash % 20);
+        return 30080 + ((serviceName.hashCode() & 0x7FFFFFFF) % 20);
     }
 }
