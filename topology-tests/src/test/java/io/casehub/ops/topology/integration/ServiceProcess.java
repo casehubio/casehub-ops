@@ -1,10 +1,10 @@
 package io.casehub.ops.topology.integration;
 
+import io.casehub.ops.testing.env.ServiceHealthWaiter;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.HttpURLConnection;
 import java.net.ServerSocket;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -98,32 +98,20 @@ public class ServiceProcess {
     }
 
     private void waitForHealth() {
-        String healthUrl = baseUrl() + "/q/health/ready";
-        long deadline = System.currentTimeMillis() + 60_000;
-        while (System.currentTimeMillis() < deadline) {
+        try {
+            ServiceHealthWaiter.waitForReady(baseUrl(), "/q/health/ready",
+                                             java.time.Duration.ofSeconds(60));
+        } catch (IllegalStateException e) {
             if (!process.isAlive()) {
+                stop();
                 throw new IllegalStateException(
-                        name + " process died during startup. Check target/service-logs/" + name + ".log");
+                        name + " process died during startup. Check target/service-logs/"
+                        + name + ".log");
             }
-            try {
-                HttpURLConnection conn = (HttpURLConnection)
-                        URI.create(healthUrl).toURL().openConnection();
-                conn.setConnectTimeout(500);
-                conn.setReadTimeout(500);
-                try {
-                    if (conn.getResponseCode() == 200) return;
-                } finally {
-                    conn.disconnect();
-                }
-            } catch (IOException ignored) {
-            }
-            try { Thread.sleep(500); } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted waiting for " + name);
-            }
+            stop();
+            throw new IllegalStateException(
+                    name + " did not become healthy within 60s. Check target/service-logs/"
+                    + name + ".log");
         }
-        stop();
-        throw new IllegalStateException(
-                name + " did not become healthy within 60s. Check target/service-logs/" + name + ".log");
     }
 }
