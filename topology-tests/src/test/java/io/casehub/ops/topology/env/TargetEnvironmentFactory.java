@@ -7,6 +7,7 @@ import io.casehub.ops.claudony.ClaudonyDeploymentTarget;
 import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.container.PodmanDeploymentTarget;
 import io.casehub.ops.container.podman.PodmanClient;
+import io.casehub.ops.deployment.target.KubernetesDeploymentTarget;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.vertx.core.Vertx;

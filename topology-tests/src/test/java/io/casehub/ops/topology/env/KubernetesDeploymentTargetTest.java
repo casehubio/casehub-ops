@@ -3,6 +3,7 @@ package io.casehub.ops.topology.env;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
+import io.casehub.ops.deployment.target.KubernetesDeploymentTarget;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
@@ -16,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnableKubernetesMockClient(crud = true)
 class KubernetesDeploymentTargetTest {
 
-    KubernetesClient client;
+    KubernetesClient           client;
     KubernetesDeploymentTarget target;
 
     @BeforeEach

@@ -16,6 +16,7 @@ import io.casehub.ops.api.deployment.ApplicationDeploymentTarget;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
+import io.casehub.ops.deployment.target.KubernetesDeploymentTarget;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.ImageSource;

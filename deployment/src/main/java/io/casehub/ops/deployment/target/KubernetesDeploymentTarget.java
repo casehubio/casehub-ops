@@ -1,4 +1,4 @@
-package io.casehub.ops.topology.env;
+package io.casehub.ops.deployment.target;
 
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.ApplicationDeploymentTarget;
