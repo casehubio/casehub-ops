@@ -18,6 +18,7 @@ import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.ImageResolver;
+import io.casehub.ops.testing.env.ImageSource;
 import io.casehub.ops.testing.env.ServiceHealthWaiter;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
@@ -130,12 +131,12 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                 }
             }
         } else {
-            boolean allowFallback = Boolean.getBoolean(ImageResolver.FALLBACK_PROPERTY);
-            String  version       = System.getProperty("casehub.version", "0.4-SNAPSHOT");
+            ImageSource source  = ImageResolver.currentSource();
+            String      version = System.getProperty("casehub.version", "0.4-SNAPSHOT");
             for (DesiredNode node : graph.nodes().values()) {
                 CaseHubApplicationSpec appSpec = extractAppSpec(node);
-                String imageRef = ImageResolver.resolve(
-                        appSpec.applicationId(), version, allowFallback);
+                String imageRef = ImageResolver.resolveFromSource(
+                        appSpec.applicationId(), version, source);
                 DeployResult deployResult = target.deploy(imageRef,
                                                           new DeployConfig(appSpec.applicationId(), appSpec.replicas(),
                                                                            Map.of(), Map.of()));

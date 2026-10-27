@@ -1,6 +1,7 @@
 package io.casehub.ops.topology.env;
 
 import io.casehub.ops.testing.env.ImageResolver;
+import io.casehub.ops.testing.env.ImageSource;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.casehub.ops.topology.integration.Service;
 import io.casehub.ops.topology.integration.ServiceCluster;
@@ -73,11 +74,11 @@ public class K3dClusterExtension implements BeforeAllCallback, AfterAllCallback 
                                         .getAnnotation(ServiceCluster.class);
         if (cluster == null) {return;}
 
-        boolean allowFallback = Boolean.getBoolean(ImageResolver.FALLBACK_PROPERTY);
-        String  version       = System.getProperty("casehub.version", "0.4-SNAPSHOT");
+        ImageSource source  = ImageResolver.currentSource();
+        String      version = System.getProperty("casehub.version", "0.4-SNAPSHOT");
 
         for (Service svc : cluster.services()) {
-            String imageRef = ImageResolver.resolve(svc.name(), version, allowFallback);
+            String imageRef = ImageResolver.resolveFromSource(svc.name(), version, source);
             if (ImageResolver.FALLBACK_IMAGE.equals(imageRef)) {
                 System.out.printf("  [k3d] skipping import for %s (using fallback)%n", svc.name());
                 continue;
