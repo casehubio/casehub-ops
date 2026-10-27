@@ -18,13 +18,14 @@ import io.casehub.desiredstate.runtime.ReconciliationLoop;
 import io.casehub.desiredstate.runtime.SimpleTransitionExecutor;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.ops.api.SpecHashStore;
-import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.claudony.ClaudonyActualStateAdapter;
 import io.casehub.ops.claudony.ClaudonyDeploymentTarget;
 import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -66,14 +67,14 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
 
-        List<FleetLlmExerciser.LlmResponse> responses =
+        List<LlmResponse> responses =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS, appId -> {
                     DesiredNode node = graph.nodes().values().stream()
                             .filter(n -> extractAppSpec(n).applicationId().equals(appId))
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        FleetLlmExerciser.assertFleetOperational(responses);
+        LlmAssertions.assertFleetOperational(responses);
     }
 
     @Test
@@ -89,14 +90,14 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
         assertThat(llmAppIds)
                 .containsExactlyInAnyOrderElementsOf(FLEET_APP_IDS);
 
-        List<FleetLlmExerciser.LlmResponse> responses =
+        List<LlmResponse> responses =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS, appId -> {
                     DesiredNode node = graph.nodes().values().stream()
                             .filter(n -> extractAppSpec(n).applicationId().equals(appId))
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        FleetLlmExerciser.assertFleetOperational(responses);
+        LlmAssertions.assertFleetOperational(responses);
     }
 
     @Test

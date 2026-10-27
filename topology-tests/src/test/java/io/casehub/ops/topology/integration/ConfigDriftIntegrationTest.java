@@ -31,6 +31,8 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -75,9 +77,9 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
                 .containsEntry("llm.capability", "deep")
                 .containsEntry("llm.domain", "analysis");
 
-        FleetLlmExerciser.LlmResponse analystBeforeLlm =
+        LlmResponse analystBeforeLlm =
                 FleetLlmExerciser.exercise("my-llm-analyst", analystBefore.config());
-        FleetLlmExerciser.assertDomainRelevant(analystBeforeLlm);
+        LlmAssertions.assertDomainRelevant(analystBeforeLlm);
         assertThat(analystBeforeLlm.domain()).isEqualTo("analysis");
 
         var mutations = GraphDiff.computeMutations(initialGraph, driftedGraph);
@@ -108,15 +110,15 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
                 .containsEntry("llm.capability", "analytical")
                 .containsEntry("llm.domain", "data-analysis");
 
-        FleetLlmExerciser.LlmResponse analystAfterLlm =
+        LlmResponse analystAfterLlm =
                 FleetLlmExerciser.exercise("my-llm-analyst", analystAfter.config());
-        FleetLlmExerciser.assertDomainRelevant(analystAfterLlm);
+        LlmAssertions.assertDomainRelevant(analystAfterLlm);
         assertThat(analystAfterLlm.domain()).isEqualTo("data-analysis");
 
-        List<FleetLlmExerciser.LlmResponse> allResponses =
+        List<LlmResponse> allResponses =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> client.getApp(appId).orElseThrow().config());
-        FleetLlmExerciser.assertFleetOperational(allResponses);
+        LlmAssertions.assertFleetOperational(allResponses);
 
         ClaudonyAppInfo coder = client.getApp("my-llm-coder").orElseThrow();
         assertThat(coder.config()).containsEntry("llm.capability", "fast");
@@ -153,13 +155,13 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         CaseHubApplicationSpec driftedAnalyst = extractAppSpec(
                 driftedGraph.nodes().get(NodeId.of("my-llm.analyst")));
 
-        FleetLlmExerciser.LlmResponse beforeDrift =
+        LlmResponse beforeDrift =
                 FleetLlmExerciser.exercise("analyst-before", initialAnalyst.config());
-        FleetLlmExerciser.LlmResponse afterDrift =
+        LlmResponse afterDrift =
                 FleetLlmExerciser.exercise("analyst-after", driftedAnalyst.config());
 
-        FleetLlmExerciser.assertSubstantive(beforeDrift);
-        FleetLlmExerciser.assertSubstantive(afterDrift);
+        LlmAssertions.assertSubstantive(beforeDrift);
+        LlmAssertions.assertSubstantive(afterDrift);
         assertThat(beforeDrift.domain()).isEqualTo("analysis");
         assertThat(afterDrift.domain()).isEqualTo("data-analysis");
     }

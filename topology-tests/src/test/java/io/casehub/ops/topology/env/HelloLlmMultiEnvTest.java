@@ -19,6 +19,8 @@ import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.ImageSource;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.testing.env.ServiceHealthWaiter;
 import io.casehub.ops.testing.env.TargetEnvironment;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
@@ -82,10 +84,10 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
 
             if (env == TargetEnvironment.LOCAL) {
                 try {
-                    FleetLlmExerciser.LlmResponse llmResponse =
+                    LlmResponse llmResponse =
                             FleetLlmExerciser.exercise("my-llm",
                                                        extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-                    FleetLlmExerciser.assertDomainRelevant(llmResponse);
+                    LlmAssertions.assertDomainRelevant(llmResponse);
                     System.out.printf("  [multi-env] LLM exercise passed on LOCAL%n");
                 } catch (Exception e) {
                     System.out.printf("  [multi-env] LLM exercise skipped — %s: %s%n",

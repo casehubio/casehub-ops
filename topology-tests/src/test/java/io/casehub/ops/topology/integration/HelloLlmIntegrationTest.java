@@ -2,6 +2,8 @@ package io.casehub.ops.topology.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.desiredstate.api.ActualState;
 import io.casehub.desiredstate.api.DesiredNode;
 import io.casehub.desiredstate.api.DesiredStateEventTypes;
@@ -66,10 +68,10 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
 
-        FleetLlmExerciser.LlmResponse llmResponse =
+        LlmResponse llmResponse =
                 FleetLlmExerciser.exercise("my-llm",
                         extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-        FleetLlmExerciser.assertDomainRelevant(llmResponse);
+        LlmAssertions.assertDomainRelevant(llmResponse);
     }
 
     @Test
@@ -107,10 +109,10 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
                     .isNotEqualTo(NodeStatus.ABSENT);
         }
 
-        FleetLlmExerciser.LlmResponse llmResponse =
+        LlmResponse llmResponse =
                 FleetLlmExerciser.exercise("my-llm",
                         extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-        FleetLlmExerciser.assertDomainRelevant(llmResponse);
+        LlmAssertions.assertDomainRelevant(llmResponse);
     }
 
     @Test

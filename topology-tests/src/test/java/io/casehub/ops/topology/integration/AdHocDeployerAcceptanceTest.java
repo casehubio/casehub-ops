@@ -32,6 +32,8 @@ import io.casehub.ops.service.adaptation.TenantAdaptationState;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.casehub.ras.api.ActiveSituation;
 import io.smallrye.mutiny.Multi;
@@ -184,10 +186,10 @@ class AdHocDeployerAcceptanceTest extends TopologyTestBase {
             System.out.println("  ✓ Specialist provisioned by reconciliation loop");
 
             System.out.println("\nExercising specialist...");
-            FleetLlmExerciser.LlmResponse response =
+            LlmResponse response =
                     FleetLlmExerciser.exercise(
                             specialistSpec.name(), specialistSpec.config());
-            FleetLlmExerciser.assertSubstantive(response);
+            LlmAssertions.assertSubstantive(response);
             System.out.printf("  ✓ %s responded (%s/%s, %d chars)%n",
                     response.appId(), response.backendKey(), response.instanceId(),
                     response.content().length());

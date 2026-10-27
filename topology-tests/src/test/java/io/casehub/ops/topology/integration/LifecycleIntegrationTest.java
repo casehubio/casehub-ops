@@ -28,6 +28,8 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -74,10 +76,10 @@ class LifecycleIntegrationTest extends TopologyTestBase {
         ObjectMapper om = new ObjectMapper();
         om.registerModule(new JavaTimeModule());
         HttpClaudonyFleetClient fleetClient = new HttpClaudonyFleetClient(claudonyUrl, om);
-        List<FleetLlmExerciser.LlmResponse> preSuspend =
+        List<LlmResponse> preSuspend =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> fleetClient.getApp(appId).orElseThrow().config());
-        FleetLlmExerciser.assertFleetOperational(preSuspend);
+        LlmAssertions.assertFleetOperational(preSuspend);
 
         for (String appId : FLEET_APP_IDS) {
             DeployResult result = target.suspend(appId);
@@ -105,10 +107,10 @@ class LifecycleIntegrationTest extends TopologyTestBase {
                     .isEqualTo(NodeStatus.PRESENT);
         }
 
-        List<FleetLlmExerciser.LlmResponse> postResume =
+        List<LlmResponse> postResume =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> fleetClient.getApp(appId).orElseThrow().config());
-        FleetLlmExerciser.assertFleetOperational(postResume);
+        LlmAssertions.assertFleetOperational(postResume);
     }
 
     @Test
@@ -137,10 +139,10 @@ class LifecycleIntegrationTest extends TopologyTestBase {
         ObjectMapper om2 = new ObjectMapper();
         om2.registerModule(new JavaTimeModule());
         HttpClaudonyFleetClient fleetClient2 = new HttpClaudonyFleetClient(claudonyUrl, om2);
-        FleetLlmExerciser.LlmResponse coderResponse =
+        LlmResponse coderResponse =
                 FleetLlmExerciser.exercise("my-llm-coder",
                         fleetClient2.getApp("my-llm-coder").orElseThrow().config());
-        FleetLlmExerciser.assertDomainRelevant(coderResponse);
+        LlmAssertions.assertDomainRelevant(coderResponse);
     }
 
     @Test

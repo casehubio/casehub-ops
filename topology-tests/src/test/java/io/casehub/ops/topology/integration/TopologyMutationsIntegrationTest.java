@@ -32,6 +32,8 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -131,7 +133,7 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
                 .isEqualTo(NodeStatus.ABSENT);
 
         List<String> mutatedFleetAppIds = List.of("my-llm-analyst", "my-llm-coder", "my-llm-researcher");
-        List<FleetLlmExerciser.LlmResponse> postMutation =
+        List<LlmResponse> postMutation =
                 FleetLlmExerciser.exerciseFleet(mutatedFleetAppIds, appId -> {
                     DesiredNode node = mutatedGraph.nodes().entrySet().stream()
                             .filter(e -> extractAppSpec(e.getValue()).applicationId().equals(appId))
@@ -139,7 +141,7 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        FleetLlmExerciser.assertFleetOperational(postMutation);
+        LlmAssertions.assertFleetOperational(postMutation);
     }
 
     @Test
@@ -168,9 +170,9 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
 
         CaseHubApplicationSpec researcherSpec = extractAppSpec(
                 mutatedGraph.nodes().get(NodeId.of("my-llm.researcher")));
-        FleetLlmExerciser.LlmResponse researcherLlm =
+        LlmResponse researcherLlm =
                 FleetLlmExerciser.exercise("my-llm-researcher", researcherSpec.config());
-        FleetLlmExerciser.assertDomainRelevant(researcherLlm);
+        LlmAssertions.assertDomainRelevant(researcherLlm);
         assertThat(researcherLlm.domain()).isEqualTo("knowledge-discovery");
     }
 

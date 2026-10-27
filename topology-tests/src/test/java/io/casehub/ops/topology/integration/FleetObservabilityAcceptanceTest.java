@@ -27,6 +27,8 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -36,8 +38,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration-live")
 @ServiceCluster(services = {
@@ -107,21 +107,21 @@ class FleetObservabilityAcceptanceTest extends TopologyTestBase {
             }
 
             System.out.println("\nExercising fleet...");
-            List<FleetLlmExerciser.LlmResponse> responses = new ArrayList<>();
+            List<LlmResponse> responses = new ArrayList<>();
             for (String appId : FLEET_APP_IDS) {
                 DesiredNode node = graph.nodes().values().stream()
                         .filter(n -> n.spec() instanceof ClaudonyAppNodeSpec spec
                                 && spec.name().equals(appId))
                         .findFirst().orElseThrow();
                 ClaudonyAppNodeSpec spec = (ClaudonyAppNodeSpec) node.spec();
-                FleetLlmExerciser.LlmResponse response =
+                LlmResponse response =
                         FleetLlmExerciser.exercise(appId, spec.config());
-                FleetLlmExerciser.assertDomainRelevant(response);
+                LlmAssertions.assertDomainRelevant(response);
                 responses.add(response);
                 System.out.printf("  ✓ %s (%s) responded — %d chars%n",
                         appId, response.domain(), response.content().length());
             }
-            FleetLlmExerciser.assertDifferentiated(responses);
+            LlmAssertions.assertDifferentiated(responses);
             System.out.println("  ✓ Fleet responses are differentiated by role");
 
             System.out.println("\nInjecting fault — simulating LLM failure...");

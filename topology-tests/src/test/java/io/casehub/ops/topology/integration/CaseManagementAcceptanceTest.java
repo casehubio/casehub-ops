@@ -24,6 +24,8 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
+import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
 import org.junit.jupiter.api.Tag;
@@ -96,9 +98,9 @@ class CaseManagementAcceptanceTest extends TopologyTestBase {
             System.out.println("\nExercising fleet — submitting case via LLM...");
             DesiredNode llmNode = graph.nodes().get(NodeId.of("my-llm"));
             CaseHubApplicationSpec llmSpec = extractAppSpec(llmNode);
-            FleetLlmExerciser.LlmResponse response =
+            LlmResponse response =
                     FleetLlmExerciser.exercise(llmSpec.applicationId(), llmSpec.config());
-            FleetLlmExerciser.assertDomainRelevant(response);
+            LlmAssertions.assertDomainRelevant(response);
             System.out.printf("  ✓ %s responded (%s/%s, %d chars)%n",
                     response.appId(), response.backendKey(), response.instanceId(),
                     response.content().length());
