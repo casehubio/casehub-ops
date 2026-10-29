@@ -18,6 +18,7 @@ import io.casehub.ops.api.deployment.DeployConfig;
 import io.casehub.ops.api.deployment.DeployResult;
 import io.casehub.ops.deployment.target.KubernetesDeploymentTarget;
 import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
+import io.casehub.ops.testing.env.HttpFleetExerciser;
 import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.ImageSource;
 import io.casehub.ops.testing.env.LlmAssertions;
@@ -88,16 +89,32 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                                   appSpec.applicationId(), env);
             }
 
-            if (env == TargetEnvironment.LOCAL) {
+            DesiredNode agentNode = graph.nodes().get(NodeId.of("my-llm"));
+            if (agentNode != null) {
+                CaseHubApplicationSpec agentSpec = extractAppSpec(agentNode);
                 try {
-                    LlmResponse llmResponse =
-                            FleetLlmExerciser.exercise("my-llm",
-                                                       extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-                    LlmAssertions.assertDomainRelevant(llmResponse);
-                    System.out.printf("  [multi-env] LLM exercise passed on LOCAL%n");
+                    LlmResponse llmResponse;
+                    if (env == TargetEnvironment.LOCAL) {
+                        llmResponse = FleetLlmExerciser.exercise(
+                                agentSpec.applicationId(), agentSpec.config());
+                    } else {
+                        java.util.Optional<String> agentUrl = target.serviceUrl(agentSpec.applicationId());
+                        if (agentUrl.isEmpty()) {
+                            System.out.printf("  [multi-env] LLM exercise skipped — no serviceUrl for %s on %s%n",
+                                    agentSpec.applicationId(), env);
+                            llmResponse = null;
+                        } else {
+                            llmResponse = HttpFleetExerciser.exercise(
+                                    agentUrl.get(), agentSpec.applicationId());
+                        }
+                    }
+                    if (llmResponse != null) {
+                        LlmAssertions.assertDomainRelevant(llmResponse);
+                        System.out.printf("  [multi-env] LLM exercise passed on %s%n", env);
+                    }
                 } catch (Exception e) {
                     System.out.printf("  [multi-env] LLM exercise skipped — %s: %s%n",
-                                      e.getClass().getSimpleName(), e.getMessage());
+                            e.getClass().getSimpleName(), e.getMessage());
                 }
             }
         } finally {
