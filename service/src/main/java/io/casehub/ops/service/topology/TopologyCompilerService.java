@@ -1,5 +1,6 @@
 package io.casehub.ops.service.topology;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.desiredstate.api.CompilationResult;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.GoalCompiler;
@@ -10,7 +11,6 @@ import io.casehub.desiredstate.yaml.model.YamlGraph;
 import io.casehub.yaml.core.module.YamlModule;
 import io.casehub.yaml.core.module.YamlModuleFile;
 import io.casehub.yaml.jackson.YamlMappers;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -69,8 +69,14 @@ public class TopologyCompilerService {
         return result;
     }
 
-    public void deploy(String tenancyId, String topologiesBasePath, String topologyName) {
-        String topologyDir = topologiesBasePath + "/" + topologyName;
+    public DesiredStateGraph compileTopology(String topologyName) {
+        String basePath = topologyPath.orElseThrow(() ->
+                                                           new IllegalStateException("casehub.ops.topology.path not configured"));
+        return compileTopologyFromPath(basePath, topologyName);
+    }
+
+    DesiredStateGraph compileTopologyFromPath(String basePath, String topologyName) {
+        String topologyDir = basePath + "/" + topologyName;
         Path   dir         = Path.of(topologyDir);
         if (!Files.isDirectory(dir)) {
             throw new IllegalArgumentException("Topology directory not found: " + topologyDir);
@@ -84,13 +90,16 @@ public class TopologyCompilerService {
             List<Path> yamlFiles;
             try (Stream<Path> files = Files.list(dir)) {
                 yamlFiles = files.filter(p -> {
-                    String name = p.getFileName().toString().toLowerCase();
-                    return name.endsWith(".yaml") || name.endsWith(".yml");
-                }).sorted().toList();
+                                     String name = p.getFileName().toString().toLowerCase();
+                                     return name.endsWith(".yaml") || name.endsWith(".yml");
+                                 })
+                                 .filter(p -> !p.getFileName().toString().startsWith("topology-metadata"))
+                                 .filter(p -> !p.getFileName().toString().equals("playbook.yaml"))
+                                 .sorted().toList();
             }
 
             if (yamlFiles.isEmpty()) {
-                throw new IllegalArgumentException("No YAML files in topology: " + topologyName);
+                throw new IllegalArgumentException("No topology YAML files in: " + topologyName);
             }
 
             List<io.casehub.desiredstate.api.DesiredNode> allNodes = new ArrayList<>();
@@ -99,25 +108,29 @@ public class TopologyCompilerService {
             for (Path yamlFile : yamlFiles) {
                 CompilationResult result = compileDomain(yamlFile.toString(), classRegistry);
                 if (result instanceof CompilationResult.SingleGraph sg) {
-                    io.casehub.desiredstate.api.DesiredStateGraph graph = sg.graph();
-                    allNodes.addAll(graph.nodes().values().stream().toList());
-                    allDeps.addAll(graph.dependencies());
+                    allNodes.addAll(sg.graph().nodes().values().stream().toList());
+                    allDeps.addAll(sg.graph().dependencies());
                 }
             }
 
-            io.casehub.desiredstate.api.DesiredStateGraph composedGraph =
-                    GRAPH_FACTORY.of(allNodes, allDeps);
-            String loopKey = "topology:" + tenancyId + ":" + topologyName;
-
-            try {
-                reconciliationLoop.start(loopKey, composedGraph);
-            } catch (IllegalStateException e) {
-                reconciliationLoop.updateDesired(loopKey, composedGraph);
-            }
-
+            return GRAPH_FACTORY.of(allNodes, allDeps);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to compile topology: " + topologyName, e);
         }
+    }
+
+
+    public String deploy(String tenancyId, String topologiesBasePath, String topologyName) {
+        DesiredStateGraph composedGraph = compileTopologyFromPath(topologiesBasePath, topologyName);
+        String            loopKey       = "topology:" + tenancyId + ":" + topologyName;
+
+        try {
+            reconciliationLoop.start(loopKey, composedGraph);
+        } catch (IllegalStateException e) {
+            reconciliationLoop.updateDesired(loopKey, composedGraph);
+        }
+
+        return loopKey;
     }
 
     public void stop(String tenancyId, String topologyName) {
