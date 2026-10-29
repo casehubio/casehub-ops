@@ -75,6 +75,9 @@ class AccountabilityIntegrationTest extends TopologyTestBase {
             loop.start("l02-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l02-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
         } finally {
             loop.stop("l02-audit");
             loop.shutdown();

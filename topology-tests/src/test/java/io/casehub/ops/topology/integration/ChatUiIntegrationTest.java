@@ -153,6 +153,9 @@ class ChatUiIntegrationTest extends TopologyTestBase {
             loop.start("l09-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l09-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
         } finally {
             loop.stop("l09-audit");
             loop.shutdown();

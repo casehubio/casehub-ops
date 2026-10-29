@@ -138,6 +138,9 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
             loop.start("l04-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l04-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
         } finally {
             loop.stop("l04-audit");
             loop.shutdown();

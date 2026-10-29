@@ -118,6 +118,9 @@ class AdHocDeployerAcceptanceTest extends TopologyTestBase {
 
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, baseGraph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, TENANT);
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, baseGraph);
             System.out.printf("✓ Base topology deployed — %d nodes provisioned%n", baseGraph.nodes().size());
 
             System.out.println("\nCompiling YAML adaptation rules...");

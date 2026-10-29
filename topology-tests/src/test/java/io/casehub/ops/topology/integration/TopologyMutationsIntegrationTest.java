@@ -216,6 +216,9 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
             loop.start("l07-audit", initialGraph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, initialGraph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l07-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, initialGraph);
 
             auditCapture.clear();
             loop.updateDesired("l07-audit", mutatedGraph);

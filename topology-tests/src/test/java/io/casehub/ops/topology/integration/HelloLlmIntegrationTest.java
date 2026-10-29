@@ -151,6 +151,9 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
             loop.start("l01-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l01-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
         } finally {
             loop.stop("l01-audit");
             loop.shutdown();

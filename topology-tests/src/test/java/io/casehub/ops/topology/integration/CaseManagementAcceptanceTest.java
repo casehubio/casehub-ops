@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration-live")
 @ServiceCluster(services = {
@@ -87,6 +86,10 @@ class CaseManagementAcceptanceTest extends TopologyTestBase {
             AuditAssertions.assertAllSucceeded(auditCapture);
             System.out.printf("✓ Topology deployed — %d nodes provisioned%n", graph.nodes().size());
 
+            System.out.println("\nVerifying audit trail completeness...");
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            System.out.printf("  ✓ Audit trail covers all %d graph nodes%n", graph.nodes().size());
+
             System.out.println("\nVerifying case management infrastructure...");
             AuditAssertions.assertNodeSucceeded(auditCapture, "qhorus");
             System.out.println("  ✓ qhorus (case management) — provisioned and operational");
@@ -105,15 +108,14 @@ class CaseManagementAcceptanceTest extends TopologyTestBase {
                     response.appId(), response.backendKey(), response.instanceId(),
                     response.content().length());
 
-            System.out.println("\nVerifying case flow...");
-            assertThat(graph.nodes()).as("L03 includes qhorus for case management")
-                    .containsKey(NodeId.of("qhorus"));
-            assertThat(auditCapture.succeededNodes())
-                    .as("All nodes should have succeeded — case infrastructure operational")
-                    .hasSizeGreaterThanOrEqualTo(graph.nodes().size());
-            System.out.printf("  ✓ %d nodes reconciled, all succeeded%n",
-                    auditCapture.succeededNodes().size());
+            System.out.println("\nVerifying reconciliation summary integrity...");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
+            System.out.println("  ✓ Reconciliation summary matches graph: correct nodeCount, zero faults");
 
+            System.out.println("\nVerifying case management attribution chain...");
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l03-case-mgmt");
+            System.out.printf("  ✓ All %d CloudEvents have source, type, timestamp, and tenancyId%n",
+                    auditCapture.cloudEvents().size());
             AuditAssertions.assertCloudEventForNode(
                     auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED, "qhorus");
             System.out.println("  ✓ Reconciliation event traces to qhorus case management node");

@@ -205,6 +205,9 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
             loop.start("l05-audit", initialGraph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, initialGraph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l05-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, initialGraph);
 
             auditCapture.clear();
             loop.updateDesired("l05-audit", driftedGraph);

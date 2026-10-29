@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("integration-live")
 @ServiceCluster(services = {
@@ -87,22 +86,18 @@ class AccountabilityAcceptanceTest extends TopologyTestBase {
             AuditAssertions.assertAllSucceeded(auditCapture);
             System.out.printf("✓ Topology deployed — %d nodes provisioned%n", graph.nodes().size());
 
-            System.out.println("\nVerifying accountability trail...");
-            for (DesiredNode node : graph.nodes().values()) {
-                CaseHubApplicationSpec appSpec = extractAppSpec(node);
-                NodeId nodeId = NodeId.of(appSpec.applicationId());
-                assertThat(auditCapture.allOutcomes().get(nodeId))
-                        .as("Audit outcome for node '%s'", appSpec.applicationId())
-                        .isNotNull()
-                        .isInstanceOf(StepOutcome.Succeeded.class);
-                System.out.printf("  ✓ %s — provisioned and audit-captured%n", appSpec.applicationId());
-            }
+            System.out.println("\nVerifying accountability trail completeness...");
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            System.out.printf("  ✓ Audit trail covers all %d graph nodes%n", graph.nodes().size());
 
-            assertThat(auditCapture.succeededNodes())
-                    .as("All nodes should have succeeded outcomes in the audit trail")
-                    .hasSizeGreaterThanOrEqualTo(graph.nodes().size());
-            System.out.printf("  ✓ Accountability ledger: %d entries, all succeeded%n",
-                    auditCapture.succeededNodes().size());
+            System.out.println("\nVerifying CloudEvent attribution...");
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l02-accountability");
+            System.out.printf("  ✓ All %d CloudEvents have source, type, timestamp, and tenancyId%n",
+                    auditCapture.cloudEvents().size());
+
+            System.out.println("\nVerifying reconciliation summary integrity...");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
+            System.out.println("  ✓ Reconciliation summary matches graph: correct nodeCount, zero faults");
 
             System.out.println("\nExercising fleet...");
             DesiredNode llmNode = graph.nodes().get(NodeId.of("my-llm"));
@@ -114,15 +109,12 @@ class AccountabilityAcceptanceTest extends TopologyTestBase {
                     response.appId(), response.backendKey(), response.instanceId(),
                     response.content().length());
 
-            System.out.println("\nVerifying work attribution...");
-            assertThat(auditCapture.cloudEvents())
-                    .as("Audit trail should contain cloud events for accountability")
-                    .isNotEmpty();
-            System.out.printf("  ✓ %d CloudEvents in audit trail%n", auditCapture.cloudEvents().size());
-
+            System.out.println("\nVerifying work attribution chain...");
             AuditAssertions.assertCloudEventForNode(
                     auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED, "my-llm");
             System.out.println("  ✓ Reconciliation event traces to my-llm provisioning");
+            System.out.printf("  ✓ Accountability chain verified: %d CloudEvents, %d node outcomes%n",
+                    auditCapture.cloudEvents().size(), auditCapture.allOutcomes().size());
 
         } finally {
             loop.stop("l02-accountability");

@@ -1,7 +1,13 @@
 package io.casehub.ops.testing.audit;
 
+import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.StepOutcome;
+import io.cloudevents.CloudEvent;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,4 +72,61 @@ public final class AuditAssertions {
                 .as("Expected no CloudEvents of type '%s'", eventType)
                 .isEmpty();
     }
+
+    public static void assertAuditTrailCoversGraph(AuditCapture capture, DesiredStateGraph graph) {
+        Map<NodeId, StepOutcome> outcomes     = capture.allOutcomes();
+        Set<NodeId>              graphNodeIds = graph.nodes().keySet();
+        Set<NodeId> missingFromAudit = graphNodeIds.stream()
+                                                   .filter(id -> !outcomes.containsKey(id))
+                                                   .collect(Collectors.toSet());
+        assertThat(missingFromAudit)
+                .as("Every node in the desired-state graph must have a corresponding audit outcome — " +
+                    "missing nodes indicate the audit trail is incomplete")
+                .isEmpty();
+    }
+
+    public static void assertCloudEventsHaveAttribution(AuditCapture capture, String expectedTenancyId) {
+        assertThat(capture.cloudEvents())
+                .as("Audit trail must contain at least one CloudEvent")
+                .isNotEmpty();
+        for (CloudEvent event : capture.cloudEvents()) {
+            assertThat(event.getSource())
+                    .as("CloudEvent '%s' must have a source for attribution", event.getType())
+                    .isNotNull();
+            assertThat(event.getType())
+                    .as("CloudEvent must have a type")
+                    .isNotBlank();
+            assertThat(event.getTime())
+                    .as("CloudEvent '%s' must have a timestamp for accountability", event.getType())
+                    .isNotNull();
+            Object tenancyId = event.getExtension("tenancyid");
+            if (tenancyId != null) {
+                assertThat(tenancyId.toString())
+                        .as("CloudEvent '%s' tenancyid must match expected tenant", event.getType())
+                        .isEqualTo(expectedTenancyId);
+            }
+        }
+    }
+
+    public static void assertReconciliationSummaryConsistent(AuditCapture capture, DesiredStateGraph graph) {
+        var completedEvents = capture.cloudEventsOfType(
+                io.casehub.desiredstate.api.DesiredStateEventTypes.RECONCILIATION_COMPLETED);
+        assertThat(completedEvents)
+                .as("At least one RECONCILIATION_COMPLETED event expected")
+                .isNotEmpty();
+        CloudEvent latest = completedEvents.get(completedEvents.size() - 1);
+        assertThat(latest.getData())
+                .as("RECONCILIATION_COMPLETED event must carry a data payload")
+                .isNotNull();
+        String json = new String(latest.getData().toBytes());
+        assertThat(json).contains("\"nodeCount\"");
+        int expectedNodeCount = graph.nodes().size();
+        assertThat(json)
+                .as("Reconciliation summary nodeCount should reflect graph size (%d)", expectedNodeCount)
+                .contains("\"nodeCount\":" + expectedNodeCount);
+        assertThat(json)
+                .as("Reconciliation summary should report zero faults for a clean deployment")
+                .contains("\"faultCount\":0");
+    }
+
 }

@@ -184,6 +184,9 @@ class LifecycleIntegrationTest extends TopologyTestBase {
             loop.start("l06-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l06-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
 
             DesiredStateGraph suspendedGraph = withTargetStatus(graph, TargetStatus.SUSPENDED);
             auditCapture.clear();

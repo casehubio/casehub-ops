@@ -13,6 +13,19 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AuditAssertionsTest {
+    private static final io.casehub.desiredstate.api.NodeSpec STUB_SPEC =
+            () -> io.casehub.desiredstate.api.NodeType.of("stub");
+
+    private static io.casehub.desiredstate.api.DesiredStateGraph graphOf(String... nodeIds) {
+        var factory = new io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory();
+        var nodes   = new java.util.ArrayList<io.casehub.desiredstate.api.DesiredNode>();
+        for (String id : nodeIds) {
+            nodes.add(new io.casehub.desiredstate.api.DesiredNode(
+                    NodeId.of(id), STUB_SPEC, io.casehub.desiredstate.api.HumanGating.NONE));
+        }
+        return factory.of(nodes, java.util.List.of());
+    }
+
 
     @Test
     void assertAllSucceeded_passes_whenAllSucceeded() {
@@ -169,5 +182,119 @@ class AuditAssertionsTest {
         assertThatThrownBy(() -> AuditAssertions.assertNoCloudEventsOfType(
                 capture, "io.casehub.desiredstate.node.faulted"))
                 .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void assertAuditTrailCoversGraph_passes_whenAllNodesCovered() {
+        AuditCapture capture = new AuditCapture();
+        capture.recordTransition(new TransitionResult(Map.of(
+                NodeId.of("a"), new StepOutcome.Succeeded(),
+                NodeId.of("b"), new StepOutcome.Succeeded())));
+        var graph = graphOf("a", "b");
+        assertThatCode(() -> AuditAssertions.assertAuditTrailCoversGraph(capture, graph))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertAuditTrailCoversGraph_fails_whenNodeMissing() {
+        AuditCapture capture = new AuditCapture();
+        capture.recordTransition(new TransitionResult(Map.of(
+                NodeId.of("a"), new StepOutcome.Succeeded())));
+        var graph = graphOf("a", "b");
+        assertThatThrownBy(() -> AuditAssertions.assertAuditTrailCoversGraph(capture, graph))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("audit trail is incomplete");
+    }
+
+    @Test
+    void assertCloudEventsHaveAttribution_passes_whenAllAttributed() {
+        AuditCapture capture = new AuditCapture();
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("test.type")
+                                                  .withTime(java.time.OffsetDateTime.now())
+                                                  .withExtension("tenancyid", "t1")
+                                                  .build());
+        assertThatCode(() -> AuditAssertions.assertCloudEventsHaveAttribution(capture, "t1"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertCloudEventsHaveAttribution_fails_whenTimeMissing() {
+        AuditCapture capture = new AuditCapture();
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("test.type")
+                                                  .build());
+        assertThatThrownBy(() -> AuditAssertions.assertCloudEventsHaveAttribution(capture, "t1"))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("timestamp");
+    }
+
+    @Test
+    void assertCloudEventsHaveAttribution_fails_whenTenancyMismatch() {
+        AuditCapture capture = new AuditCapture();
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("test.type")
+                                                  .withTime(java.time.OffsetDateTime.now())
+                                                  .withExtension("tenancyid", "wrong-tenant")
+                                                  .build());
+        assertThatThrownBy(() -> AuditAssertions.assertCloudEventsHaveAttribution(capture, "t1"))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("tenancyid");
+    }
+
+    @Test
+    void assertReconciliationSummaryConsistent_passes_whenDataMatches() {
+        AuditCapture capture = new AuditCapture();
+        String data = "{\"tenancyId\":\"t1\",\"graphVersion\":1,\"nodeCount\":2," +
+                      "\"additionsCount\":2,\"removalsCount\":0,\"suspensionsCount\":0," +
+                      "\"resumptionsCount\":0,\"faultCount\":0,\"exemptedCount\":0," +
+                      "\"nodeOutcomes\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}";
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("io.casehub.desiredstate.reconciliation.completed")
+                                                  .withData("application/json", data.getBytes())
+                                                  .build());
+        var graph = graphOf("a", "b");
+        assertThatCode(() -> AuditAssertions.assertReconciliationSummaryConsistent(capture, graph))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertReconciliationSummaryConsistent_fails_whenNodeCountWrong() {
+        AuditCapture capture = new AuditCapture();
+        String data = "{\"tenancyId\":\"t1\",\"graphVersion\":1,\"nodeCount\":5," +
+                      "\"additionsCount\":5,\"removalsCount\":0,\"suspensionsCount\":0," +
+                      "\"resumptionsCount\":0,\"faultCount\":0,\"exemptedCount\":0," +
+                      "\"nodeOutcomes\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}";
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("io.casehub.desiredstate.reconciliation.completed")
+                                                  .withData("application/json", data.getBytes())
+                                                  .build());
+        var graph = graphOf("a", "b");
+        assertThatThrownBy(() -> AuditAssertions.assertReconciliationSummaryConsistent(capture, graph))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("nodeCount");
+    }
+
+    @Test
+    void assertReconciliationSummaryConsistent_fails_whenFaultsPresent() {
+        AuditCapture capture = new AuditCapture();
+        String data = "{\"tenancyId\":\"t1\",\"graphVersion\":1,\"nodeCount\":2," +
+                      "\"additionsCount\":2,\"removalsCount\":0,\"suspensionsCount\":0," +
+                      "\"resumptionsCount\":0,\"faultCount\":1,\"exemptedCount\":0," +
+                      "\"nodeOutcomes\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}";
+        capture.recordCloudEvent(CloudEventBuilder.v1()
+                                                  .withId("1").withSource(URI.create("urn:test"))
+                                                  .withType("io.casehub.desiredstate.reconciliation.completed")
+                                                  .withData("application/json", data.getBytes())
+                                                  .build());
+        var graph = graphOf("a", "b");
+        assertThatThrownBy(() -> AuditAssertions.assertReconciliationSummaryConsistent(capture, graph))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("zero faults");
     }
 }

@@ -75,6 +75,9 @@ class CaseManagementIntegrationTest extends TopologyTestBase {
             loop.start("l03-audit", graph);
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, "l03-audit");
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
         } finally {
             loop.stop("l03-audit");
             loop.shutdown();

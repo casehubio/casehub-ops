@@ -97,6 +97,9 @@ class FleetObservabilityAcceptanceTest extends TopologyTestBase {
             AuditAssertions.assertCloudEventEmitted(auditCapture, DesiredStateEventTypes.RECONCILIATION_COMPLETED);
             AuditAssertions.assertAllSucceeded(auditCapture);
             AuditAssertions.assertNoCloudEventsOfType(auditCapture, DesiredStateEventTypes.NODE_FAULTED);
+            AuditAssertions.assertAuditTrailCoversGraph(auditCapture, graph);
+            AuditAssertions.assertCloudEventsHaveAttribution(auditCapture, TENANT);
+            AuditAssertions.assertReconciliationSummaryConsistent(auditCapture, graph);
             System.out.printf("✓ Topology deployed — %d nodes provisioned%n", graph.nodes().size());
 
             System.out.println("\nVerifying fleet health — all members operational...");
