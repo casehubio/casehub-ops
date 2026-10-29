@@ -115,4 +115,65 @@ class TopologyCompilerServiceDeployTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not found");
     }
+
+    @Test
+    void compileTopology_returnsGraphFromYaml() throws IOException {
+        Path topoDir = topologiesDir.resolve("compile-topo");
+        Files.createDirectories(topoDir);
+        Files.writeString(topoDir.resolve("topology.yaml"), """
+                                                            desiredState:
+                                                              namespace: test
+                                                              name: compile-topo
+                                                            nodes: {}
+                                                            """);
+
+        service.topologyPath = java.util.Optional.of(topologiesDir.toString());
+        DesiredStateGraph graph = service.compileTopology("compile-topo");
+
+        assertThat(graph).isNotNull();
+        assertThat(graph.nodes()).isEmpty();
+    }
+
+    @Test
+    void compileTopology_ignoresMetadataAndPlaybookFiles() throws IOException {
+        Path topoDir = topologiesDir.resolve("filter-topo");
+        Files.createDirectories(topoDir);
+        Files.writeString(topoDir.resolve("topology.yaml"), """
+                                                            desiredState:
+                                                              namespace: test
+                                                              name: filter-topo
+                                                            nodes: {}
+                                                            """);
+        Files.writeString(topoDir.resolve("topology-metadata.yaml"), """
+                                                                     description: "Test topology"
+                                                                     methodologyStep: "test"
+                                                                     """);
+        Files.writeString(topoDir.resolve("playbook.yaml"), """
+                                                            - step: "Do something"
+                                                            """);
+
+        service.topologyPath = java.util.Optional.of(topologiesDir.toString());
+        DesiredStateGraph graph = service.compileTopology("filter-topo");
+
+        assertThat(graph).isNotNull();
+        assertThat(graph.nodes()).isEmpty();
+    }
+
+    @Test
+    void deploy_returnsLoopKey() throws IOException {
+        Path topoDir = topologiesDir.resolve("key-topo");
+        Files.createDirectories(topoDir);
+        Files.writeString(topoDir.resolve("topology.yaml"), """
+                                                            desiredState:
+                                                              namespace: test
+                                                              name: key-topo
+                                                            nodes: {}
+                                                            """);
+
+        String loopKey = service.deploy("tenant1", topologiesDir.toString(), "key-topo");
+
+        assertThat(loopKey).isEqualTo("topology:tenant1:key-topo");
+    }
+
+
 }
