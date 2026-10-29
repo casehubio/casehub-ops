@@ -24,7 +24,7 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
@@ -74,7 +74,8 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        LlmAssertions.assertFleetOperational(responses);
+        responses.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(responses);
     }
 
     @Test
@@ -97,7 +98,8 @@ class FleetScalingIntegrationTest extends TopologyTestBase {
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        LlmAssertions.assertFleetOperational(responses);
+        responses.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(responses);
     }
 
     @Test

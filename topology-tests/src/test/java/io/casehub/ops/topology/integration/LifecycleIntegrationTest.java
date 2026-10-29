@@ -28,7 +28,7 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
@@ -79,7 +79,8 @@ class LifecycleIntegrationTest extends TopologyTestBase {
         List<LlmResponse> preSuspend =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> fleetClient.getApp(appId).orElseThrow().config());
-        LlmAssertions.assertFleetOperational(preSuspend);
+        preSuspend.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(preSuspend);
 
         for (String appId : FLEET_APP_IDS) {
             DeployResult result = target.suspend(appId);
@@ -110,7 +111,8 @@ class LifecycleIntegrationTest extends TopologyTestBase {
         List<LlmResponse> postResume =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> fleetClient.getApp(appId).orElseThrow().config());
-        LlmAssertions.assertFleetOperational(postResume);
+        postResume.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(postResume);
     }
 
     @Test
@@ -142,7 +144,7 @@ class LifecycleIntegrationTest extends TopologyTestBase {
         LlmResponse coderResponse =
                 FleetLlmExerciser.exercise("my-llm-coder",
                         fleetClient2.getApp("my-llm-coder").orElseThrow().config());
-        LlmAssertions.assertDomainRelevant(coderResponse);
+        FleetAssertions.assertResponseWellFormed(coderResponse);
     }
 
     @Test

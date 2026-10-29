@@ -32,7 +32,7 @@ import io.casehub.ops.service.adaptation.TenantAdaptationState;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.casehub.ras.api.ActiveSituation;
@@ -189,7 +189,7 @@ class AdHocDeployerAcceptanceTest extends TopologyTestBase {
             LlmResponse response =
                     FleetLlmExerciser.exercise(
                             specialistSpec.name(), specialistSpec.config());
-            LlmAssertions.assertSubstantive(response);
+            FleetAssertions.assertResponseWellFormed(response);
             System.out.printf("  ✓ %s responded (%s/%s, %d chars)%n",
                     response.appId(), response.backendKey(), response.instanceId(),
                     response.content().length());

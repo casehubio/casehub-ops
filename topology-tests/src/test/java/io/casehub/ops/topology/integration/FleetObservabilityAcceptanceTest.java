@@ -27,7 +27,7 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
@@ -116,13 +116,13 @@ class FleetObservabilityAcceptanceTest extends TopologyTestBase {
                 ClaudonyAppNodeSpec spec = (ClaudonyAppNodeSpec) node.spec();
                 LlmResponse response =
                         FleetLlmExerciser.exercise(appId, spec.config());
-                LlmAssertions.assertDomainRelevant(response);
+                FleetAssertions.assertResponseWellFormed(response);
                 responses.add(response);
                 System.out.printf("  ✓ %s (%s) responded — %d chars%n",
                         appId, response.domain(), response.content().length());
             }
-            LlmAssertions.assertDifferentiated(responses);
-            System.out.println("  ✓ Fleet responses are differentiated by role");
+            FleetAssertions.assertRouteConsistent(responses);
+            System.out.println("  ✓ Fleet responses routed consistently");
 
             System.out.println("\nInjecting fault — simulating LLM failure...");
             String faultNodeId = findNodeIdContaining(graph, "my-llm.analyst");

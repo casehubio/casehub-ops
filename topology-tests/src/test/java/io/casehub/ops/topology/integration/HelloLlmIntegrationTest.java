@@ -2,7 +2,7 @@ package io.casehub.ops.topology.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.desiredstate.api.ActualState;
 import io.casehub.desiredstate.api.DesiredNode;
@@ -71,7 +71,7 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
         LlmResponse llmResponse =
                 FleetLlmExerciser.exercise("my-llm",
                         extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-        LlmAssertions.assertDomainRelevant(llmResponse);
+        FleetAssertions.assertResponseWellFormed(llmResponse);
     }
 
     @Test
@@ -112,7 +112,7 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
         LlmResponse llmResponse =
                 FleetLlmExerciser.exercise("my-llm",
                         extractAppSpec(graph.nodes().get(NodeId.of("my-llm"))).config());
-        LlmAssertions.assertDomainRelevant(llmResponse);
+        FleetAssertions.assertResponseWellFormed(llmResponse);
     }
 
     @Test

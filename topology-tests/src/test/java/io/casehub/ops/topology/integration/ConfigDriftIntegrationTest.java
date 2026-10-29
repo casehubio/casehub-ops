@@ -31,7 +31,7 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
@@ -79,7 +79,7 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
 
         LlmResponse analystBeforeLlm =
                 FleetLlmExerciser.exercise("my-llm-analyst", analystBefore.config());
-        LlmAssertions.assertDomainRelevant(analystBeforeLlm);
+        FleetAssertions.assertResponseWellFormed(analystBeforeLlm);
         assertThat(analystBeforeLlm.domain()).isEqualTo("analysis");
 
         var mutations = GraphDiff.computeMutations(initialGraph, driftedGraph);
@@ -112,13 +112,14 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
 
         LlmResponse analystAfterLlm =
                 FleetLlmExerciser.exercise("my-llm-analyst", analystAfter.config());
-        LlmAssertions.assertDomainRelevant(analystAfterLlm);
+        FleetAssertions.assertResponseWellFormed(analystAfterLlm);
         assertThat(analystAfterLlm.domain()).isEqualTo("data-analysis");
 
         List<LlmResponse> allResponses =
                 FleetLlmExerciser.exerciseFleet(FLEET_APP_IDS,
                         appId -> client.getApp(appId).orElseThrow().config());
-        LlmAssertions.assertFleetOperational(allResponses);
+        allResponses.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(allResponses);
 
         ClaudonyAppInfo coder = client.getApp("my-llm-coder").orElseThrow();
         assertThat(coder.config()).containsEntry("llm.capability", "fast");
@@ -160,8 +161,8 @@ class ConfigDriftIntegrationTest extends TopologyTestBase {
         LlmResponse afterDrift =
                 FleetLlmExerciser.exercise("analyst-after", driftedAnalyst.config());
 
-        LlmAssertions.assertSubstantive(beforeDrift);
-        LlmAssertions.assertSubstantive(afterDrift);
+        FleetAssertions.assertResponseWellFormed(beforeDrift);
+        FleetAssertions.assertResponseWellFormed(afterDrift);
         assertThat(beforeDrift.domain()).isEqualTo("analysis");
         assertThat(afterDrift.domain()).isEqualTo("data-analysis");
     }

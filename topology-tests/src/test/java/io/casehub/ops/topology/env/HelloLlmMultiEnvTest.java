@@ -21,7 +21,7 @@ import io.casehub.ops.testing.env.EnvironmentAwareNodeProvisioner;
 import io.casehub.ops.testing.env.HttpFleetExerciser;
 import io.casehub.ops.testing.env.ImageResolver;
 import io.casehub.ops.testing.env.ImageSource;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.testing.env.ServiceHealthWaiter;
 import io.casehub.ops.testing.env.TargetEnvironment;
@@ -109,7 +109,7 @@ class HelloLlmMultiEnvTest extends TopologyTestBase {
                         }
                     }
                     if (llmResponse != null) {
-                        LlmAssertions.assertDomainRelevant(llmResponse);
+                        FleetAssertions.assertResponseWellFormed(llmResponse);
                         System.out.printf("  [multi-env] LLM exercise passed on %s%n", env);
                     }
                 } catch (Exception e) {

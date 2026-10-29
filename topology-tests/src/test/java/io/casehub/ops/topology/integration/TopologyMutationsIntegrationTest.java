@@ -32,7 +32,7 @@ import io.casehub.ops.claudony.HttpClaudonyFleetClient;
 import io.casehub.ops.testing.audit.AuditAssertions;
 import io.casehub.ops.testing.audit.AuditCapture;
 import io.casehub.ops.testing.audit.CapturingTransitionExecutor;
-import io.casehub.ops.testing.env.LlmAssertions;
+import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
@@ -141,7 +141,8 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
                             .findFirst().orElseThrow();
                     return extractAppSpec(node).config();
                 });
-        LlmAssertions.assertFleetOperational(postMutation);
+        postMutation.forEach(FleetAssertions::assertResponseWellFormed);
+        FleetAssertions.assertRouteConsistent(postMutation);
     }
 
     @Test
@@ -172,7 +173,7 @@ class TopologyMutationsIntegrationTest extends TopologyTestBase {
                 mutatedGraph.nodes().get(NodeId.of("my-llm.researcher")));
         LlmResponse researcherLlm =
                 FleetLlmExerciser.exercise("my-llm-researcher", researcherSpec.config());
-        LlmAssertions.assertDomainRelevant(researcherLlm);
+        FleetAssertions.assertResponseWellFormed(researcherLlm);
         assertThat(researcherLlm.domain()).isEqualTo("knowledge-discovery");
     }
 
