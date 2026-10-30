@@ -87,18 +87,25 @@ public class PodmanClient {
 
     public Uni<List<PodmanVolume>> listVolumes() {
         return toUni(get("/volumes/json").send())
-            .map(resp -> {
-                var body = new JsonObject(resp.bodyAsString());
-                var volumesArr = body.getJsonArray("Volumes");
-                var result = new ArrayList<PodmanVolume>();
-                if (volumesArr != null) {
-                    for (int i = 0; i < volumesArr.size(); i++) {
-                        var obj = volumesArr.getJsonObject(i);
-                        result.add(new PodmanVolume(obj.getString("Name"), obj.getString("Driver")));
-                    }
-                }
-                return List.copyOf(result);
-            });
+                       .map(resp -> {
+                           var raw    = resp.bodyAsString();
+                           var result = new ArrayList<PodmanVolume>();
+                           if (raw == null || raw.isBlank()) {return List.<PodmanVolume>copyOf(result);}
+                           raw = raw.trim();
+                           JsonArray volumesArr;
+                           if (raw.startsWith("[")) {
+                               volumesArr = new JsonArray(raw);
+                           } else {
+                               volumesArr = new JsonObject(raw).getJsonArray("Volumes");
+                           }
+                           if (volumesArr != null) {
+                               for (int i = 0; i < volumesArr.size(); i++) {
+                                   var obj = volumesArr.getJsonObject(i);
+                                   result.add(new PodmanVolume(obj.getString("Name"), obj.getString("Driver")));
+                               }
+                           }
+                           return List.copyOf(result);
+                       });
     }
 
     public Uni<String> createContainer(CreateContainerRequest request) {
