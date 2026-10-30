@@ -19,6 +19,9 @@ public class CaseHubAppDriftChecker implements NodeDriftChecker {
     private final ApplicationDeploymentTarget           deployTarget;
     private final InstanceIdStore                       instanceIdStore;
     private final Instance<ApplicationDeploymentTarget> allTargets;
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "casehub.ops.deployment-target-override", defaultValue = "")
+    String targetOverride;
+
 
     @Inject
     public CaseHubAppDriftChecker(ApplicationDeploymentTarget deployTarget,
@@ -57,9 +60,11 @@ public class CaseHubAppDriftChecker implements NodeDriftChecker {
     }
 
     private ApplicationDeploymentTarget resolveTarget(String targetId) {
-        if (targetId == null || targetId.isEmpty() || allTargets == null) { return deployTarget; }
+        String effectiveTarget = (targetOverride != null && !targetOverride.isEmpty())
+                ? targetOverride : targetId;
+        if (effectiveTarget == null || effectiveTarget.isEmpty() || allTargets == null) { return deployTarget; }
         return allTargets.stream()
-                .filter(t -> targetId.equals(t.targetId()))
+                .filter(t -> effectiveTarget.equals(t.targetId()))
                 .findFirst()
                 .orElse(deployTarget);
     }
