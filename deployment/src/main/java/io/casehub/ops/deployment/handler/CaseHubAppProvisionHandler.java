@@ -27,6 +27,9 @@ public class CaseHubAppProvisionHandler {
     private final ApplicationDeploymentTarget           deployTarget;
     private final InstanceIdStore                       instanceIdStore;
     private final Instance<ApplicationDeploymentTarget> allTargets;
+    @org.eclipse.microprofile.config.inject.ConfigProperty(name = "casehub.ops.deployment-target-override", defaultValue = "")
+    String targetOverride;
+
 
     @Inject
     public CaseHubAppProvisionHandler(
@@ -81,9 +84,11 @@ public class CaseHubAppProvisionHandler {
 
 
     private ApplicationDeploymentTarget resolveTarget(String targetId) {
-        if (targetId == null || targetId.isEmpty()) {return deployTarget;}
+        String effectiveTarget = (targetOverride != null && !targetOverride.isEmpty())
+                ? targetOverride : targetId;
+        if (effectiveTarget == null || effectiveTarget.isEmpty()) {return deployTarget;}
         return allTargets.stream()
-                         .filter(t -> targetId.equals(t.targetId()))
+                         .filter(t -> effectiveTarget.equals(t.targetId()))
                          .findFirst()
                          .orElse(deployTarget);
     }
