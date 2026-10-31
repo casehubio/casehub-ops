@@ -66,7 +66,7 @@ public record AgentNodeSpec(
                 agentId, name, null, version, provider, modelFamily, modelVersion,
                 weightsFingerprint, domainVocabulary, slotVocabulary,
                 dispositionVocabulary, styleVocabulary, axisVocabularies, slot,
-                null, List.of(), null,
+                null, null, List.of(), null,
                 capabilities, disposition, jurisdiction, dataHandlingPolicy,
                 tenancyId, briefing, null, List.of(), List.of(), List.of(), null, Map.of());
     }
