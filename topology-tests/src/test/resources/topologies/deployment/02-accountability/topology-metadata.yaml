@@ -1,0 +1,4 @@
+description: "Add ledger audit trail and work tracking to deployment operations"
+methodologyStep: "DEPLOY — Audit Trail"
+prerequisites: "Level 01"
+level: 2

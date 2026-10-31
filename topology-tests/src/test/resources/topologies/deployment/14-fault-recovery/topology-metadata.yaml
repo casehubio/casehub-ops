@@ -1,0 +1,4 @@
+description: "Automatic fault detection, recovery, and escalation for managed pools"
+methodologyStep: "OPERATE — Fault Detection and Replacement"
+prerequisites: "Level 10"
+level: 14

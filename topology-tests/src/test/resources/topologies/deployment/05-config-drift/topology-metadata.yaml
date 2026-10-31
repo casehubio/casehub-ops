@@ -1,0 +1,4 @@
+description: "Reconcile config changes by diffing desired state against actual state"
+methodologyStep: "OPERATE — Drift Reconciliation"
+prerequisites: "Level 04"
+level: 5
