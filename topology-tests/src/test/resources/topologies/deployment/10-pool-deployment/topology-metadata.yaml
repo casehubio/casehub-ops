@@ -1,0 +1,4 @@
+description: "Managed pool of interchangeable instances with auto-scaling and self-healing"
+methodologyStep: "DEPLOY — Managed Instance Pool"
+prerequisites: "Level 04, Level 06"
+level: 10

@@ -1,0 +1,4 @@
+description: "Suspend and resume instances without destroying registration"
+methodologyStep: "OPERATE — Suspend and Resume"
+prerequisites: "Level 04"
+level: 6
