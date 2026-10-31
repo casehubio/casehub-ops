@@ -1,0 +1,4 @@
+description: "Add and remove fleet instances via declarative data-block mutations"
+methodologyStep: "OPERATE — Declarative Mutations"
+prerequisites: "Level 04"
+level: 7
