@@ -28,6 +28,8 @@ mvn --batch-mode -o test -pl app      # app/ tests — offline avoids GitHub Pac
 mvn --batch-mode deploy -DskipTests   # CI only — requires GITHUB_TOKEN
 mvn --batch-mode test -pl topology-tests -Pintegration-live  # real-instance integration tests (requires Docker + claudony jar)
 mvn --batch-mode test -pl topology-tests -Pintegration-live -Dcasehub.topology.allow-image-fallback=true  # multi-env tests with nginx:alpine fallback (no pre-built images needed)
+mvn --batch-mode package -pl runtime -am -DskipTests   # build runtime fast-jar
+docker build -t casehubio/casehub-runtime:latest -f runtime/src/main/docker/Dockerfile.jvm runtime/  # build universal runtime image
 ```
 
 ## Module Structure
@@ -43,6 +45,7 @@ mvn --batch-mode test -pl topology-tests -Pintegration-live -Dcasehub.topology.a
 | `container/` | `casehub-ops-container` | `io.casehub.ops.container` | Container provisioning — Podman REST API for app containers, databases, networks, volumes |
 | `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet management — (1) `ApplicationDeploymentTarget` for ad-hoc app deployment, (2) standalone desiredstate domain with `claudony_app`/`claudony_pool` node types for declarative fleet management |
 | `app/` | `casehub-ops-app` | `io.casehub.ops.service` | Thin Quarkus shell — application.properties + quarkus-maven-plugin only. Depends solely on casehub-ops-service. |
+| `runtime/` | `casehub-ops-runtime` | `io.casehub.ops.runtime` | Universal CaseHub runtime image — all platform + ops service modules, one image, config-driven behavior |
 
 ## Domain Priority
 

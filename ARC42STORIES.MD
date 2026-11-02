@@ -183,6 +183,7 @@ C4Container
 | `iot/` | `casehub-ops-iot` | `io.casehub.ops.iot` | IoT desired state |
 | `claudony/` | `casehub-ops-claudony` | `io.casehub.ops.claudony` | Claudony fleet management — declarative app/pool lifecycle via fleet API |
 | `testing/` | `casehub-ops-testing` | `io.casehub.ops.testing` | Shared test fixtures (test scope only) |
+| `runtime/` | `casehub-ops-runtime` | `io.casehub.ops.runtime` | Universal CaseHub runtime image — all platform + ops service modules, config-driven behavior |
 
 ---
 

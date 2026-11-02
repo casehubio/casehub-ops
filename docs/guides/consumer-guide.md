@@ -349,6 +349,25 @@ Pools are provisioned via read-modify-write on the parent app spec because claud
 
 ---
 
+## Runtime Module -- Universal Image
+
+### Purpose
+
+Universal CaseHub runtime image with the ops service layer (engine, desiredstate, work, platform) as a Quarkus application. Designed for topology tests and Podman-based deployments where a single image serves all CaseHub personalities. Runtime behavior is controlled by the `config` map in `CaseHubApplicationSpec` -- modules are inert without declared goals.
+
+### Dependencies
+
+All compile-scope dependencies from `casehub-ops-service` plus `casehub-engine-rest` and `quarkus-smallrye-graphql`.
+
+### Building the Image
+
+```bash
+mvn --batch-mode package -pl runtime -am -DskipTests
+docker build -t casehubio/casehub-runtime:latest -f runtime/src/main/docker/Dockerfile.jvm runtime/
+```
+
+---
+
 ## App Module -- Ops Console
 
 ### Purpose
