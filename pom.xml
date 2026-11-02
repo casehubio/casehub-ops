@@ -31,6 +31,7 @@
         <module>claudony</module>
         <module>testing</module>
         <module>topology-tests</module>
+        <module>runtime</module>
         <module>examples/deployment-monitoring</module>
     </modules>
 
@@ -81,6 +82,11 @@
             <dependency>
                 <groupId>io.casehub</groupId>
                 <artifactId>casehub-ops-claudony</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.casehub</groupId>
+                <artifactId>casehub-ops-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
