@@ -31,9 +31,6 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
         wireMock.start();
 
         ClaudonyWireMockSupport.stubRegisterApp(wireMock);
-        ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "manifest");
-        ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "eidos");
-        ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "engine");
         ClaudonyWireMockSupport.stubGetAppHealthy(wireMock, "my-llm");
 
         claudonyTarget = createClaudonyTarget(wireMock.baseUrl());
@@ -51,7 +48,7 @@ class DeploymentTargetIntegrationTest extends TopologyTestBase {
 
         deployAllNodes(graph, claudonyTarget);
 
-        wireMock.verify(4, postRequestedFor(urlEqualTo("/api/claudony/apps/")));
+        wireMock.verify(1, postRequestedFor(urlEqualTo("/api/claudony/apps/")));
     }
 
     @Test

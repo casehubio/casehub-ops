@@ -85,8 +85,8 @@ class HelloLlmIntegrationTest extends TopologyTestBase {
         var                      plan        = planner.plan(graph, new ActualState(Map.of()));
 
         assertThat(plan.flatAdditions())
-                .as("Plan should have additions for all 4 nodes")
-                .hasSize(4);
+                .as("Plan should have additions for all nodes")
+                .hasSize(1);
 
         var router = new DefaultNodeProvisionerRouter(List.of(provisioner));
         var nodeExecutor = new NodeStepExecutor(

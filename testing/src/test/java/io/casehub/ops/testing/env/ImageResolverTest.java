@@ -79,4 +79,21 @@ class ImageResolverTest {
         ImageSource source = ImageResolver.currentSource();
         assertThat(source).isEqualTo(ImageSource.LOCAL);
     }
+
+    @Test
+    void universalImageName_isCorrect() {
+        assertThat(ImageResolver.UNIVERSAL_IMAGE_NAME).isEqualTo("casehub-runtime");
+    }
+
+    @Test
+    void resolveUniversal_formatsCorrectRef() {
+        String ref = ImageResolver.imageRef(ImageResolver.UNIVERSAL_IMAGE_NAME, "latest");
+        assertThat(ref).isEqualTo("casehubio/casehub-runtime:latest");
+    }
+
+    @Test
+    void resolveUniversal_fallback_returnsNginxAlpine() {
+        String result = ImageResolver.resolveUniversal("latest", true);
+        assertThat(result).isEqualTo(ImageResolver.FALLBACK_IMAGE);
+    }
 }

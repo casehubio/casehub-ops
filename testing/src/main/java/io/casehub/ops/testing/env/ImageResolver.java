@@ -6,6 +6,15 @@ public final class ImageResolver {
     public static final String FALLBACK_PROPERTY     = "casehub.topology.allow-image-fallback";
     public static final String IMAGE_SOURCE_PROPERTY = "casehub.topology.image-source";
     public static final String REGISTRY_PREFIX       = "ghcr.io/casehubio/";
+    public static final String UNIVERSAL_IMAGE_NAME  = "casehub-runtime";
+
+    public static String resolveUniversal(String version) {
+        return resolve(UNIVERSAL_IMAGE_NAME, version);
+    }
+
+    public static String resolveUniversal(String version, boolean allowFallback) {
+        return resolve(UNIVERSAL_IMAGE_NAME, version, allowFallback);
+    }
 
     private ImageResolver() {}
 

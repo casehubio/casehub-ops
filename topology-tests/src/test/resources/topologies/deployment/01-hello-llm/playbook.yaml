@@ -1,19 +1,4 @@
-- step: "Provision manifest service"
-  block:
-    - provision-node:
-        value: manifest
-        type: casehub_application
-- step: "Provision eidos (depends on manifest)"
-  block:
-    - provision-node:
-        value: eidos
-        type: casehub_application
-- step: "Provision engine (depends on eidos)"
-  block:
-    - provision-node:
-        value: engine
-        type: casehub_application
-- step: "Provision my-llm (depends on engine)"
+- step: "Provision my-llm agent"
   block:
     - provision-node:
         value: my-llm

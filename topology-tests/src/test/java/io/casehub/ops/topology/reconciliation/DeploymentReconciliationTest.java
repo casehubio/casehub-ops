@@ -36,36 +36,12 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     }
 
     @Test
-    void helloLlm_plansFourAdditions() throws IOException {
+    void helloLlm_plansOneAddition() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.flatAdditions()).hasSize(4);
+        assertThat(plan.flatAdditions()).hasSize(1);
         assertThat(plan.flatRemovals()).isEmpty();
-    }
-
-    @Test
-    void helloLlm_manifestBeforeEidos() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "manifest", "eidos");
-    }
-
-    @Test
-    void helloLlm_eidosBeforeEngine() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "eidos", "engine");
-    }
-
-    @Test
-    void helloLlm_engineBeforeLlm() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "engine", "my-llm");
     }
 
     @Test

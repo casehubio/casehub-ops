@@ -24,51 +24,22 @@ class DeploymentCompilationTest extends TopologyTestBase {
             buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
 
     @Test
-    void helloLlm_hasFourNodes() throws IOException {
+    void helloLlm_hasOneNode() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
+        assertThat(graph.nodes()).hasSize(1);
     }
 
     @Test
-    void helloLlm_allNodesAreCasehubApplication() throws IOException {
+    void helloLlm_nodeIsCasehubApplicationWithUniversalImage() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        graph.nodes().values().forEach(node ->
-                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
-    }
-
-    @Test
-    void helloLlm_eidosDependsOnManifest() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("eidos")))
-                .contains(NodeId.of("manifest"));
-    }
-
-    @Test
-    void helloLlm_engineDependsOnEidos() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("engine")))
-                .contains(NodeId.of("eidos"));
-    }
-
-    @Test
-    void helloLlm_llmDependsOnEngine() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
-                .contains(NodeId.of("engine"));
-    }
-
-    @Test
-    void helloLlm_specContainsApplicationId() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/01-hello-llm/01-hello-llm.yaml", DEPLOYMENT_REGISTRY);
-        var eidosNode = graph.nodes().get(NodeId.of("eidos"));
-        assertThat(eidosNode).isNotNull();
-        assertThat(eidosNode.spec()).isNotNull();
+        var llmNode = graph.nodes().get(NodeId.of("my-llm"));
+        assertThat(llmNode).isNotNull();
+        assertThat(llmNode.type()).isEqualTo(NodeType.of("casehub_application"));
+        var spec = extractAppSpec(graph, "my-llm");
+        assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(spec.config()).containsEntry("llm.capability", "fast");
     }
 
     // ── Level 02: Accountability ──────────────────────────────────────────
