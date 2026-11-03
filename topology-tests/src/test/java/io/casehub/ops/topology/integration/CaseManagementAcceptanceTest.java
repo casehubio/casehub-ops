@@ -28,6 +28,7 @@ import io.casehub.ops.testing.env.FleetAssertions;
 import io.casehub.ops.testing.env.LlmResponse;
 import io.casehub.ops.topology.compilation.TopologyTestBase;
 import io.smallrye.mutiny.Multi;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -97,6 +98,14 @@ class CaseManagementAcceptanceTest extends TopologyTestBase {
             System.out.println("  ✓ platform (engine+work+eidos) — provisioned and operational");
             AuditAssertions.assertNodeSucceeded(auditCapture, "ledger");
             System.out.println("  ✓ ledger (audit trail) — provisioned and operational");
+
+            System.out.println("\nVerifying qhorus runtime — deployed with channel mesh...");
+            var qhorusApp = client.getApp("qhorus");
+            Assertions.assertThat(qhorusApp).as("qhorus app registered with claudony fleet").isPresent();
+            Assertions.assertThat(qhorusApp.get().image()).isEqualTo("casehubio/casehub-runtime:latest");
+            Assertions.assertThat(qhorusApp.get().config()).containsEntry("role", "qhorus");
+            System.out.printf("  ✓ qhorus fleet app — image=%s, role=%s%n",
+                    qhorusApp.get().image(), qhorusApp.get().config().get("role"));
 
             System.out.println("\nExercising fleet — submitting case via LLM...");
             DesiredNode llmNode = graph.nodes().get(NodeId.of("platform"));

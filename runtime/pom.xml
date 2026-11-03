@@ -29,6 +29,16 @@
             <artifactId>casehub-engine-rest</artifactId>
         </dependency>
 
+        <!-- Qhorus: channel mesh, typed messages, presence -->
+        <dependency>
+            <groupId>io.casehub</groupId>
+            <artifactId>casehub-qhorus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.casehub</groupId>
+            <artifactId>casehub-qhorus-persistence-memory</artifactId>
+        </dependency>
+
         <!-- Quarkus application packaging -->
         <dependency>
             <groupId>io.quarkus</groupId>
