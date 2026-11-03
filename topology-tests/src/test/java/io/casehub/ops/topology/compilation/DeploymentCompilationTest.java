@@ -45,10 +45,10 @@ class DeploymentCompilationTest extends TopologyTestBase {
     // ── Level 02: Accountability ──────────────────────────────────────────
 
     @Test
-    void accountability_hasSixNodes() throws IOException {
+    void accountability_hasTwoNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(6);
+        assertThat(graph.nodes()).hasSize(2);
     }
 
     @Test
@@ -60,35 +60,23 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void accountability_eidosDependsOnManifest() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("eidos")))
-                .contains(NodeId.of("manifest"));
-    }
-
-    @Test
-    void accountability_ledgerDependsOnEidos() throws IOException {
+    void accountability_ledgerDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("ledger")))
-                .contains(NodeId.of("eidos"));
+                .contains(NodeId.of("platform"));
     }
 
     @Test
-    void accountability_workDependsOnEngineAndLedger() throws IOException {
+    void accountability_bothNodesUseUniversalImage() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("work")))
-                .containsExactlyInAnyOrder(NodeId.of("engine"), NodeId.of("ledger"));
-    }
-
-    @Test
-    void accountability_llmDependsOnWork() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
-                .contains(NodeId.of("work"));
+        var platform = extractAppSpec(graph, "platform");
+        var ledger = extractAppSpec(graph, "ledger");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(ledger.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(platform.config()).containsEntry("role", "platform");
+        assertThat(ledger.config()).containsEntry("role", "ledger");
     }
 // ── Level 03: Case Management ────────────────────────────────────────
 

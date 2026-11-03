@@ -71,46 +71,20 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
     // ── Level 02: Accountability ──────────────────────────────────────────
 
     @Test
-    void accountability_plansSixAdditions() throws IOException {
+    void accountability_plansTwoAdditions() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
-        assertThat(plan.flatAdditions()).hasSize(6);
+        assertThat(plan.flatAdditions()).hasSize(2);
         assertThat(plan.flatRemovals()).isEmpty();
     }
 
     @Test
-    void accountability_manifestBeforeEidos() throws IOException {
+    void accountability_platformBeforeLedger() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
         TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "manifest", "eidos");
-    }
-
-    @Test
-    void accountability_eidosBeforeEngineAndLedger() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "eidos", "engine");
-        assertOrderedBefore(plan, "eidos", "ledger");
-    }
-
-    @Test
-    void accountability_engineAndLedgerBeforeWork() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "engine", "work");
-        assertOrderedBefore(plan, "ledger", "work");
-    }
-
-    @Test
-    void accountability_workBeforeLlm() throws IOException {
-        DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/02-accountability/02-accountability.yaml", DEPLOYMENT_REGISTRY);
-        TransitionPlan plan = planFromEmpty(graph);
-        assertOrderedBefore(plan, "work", "my-llm");
+        assertOrderedBefore(plan, "platform", "ledger");
     }
 
     @Test
