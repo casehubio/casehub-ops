@@ -110,6 +110,54 @@ class DeploymentReconciliationTest extends ReconciliationTestBase {
         assertThat(replan.flatAdditions()).isEmpty();
         assertThat(replan.flatRemovals()).isEmpty();
     }
+// --- Level 03: Case Management ---
+
+    @Test
+    void caseManagement_plansThreeAdditions() throws IOException {
+        var graph = compileSingleGraph(
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        var plan = planFromEmpty(graph);
+
+        assertThat(plan.flatAdditions()).hasSize(3);
+        assertThat(plan.flatRemovals()).isEmpty();
+    }
+
+    @Test
+    void caseManagement_platformBeforeLedgerBeforeQhorus() throws IOException {
+        var graph = compileSingleGraph(
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        var plan = planFromEmpty(graph);
+
+        assertOrderedBefore(plan, "platform", "ledger");
+        assertOrderedBefore(plan, "ledger", "qhorus");
+    }
+
+    @Test
+    void caseManagement_executesSuccessfully() throws IOException {
+        var graph = compileSingleGraph(
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        var plan   = planFromEmpty(graph);
+        var result = executeTransition(plan, "test-tenant");
+
+        assertThat(result.outcomes().values())
+                .allMatch(o -> o instanceof StepOutcome.Succeeded);
+    }
+
+    @Test
+    void caseManagement_idempotentAfterExecution() throws IOException {
+        var graph = compileSingleGraph(
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        var plan = planFromEmpty(graph);
+        executeTransition(plan, "test-tenant");
+
+        actualAdapter.setAllPresent(graph);
+        var replan = planWithActual(graph,
+                                    actualAdapter.readActual(graph, "test-tenant"));
+
+        assertThat(replan.flatAdditions()).isEmpty();
+        assertThat(replan.flatRemovals()).isEmpty();
+    }
+
 // ── Level 15: Governed Interaction ────────────────────────────────────
 
     @Test

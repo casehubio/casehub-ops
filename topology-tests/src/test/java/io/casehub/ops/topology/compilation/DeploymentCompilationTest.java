@@ -81,10 +81,10 @@ class DeploymentCompilationTest extends TopologyTestBase {
 // ── Level 03: Case Management ────────────────────────────────────────
 
     @Test
-    void caseManagement_hasSevenNodes() throws IOException {
+    void caseManagement_hasThreeNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(7);
+        assertThat(graph.nodes()).hasSize(3);
     }
 
     @Test
@@ -96,19 +96,40 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void caseManagement_qhorusDependsOnWorkAndLedger() throws IOException {
+    void caseManagement_ledgerDependsOnPlatform() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("ledger")))
+                .contains(NodeId.of("platform"));
+    }
+
+
+    @Test
+    void caseManagement_qhorusDependsOnPlatformAndLedger() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("qhorus")))
-                .containsExactlyInAnyOrder(NodeId.of("work"), NodeId.of("ledger"));
+                .containsExactlyInAnyOrder(NodeId.of("platform"), NodeId.of("ledger"));
     }
 
     @Test
-    void caseManagement_llmDependsOnQhorus() throws IOException {
+    void caseManagement_allNodesUseUniversalImage() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/03-case-management/03-case-management.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.dependenciesOf(NodeId.of("my-llm")))
-                .contains(NodeId.of("qhorus"));
+
+        var platform = extractAppSpec(graph, "platform");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(platform.config()).containsEntry("role", "platform");
+        assertThat(platform.config()).containsEntry("llm.capability", "fast");
+        assertThat(platform.config()).containsEntry("llm.identity-source", "eidos");
+
+        var ledger = extractAppSpec(graph, "ledger");
+        assertThat(ledger.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(ledger.config()).containsEntry("role", "ledger");
+
+        var qhorus = extractAppSpec(graph, "qhorus");
+        assertThat(qhorus.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(qhorus.config()).containsEntry("role", "qhorus");
     }
 
 

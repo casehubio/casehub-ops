@@ -93,13 +93,13 @@ class CaseManagementAcceptanceTest extends TopologyTestBase {
             System.out.println("\nVerifying case management infrastructure...");
             AuditAssertions.assertNodeSucceeded(auditCapture, "qhorus");
             System.out.println("  ✓ qhorus (case management) — provisioned and operational");
-            AuditAssertions.assertNodeSucceeded(auditCapture, "work");
-            System.out.println("  ✓ work (task management) — provisioned and operational");
+            AuditAssertions.assertNodeSucceeded(auditCapture, "platform");
+            System.out.println("  ✓ platform (engine+work+eidos) — provisioned and operational");
             AuditAssertions.assertNodeSucceeded(auditCapture, "ledger");
             System.out.println("  ✓ ledger (audit trail) — provisioned and operational");
 
             System.out.println("\nExercising fleet — submitting case via LLM...");
-            DesiredNode llmNode = graph.nodes().get(NodeId.of("my-llm"));
+            DesiredNode llmNode = graph.nodes().get(NodeId.of("platform"));
             CaseHubApplicationSpec llmSpec = extractAppSpec(llmNode);
             LlmResponse response =
                     FleetLlmExerciser.exercise(llmSpec.applicationId(), llmSpec.config());
