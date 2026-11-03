@@ -1,65 +1,29 @@
 # Level 02: Accountability
 # Methodology step: DEPLOY — Audit Trail
 # Prerequisites: Level 01
-# See README.md for walkthrough
 
 desiredState:
   namespace: casehub
   name: accountability
 
 nodes:
-  manifest:
+  platform:
     type: casehub_application
     spec:
-      applicationId: manifest
-      image: casehubio/manifest:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  eidos:
-    type: casehub_application
-    dependsOn: [manifest]
-    spec:
-      applicationId: eidos
-      image: casehubio/eidos:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  engine:
-    type: casehub_application
-    dependsOn: [eidos]
-    spec:
-      applicationId: engine
-      image: casehubio/engine:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  ledger:
-    type: casehub_application
-    dependsOn: [eidos]
-    spec:
-      applicationId: ledger
-      image: casehubio/ledger:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  work:
-    type: casehub_application
-    dependsOn: [engine, ledger]
-    spec:
-      applicationId: work
-      image: casehubio/work:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  my-llm:
-    type: casehub_application
-    dependsOn: [work]
-    spec:
-      applicationId: my-llm
-      image: casehubio/my-llm-app:latest
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
       config:
-        llm.capability: fast
-        llm.identity-source: eidos
+        role: platform
+
+  ledger:
+    type: casehub_application
+    dependsOn: [platform]
+    spec:
+      applicationId: ledger
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: ledger
