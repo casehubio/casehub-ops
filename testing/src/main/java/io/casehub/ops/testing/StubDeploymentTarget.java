@@ -1,7 +1,10 @@
 package io.casehub.ops.testing;
 
 import io.casehub.desiredstate.api.NodeStatus;
-import io.casehub.ops.api.deployment.*;
+import io.casehub.ops.api.deployment.ApplicationDeploymentTarget;
+import io.casehub.ops.api.deployment.DeployConfig;
+import io.casehub.ops.api.deployment.DeployResult;
+import io.casehub.ops.api.deployment.HealthCheckResult;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StubDeploymentTarget implements ApplicationDeploymentTarget {
 
     private final Map<String, String> deployed = new ConcurrentHashMap<>();
+    private final Map<String, String> serviceUrls = new ConcurrentHashMap<>();
+
 
     @Override
     public DeployResult deploy(String imageRef, DeployConfig config) {
@@ -39,4 +44,14 @@ public class StubDeploymentTarget implements ApplicationDeploymentTarget {
     public Map<String, String> deployedInstances() {
         return Map.copyOf(deployed);
     }
+
+    public void setServiceUrl(String name, String url) {
+        serviceUrls.put(name, url);
+    }
+
+    @Override
+    public java.util.Optional<String> serviceUrl(String instanceId) {
+        return java.util.Optional.ofNullable(serviceUrls.get(instanceId));
+    }
+
 }
