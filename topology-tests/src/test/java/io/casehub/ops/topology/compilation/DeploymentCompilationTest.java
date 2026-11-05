@@ -649,58 +649,52 @@ class DeploymentCompilationTest extends TopologyTestBase {
 // ── Level 12: Ad-hoc LLM Deployer ──────────────────────────────────
 
     @Test
-    void adhocLlmDeployer_hasFourNodes() throws IOException {
+    void adhocLlmDeployer_hasTwoNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(2);
     }
 
     @Test
-    void adhocLlmDeployer_allNodesAreClaudonyApp() throws IOException {
+    void adhocLlmDeployer_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
-                                               assertThat(node.type()).isEqualTo(NodeType.of("claudony_app")));
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
 
     @Test
-    void adhocLlmDeployer_deployerDependsOnEngine() throws IOException {
+    void adhocLlmDeployer_deployerDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("deployer")))
-                .contains(NodeId.of("engine"));
+                .contains(NodeId.of("platform"));
     }
 
     @Test
     void adhocLlmDeployer_deployerHasLlmConfig() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         var deployerNode = graph.nodes().get(NodeId.of("deployer"));
         assertThat(deployerNode).isNotNull();
-        assertThat(deployerNode.spec()).isInstanceOf(ClaudonyAppNodeSpec.class);
-        var spec = (ClaudonyAppNodeSpec) deployerNode.spec();
+        var spec = extractAppSpec(graph, "deployer");
         assertThat(spec.config()).containsEntry("llm.role", "deployer");
         assertThat(spec.config()).containsEntry("deployer.specialist-catalog", "specialist-catalog");
     }
 
     @Test
-    void adhocLlmDeployer_jsonRoundTrip() throws Exception {
+    void adhocLlmDeployer_allAppsUseUniversalImage() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
-        assertThat(graph.nodes().keySet().stream().map(NodeId::value).toList())
-                .containsExactlyInAnyOrder("manifest", "eidos", "engine", "deployer");
-        // Re-compile and verify identical structure
-        DesiredStateGraph graph2 = compileSingleGraph(
-                "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph2.nodes().keySet()).isEqualTo(graph.nodes().keySet());
-        assertThat(graph2.dependencies()).isEqualTo(graph.dependencies());
+                DEPLOYMENT_REGISTRY);
+        var platform = extractAppSpec(graph, "platform");
+        var deployer = extractAppSpec(graph, "deployer");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(deployer.image()).isEqualTo("casehubio/casehub-runtime:latest");
     }
 // ── Level 15: Governed Interaction ────────────────────────────────────
 
