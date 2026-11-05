@@ -8,69 +8,49 @@ desiredState:
   name: chat-ui
 
 nodes:
-  manifest:
+  platform:
     type: casehub_application
     spec:
-      applicationId: manifest
-      image: casehubio/manifest:latest
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
-
-  eidos:
-    type: casehub_application
-    dependsOn: [manifest]
-    spec:
-      applicationId: eidos
-      image: casehubio/eidos:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  engine:
-    type: casehub_application
-    dependsOn: [eidos]
-    spec:
-      applicationId: engine
-      image: casehubio/engine:latest
-      deploymentTarget: claudony
-      replicas: 1
+      config:
+        role: platform
+        llm.capability: fast
 
   ledger:
     type: casehub_application
-    dependsOn: [eidos]
+    dependsOn: [platform]
     spec:
       applicationId: ledger
-      image: casehubio/ledger:latest
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
-
-  work:
-    type: casehub_application
-    dependsOn: [engine, ledger]
-    spec:
-      applicationId: work
-      image: casehubio/work:latest
-      deploymentTarget: claudony
-      replicas: 1
+      config:
+        role: ledger
 
   qhorus:
     type: casehub_application
-    dependsOn: [work, ledger]
+    dependsOn: [platform, ledger]
     spec:
       applicationId: qhorus
-      image: casehubio/qhorus:latest
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
+      config:
+        role: qhorus
 
   chat-viewer:
     type: casehub_application
     dependsOn: [qhorus]
     spec:
       applicationId: chat-viewer
-      image: casehubio/chat-viewer:latest
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
       config:
+        role: chat-viewer
         chat.mode: conversation-viewer
         chat.session-source: qhorus
         chat.channel-type: direct
-        chat.identity-source: eidos

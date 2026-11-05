@@ -411,6 +411,53 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
 
+// ── Level 09: Chat UI ────────────────────────────────────────────────
+
+    @Test
+    void chatUi_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/09-chat-ui/09-chat-ui.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void chatUi_allNodesUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/09-chat-ui/09-chat-ui.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node -> {
+            var spec = extractAppSpec(node);
+            assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        });
+    }
+
+    @Test
+    void chatUi_chatViewerDependsOnQhorus() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/09-chat-ui/09-chat-ui.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("chat-viewer")))
+                .contains(NodeId.of("qhorus"));
+    }
+
+    @Test
+    void chatUi_qhorusDependsOnPlatformAndLedger() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/09-chat-ui/09-chat-ui.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("qhorus")))
+                .containsExactlyInAnyOrder(NodeId.of("platform"), NodeId.of("ledger"));
+    }
+
+    @Test
+    void chatUi_chatViewerHasChatConfig() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/09-chat-ui/09-chat-ui.yaml", DEPLOYMENT_REGISTRY);
+        var chatViewer = extractAppSpec(graph, "chat-viewer");
+        assertThat(chatViewer.config()).containsEntry("role", "chat-viewer");
+        assertThat(chatViewer.config()).containsEntry("chat.mode", "conversation-viewer");
+        assertThat(chatViewer.config()).containsEntry("chat.session-source", "qhorus");
+        assertThat(chatViewer.config()).containsEntry("chat.channel-type", "direct");
+    }
+
+
 // ── UC04: Multi-Specialist Desk ─────────────────────────────────────
 
     @Test
