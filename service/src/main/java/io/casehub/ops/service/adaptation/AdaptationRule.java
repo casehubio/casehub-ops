@@ -121,6 +121,50 @@ public final class AdaptationRule {
         return rules;
     }
 
+    public static List<AdaptationRule> fromSpecs(
+            List<AdaptationRuleSpec> specs,
+            GoalCompiler<DeploymentGoals> compiler,
+            ObjectMapper mapper,
+            DesiredStateGraphFactory factory,
+            Map<String, Class<? extends io.casehub.desiredstate.api.NodeSpec>> nodeTypeRegistry,
+            Map<String, Class<?>> crossDomainNodeTypeRegistry,
+            Map<String, io.casehub.desiredstate.api.NodeSpecFactory> nodeSpecFactories) {
+        Objects.requireNonNull(specs, "specs");
+        Objects.requireNonNull(mapper, "mapper");
+        Objects.requireNonNull(factory, "factory");
+
+        Map<String, Class<?>> effectiveNodeTypeRegistry = crossDomainNodeTypeRegistry != null
+                                                          ? crossDomainNodeTypeRegistry : Map.of();
+
+        List<AdaptationRule> rules = new ArrayList<>();
+        for (var spec : specs) {
+            List<Object> actions = new ArrayList<>();
+            for (var actionSpec : spec.actions()) {
+                if (actionSpec instanceof AdaptationActionSpec.UpdateActionSpec u
+                    && u.nodeType() != null
+                    && nodeTypeRegistry != null
+                    && nodeTypeRegistry.containsKey(u.nodeType())) {
+                    validateUpdateFields(u, nodeTypeRegistry.get(u.nodeType()), mapper);
+                }
+                Object action = switch (actionSpec) {
+                    case AdaptationActionSpec.ScaleActionSpec s -> new ScaleAction(s);
+                    case AdaptationActionSpec.UpdateActionSpec u -> new UpdateAction(u);
+                    case AdaptationActionSpec.AddActionSpec a -> {
+                        if (compiler == null) {
+                            throw new IllegalStateException(
+                                    "GoalCompiler required for AddActionSpec but not provided");
+                        }
+                        yield new AddAction(a, compiler, factory);
+                    }
+                    case AdaptationActionSpec.AddNodeActionSpec a -> new AddNodeAction(a, effectiveNodeTypeRegistry, nodeSpecFactories, mapper);
+                };
+                actions.add(action);
+            }
+            rules.add(new AdaptationRule(spec, actions, compiler, mapper, factory, effectiveNodeTypeRegistry, null));
+        }
+        return rules;
+    }
+
 
     /**
      * Returns the rule name.

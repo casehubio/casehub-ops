@@ -1,7 +1,6 @@
 package io.casehub.ops.service.adaptation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
@@ -195,5 +194,43 @@ class AddNodeActionTest {
 
         var resolved = action.resolvedNodeId(Map.of("name", "product-x"));
         assertThat(resolved).isEqualTo("specialist-product-x");
+    }
+
+    @Test
+    void casehubApplicationTemplateRoutedThroughFactory() {
+        var template = new NodeTemplate(
+                "specialist-test",
+                "casehub_application",
+                Map.of("applicationId", (Object) "specialist-test",
+                       "image", "casehubio/casehub-runtime:latest",
+                       "deploymentTarget", "claudony"));
+        var spec = new AddNodeActionSpec(template, List.of());
+
+        // Manual factory that mimics DeploymentNodeSpecFactoryProvider logic
+        io.casehub.desiredstate.api.NodeSpecFactory appFactory = specMap -> {
+            var    fields           = new java.util.LinkedHashMap<>(specMap);
+            String deploymentTarget = (String) fields.remove("deploymentTarget");
+            String existing         = (String) fields.remove("existing");
+            var    appSpec          = mapper.convertValue(fields, io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
+            if (deploymentTarget != null || existing != null) {
+                return new io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec(appSpec, deploymentTarget, existing);
+            }
+            return appSpec;
+        };
+        var factories = Map.of("casehub_application", appFactory);
+        var nodeTypeRegistry = Map.<String, Class<?>>of(
+                "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
+
+        var action = new AddNodeAction(spec, nodeTypeRegistry, factories, mapper);
+
+        var graph  = factory.of(List.of(), List.of());
+        var result = action.apply(graph, Map.of(), null);
+
+        var node = result.nodes().get(NodeId.of("specialist-test"));
+        assertThat(node).isNotNull();
+        assertThat(node.spec()).isInstanceOf(io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec.class);
+        var wrapper = (io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec) node.spec();
+        assertThat(wrapper.deploymentTargetId()).isEqualTo("claudony");
+        assertThat(wrapper.spec().applicationId()).isEqualTo("specialist-test");
     }
 }
