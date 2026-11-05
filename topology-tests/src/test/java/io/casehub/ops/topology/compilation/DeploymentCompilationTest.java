@@ -191,6 +191,70 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
 
+// ── Level 05: Config Drift ───────────────────────────────────────────
+
+    @Test
+    void configDrift_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void configDrift_allNodesAreCasehubApplication() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node ->
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void configDrift_allNodesUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node -> {
+            var spec = extractAppSpec(node);
+            assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        });
+    }
+
+    @Test
+    void configDrift_allLlmNodesDependOnPlatform() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+        for (String llmId : List.of("my-llm.analyst", "my-llm.coder", "my-llm.assistant")) {
+            assertThat(graph.dependenciesOf(NodeId.of(llmId)))
+                    .as("dependencies of %s", llmId)
+                    .contains(NodeId.of("platform"));
+        }
+    }
+
+    @Test
+    void configDrift_analystHasDriftedConfig() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+
+        var analyst = extractAppSpec(graph, "my-llm.analyst");
+        assertThat(analyst.config()).containsEntry("llm.capability", "analytical");
+        assertThat(analyst.config()).containsEntry("llm.domain", "data-analysis");
+        assertThat(analyst.config()).containsEntry("llm.role", "analyst");
+    }
+
+    @Test
+    void configDrift_coderAndAssistantUnchangedFromFleet() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/05-config-drift/05-config-drift.yaml", DEPLOYMENT_REGISTRY);
+
+        var coder = extractAppSpec(graph, "my-llm.coder");
+        assertThat(coder.config()).containsEntry("llm.capability", "fast");
+        assertThat(coder.config()).containsEntry("llm.role", "developer");
+
+        var assistant = extractAppSpec(graph, "my-llm.assistant");
+        assertThat(assistant.config()).containsEntry("llm.capability", "balanced");
+        assertThat(assistant.config()).containsEntry("llm.role", "assistant");
+    }
+
+
 // ── UC04: Multi-Specialist Desk ─────────────────────────────────────
 
     @Test
