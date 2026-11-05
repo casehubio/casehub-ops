@@ -3,9 +3,6 @@ package io.casehub.ops.topology.compilation;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeType;
-import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
-import io.casehub.ops.api.claudony.ClaudonyNodeSpec;
-import io.casehub.ops.api.claudony.ClaudonyPoolNodeSpec;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
@@ -22,8 +19,6 @@ class DeploymentCompilationTest extends TopologyTestBase {
 
     private static final Map<String, String> DEPLOYMENT_REGISTRY =
             buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
-    private static final Map<String, String> CLAUDONY_REGISTRY   =
-            buildTypeRegistryFrom(ClaudonyNodeSpec.class);
 
 
     @Test
