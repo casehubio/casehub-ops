@@ -136,10 +136,10 @@ class DeploymentCompilationTest extends TopologyTestBase {
 // ── Level 04: Fleet Scaling ──────────────────────────────────────────
 
     @Test
-    void llmFleet_hasSixNodes() throws IOException {
+    void llmFleet_hasFourNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(6);
+        assertThat(graph.nodes()).hasSize(4);
     }
 
     @Test
@@ -162,13 +162,13 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void llmFleet_allLlmNodesDependOnEngine() throws IOException {
+    void llmFleet_allLlmNodesDependOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/04-llm-fleet/04-llm-fleet.yaml", DEPLOYMENT_REGISTRY);
         for (String llmId : List.of("my-llm.analyst", "my-llm.coder", "my-llm.assistant")) {
             assertThat(graph.dependenciesOf(NodeId.of(llmId)))
                     .as("dependencies of %s", llmId)
-                    .contains(NodeId.of("engine"));
+                    .contains(NodeId.of("platform"));
         }
     }
 

@@ -94,6 +94,9 @@ public class DimensionTestExtension implements
         DimensionState dimensionState = new DimensionState();
         if (specs.length > 0) {
             dimensionState.put("containerName", specs[0].name());
+            List<String> allNames = java.util.Arrays.stream(specs)
+                    .map(ContainerSpec::name).toList();
+            dimensionState.put("containerNames", allNames);
         }
 
         context.getStore(NS).put("target", target);
