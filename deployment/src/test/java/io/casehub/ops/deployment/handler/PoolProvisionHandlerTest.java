@@ -16,6 +16,7 @@ import io.casehub.ops.api.deployment.WorkingDirPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,7 +30,7 @@ class PoolProvisionHandlerTest {
     @BeforeEach
     void setUp() {
         ops = new StubPoolOperations();
-        handler = new PoolProvisionHandler(ops);
+        handler = new PoolProvisionHandler(List.of(ops));
     }
 
     @Test

@@ -10,22 +10,36 @@ import io.casehub.ops.api.deployment.PoolNodeSpec;
 import io.casehub.ops.api.deployment.PoolOperations;
 import io.casehub.ops.api.deployment.PoolUpdateRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PoolProvisionHandler {
 
-    private final PoolOperations ops;
+    private final Map<String, PoolOperations> backends;
 
     @Inject
-    public PoolProvisionHandler(PoolOperations ops) {
-        this.ops = ops;
+    public PoolProvisionHandler(@Any Instance<PoolOperations> allBackends) {
+        this.backends = allBackends.stream()
+                                   .collect(Collectors.toMap(PoolOperations::backendId, b -> b));
+    }
+
+    public PoolProvisionHandler(List<PoolOperations> backends) {
+        this.backends = backends.stream()
+                                .collect(Collectors.toMap(PoolOperations::backendId, b -> b));
     }
 
     public ProvisionResult provision(PoolNodeSpec spec, ProvisionContext context) {
+        var ops = backends.get(spec.backend());
+        if (ops == null) {
+            return new ProvisionResult.Failed("No PoolOperations for backend: " + spec.backend());
+        }
         var existing = ops.getPool(spec.applicationId(), spec.agentId());
         if (existing.isEmpty()) {
             ops.createPool(toCreateRequest(spec));
@@ -38,6 +52,10 @@ public class PoolProvisionHandler {
     }
 
     public DeprovisionResult deprovision(PoolNodeSpec spec, DeprovisionContext context) {
+        var ops = backends.get(spec.backend());
+        if (ops == null) {
+            return new DeprovisionResult.Failed("No PoolOperations for backend: " + spec.backend());
+        }
         var existing = ops.getPool(spec.applicationId(), spec.agentId());
         if (existing.isPresent()) {
             ops.destroyPool(spec.applicationId(), spec.agentId());

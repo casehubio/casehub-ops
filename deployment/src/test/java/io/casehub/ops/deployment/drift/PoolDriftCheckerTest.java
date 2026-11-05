@@ -26,7 +26,7 @@ class PoolDriftCheckerTest {
     @BeforeEach
     void setUp() {
         ops = new StubPoolOperations();
-        checker = new PoolDriftChecker(ops);
+        checker = new PoolDriftChecker(java.util.List.of(ops));
     }
 
     @Test

@@ -93,7 +93,7 @@ class DeploymentNodeProvisionerTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
-                new PoolProvisionHandler(new NoOpPoolOperations()),
+                new PoolProvisionHandler(java.util.List.of(new NoOpPoolOperations())),
                 new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore(), null),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),

@@ -108,13 +108,13 @@ class DeploymentLifecycleIntegrationTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
-                new io.casehub.ops.deployment.handler.PoolProvisionHandler(new io.casehub.ops.api.deployment.PoolOperations() {
+                new io.casehub.ops.deployment.handler.PoolProvisionHandler(java.util.List.of(new io.casehub.ops.api.deployment.PoolOperations() {
                     @Override public String backendId() { return "noop"; }
                     @Override public java.util.Optional<io.casehub.ops.api.deployment.PoolInfo> getPool(String applicationId, String poolId) { return java.util.Optional.empty(); }
                     @Override public io.casehub.ops.api.deployment.PoolInfo createPool(io.casehub.ops.api.deployment.PoolCreateRequest request) { return null; }
                     @Override public io.casehub.ops.api.deployment.PoolInfo updatePool(String applicationId, String poolId, io.casehub.ops.api.deployment.PoolUpdateRequest request) { return null; }
                     @Override public void destroyPool(String applicationId, String poolId) {}
-                }),
+                })),
                 new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore(), null),
                 specHashStore,
                 (node, action, tenancyId) -> new io.casehub.ops.api.approval.ApprovalDecision.AutoApproved(),
