@@ -22,6 +22,9 @@ class DeploymentCompilationTest extends TopologyTestBase {
 
     private static final Map<String, String> DEPLOYMENT_REGISTRY =
             buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
+    private static final Map<String, String> CLAUDONY_REGISTRY   =
+            buildTypeRegistryFrom(ClaudonyNodeSpec.class);
+
 
     @Test
     void helloLlm_hasOneNode() throws IOException {
@@ -542,27 +545,25 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 // ── Level 10: Pool Deployment ──────────────────────────────────────
 
-    private static final Map<String, String> CLAUDONY_REGISTRY =
-            buildTypeRegistryFrom(ClaudonyNodeSpec.class);
-
     @Test
-    void poolDeployment_hasFiveNodes() throws IOException {
+    void poolDeployment_hasThreeNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(5);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(3);
     }
 
     @Test
     void poolDeployment_containsPoolNode() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         var poolNode = graph.nodes().values().stream()
-                            .filter(n -> n.spec() instanceof ClaudonyPoolNodeSpec)
+                            .filter(n -> n.spec() instanceof io.casehub.ops.api.deployment.PoolNodeSpec)
                             .findFirst();
-        assertThat(poolNode).as("graph must contain a claudony_pool node").isPresent();
-        var poolSpec = (ClaudonyPoolNodeSpec) poolNode.get().spec();
-        assertThat(poolSpec.appName()).isEqualTo("support-app");
+        assertThat(poolNode).as("graph must contain a pool node").isPresent();
+        var poolSpec = (io.casehub.ops.api.deployment.PoolNodeSpec) poolNode.get().spec();
+        assertThat(poolSpec.applicationId()).isEqualTo("support-app");
         assertThat(poolSpec.agentId()).isEqualTo("support-agent");
+        assertThat(poolSpec.backend()).isEqualTo("claudony");
         assertThat(poolSpec.minActive()).isEqualTo(3);
         assertThat(poolSpec.maxActive()).isEqualTo(8);
     }
@@ -570,7 +571,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void poolDeployment_poolDependsOnSupportApp() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         var poolNodeId = graph.nodes().keySet().stream()
                               .filter(id -> id.value().contains("support-pool"))
                               .findFirst();
@@ -581,11 +582,21 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void poolDeployment_supportAppDependsOnEngine() throws IOException {
+    void poolDeployment_supportAppDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("support-app")))
-                .contains(NodeId.of("engine"));
+                .contains(NodeId.of("platform"));
+    }
+
+    @Test
+    void poolDeployment_allAppsUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
+        var platform = extractAppSpec(graph, "platform");
+        var supportApp = extractAppSpec(graph, "support-app");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(supportApp.image()).isEqualTo("casehubio/casehub-runtime:latest");
     }
 
 

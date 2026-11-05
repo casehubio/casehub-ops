@@ -2,8 +2,10 @@ package io.casehub.ops.api.deployment;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.casehub.desiredstate.api.NodeType;
+import io.casehub.desiredstate.api.NodeTypeId;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@NodeTypeId("pool")
 public record PoolNodeSpec(
         String applicationId,
         String agentId,
