@@ -7,6 +7,7 @@ import io.casehub.desiredstate.api.NodeId;
 import io.casehub.eidos.api.AgentCapability;
 import io.casehub.eidos.api.AgentDisposition;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
@@ -341,6 +342,8 @@ class DeploymentGoalCompilerTest {
 
     @Test
     void compilesPoolNode() {
+        var app = new CaseHubApplicationSpec("platform", null,
+                                             "casehubio/casehub-runtime:latest", null, null, null, 1);
         var pool = new PoolNodeSpec("platform", "code-reviewer", "claudony", 2, 8,
                                     "~/workspace/reviews", WorkingDirPolicy.SHARED_READ,
                                     new PoolScalingSpec("target-tracking", 0.7, "30s", null),
@@ -353,13 +356,13 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(pool, List.of())),
-                List.of(),
+                List.of(new GoalEntry<>(app, List.of())),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
                                            compiler.compile(goals, factory)).graph();
 
-        assertThat(graph.nodes()).hasSize(1);
+        assertThat(graph.nodes()).hasSize(2);
         DesiredNode node = graph.nodes().get(NodeId.of("platform:code-reviewer-pool"));
         assertThat(node.id()).isEqualTo(NodeId.of("platform:code-reviewer-pool"));
         assertThat(node.type().value()).isEqualTo("pool");
@@ -368,6 +371,8 @@ class DeploymentGoalCompilerTest {
 
     @Test
     void poolDependsOnAgent() {
+        var app = new CaseHubApplicationSpec("platform", null,
+                                             "casehubio/casehub-runtime:latest", null, null, null, 1);
         var agent = testAgent("code-reviewer");
         var pool = new PoolNodeSpec("platform", "code-reviewer", "claudony", 2, 8,
                                     null, null, null, null);
@@ -379,18 +384,49 @@ class DeploymentGoalCompilerTest {
                 List.of(),
                 List.of(),
                 List.of(new GoalEntry<>(pool, List.of("code-reviewer"))),
+                List.of(new GoalEntry<>(app, List.of())),
+                List.of());
+
+        DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
+                                           compiler.compile(goals, factory)).graph();
+
+        assertThat(graph.nodes()).hasSize(3);
+        assertThat(graph.dependencies()).hasSize(2);
+        assertThat(graph.dependencies()).anyMatch(d ->
+                                                          d.from().equals(NodeId.of("platform:code-reviewer-pool"))
+                                                          && d.to().equals(NodeId.of("platform")));
+        assertThat(graph.dependencies()).anyMatch(d ->
+                                                          d.from().equals(NodeId.of("platform:code-reviewer-pool"))
+                                                          && d.to().equals(NodeId.of("code-reviewer")));
+    }
+
+    @Test
+    void poolAutoDependsOnParentApplication() {
+        var app = new CaseHubApplicationSpec("platform", null,
+                                             "casehubio/casehub-runtime:latest", null, null, null, 1);
+        var pool = new PoolNodeSpec("platform", "analyst", "claudony", 2, 5,
+                                    null, null, null, null);
+        var goals = new DeploymentGoals(
                 List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(new GoalEntry<>(pool, List.of())),
+                List.of(new GoalEntry<>(app, List.of())),
                 List.of());
 
         DesiredStateGraph graph = ((io.casehub.desiredstate.api.CompilationResult.SingleGraph)
                                            compiler.compile(goals, factory)).graph();
 
         assertThat(graph.nodes()).hasSize(2);
-        assertThat(graph.dependencies()).hasSize(1);
-        var dep = graph.dependencies().iterator().next();
-        assertThat(dep.from()).isEqualTo(NodeId.of("platform:code-reviewer-pool"));
-        assertThat(dep.to()).isEqualTo(NodeId.of("code-reviewer"));
+        var deps = graph.dependencies();
+        assertThat(deps).anyMatch(d ->
+                                          d.from().equals(NodeId.of("platform:analyst-pool"))
+                                          && d.to().equals(NodeId.of("platform")));
     }
+
 
     private AgentNodeSpec testAgent(String id) {
         return new AgentNodeSpec(id, "Test Agent", "worker",

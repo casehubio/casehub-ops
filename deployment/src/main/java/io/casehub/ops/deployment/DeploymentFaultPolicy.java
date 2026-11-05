@@ -27,7 +27,9 @@ public class DeploymentFaultPolicy implements FaultPolicy {
                                                                               NodeType.of("channel"),
                                                                               NodeType.of("case_type"),
                                                                               NodeType.of("trust_policy"),
-                                                                              NodeType.of("endpoint")))
+                                                                              NodeType.of("endpoint"),
+                                                                              NodeType.of("pool"),
+                                                                              NodeType.of("casehub_application")))
                                                                       .ignoreTypes(Set.of(DEPLOYMENT_REVIEW))
                                                                       .tier(3, FaultPolicy.addReviewNode(
                                                                               (event, current) -> new DeploymentReviewSpec(event.node(), event.detail())))
