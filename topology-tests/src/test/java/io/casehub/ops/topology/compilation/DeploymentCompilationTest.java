@@ -255,6 +255,63 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
 
+// ── Level 06: Lifecycle ──────────────────────────────────────────────
+
+    @Test
+    void lifecycle_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void lifecycle_allNodesAreCasehubApplication() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node ->
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void lifecycle_allNodesUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node -> {
+            var spec = extractAppSpec(node);
+            assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        });
+    }
+
+    @Test
+    void lifecycle_allLlmNodesDependOnPlatform() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+        for (String llmId : List.of("my-llm.analyst", "my-llm.coder", "my-llm.assistant")) {
+            assertThat(graph.dependenciesOf(NodeId.of(llmId)))
+                    .as("dependencies of %s", llmId)
+                    .contains(NodeId.of("platform"));
+        }
+    }
+
+    @Test
+    void lifecycle_configMatchesFleet() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/06-lifecycle/06-lifecycle.yaml", DEPLOYMENT_REGISTRY);
+
+        var analyst = extractAppSpec(graph, "my-llm.analyst");
+        assertThat(analyst.config()).containsEntry("llm.capability", "deep");
+        assertThat(analyst.config()).containsEntry("llm.role", "analyst");
+
+        var coder = extractAppSpec(graph, "my-llm.coder");
+        assertThat(coder.config()).containsEntry("llm.capability", "fast");
+        assertThat(coder.config()).containsEntry("llm.role", "developer");
+
+        var assistant = extractAppSpec(graph, "my-llm.assistant");
+        assertThat(assistant.config()).containsEntry("llm.capability", "balanced");
+        assertThat(assistant.config()).containsEntry("llm.role", "assistant");
+    }
+
+
 // ── UC04: Multi-Specialist Desk ─────────────────────────────────────
 
     @Test
