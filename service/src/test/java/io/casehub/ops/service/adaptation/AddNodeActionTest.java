@@ -58,10 +58,8 @@ class AddNodeActionTest {
         var template = new NodeTemplate(
                 "specialist-${catalog.name}",
                 "casehub_application",
-                Map.of("name", (Object) "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "Deployed for ${situation.id}",
-                       "image", "img:latest"));
+                Map.of("applicationId", (Object) "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var spec = new AddNodeActionSpec(template, List.of());
         var nodeTypeRegistry = Map.<String, Class<?>>of(
                 "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
@@ -76,22 +74,21 @@ class AddNodeActionTest {
         var result = action.apply(graph, catalogEntry, situation);
         var node = result.nodes().get(NodeId.of("specialist-test-spec"));
         var appSpec = (io.casehub.ops.api.deployment.CaseHubApplicationSpec) node.spec();
-        assertThat(appSpec.description()).isEqualTo("Deployed for surge-42");
+        assertThat(appSpec.applicationId()).isEqualTo("specialist-test-spec");
     }
 
     @Test
     void applyAddsDependencyEdges() {
         var template = new NodeTemplate(
                 "specialist-${catalog.name}", "casehub_application",
-                Map.of("name", (Object) "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test", "image", "img:latest"));
+                Map.of("applicationId", (Object) "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var spec = new AddNodeActionSpec(template, List.of("engine"));
         var nodeTypeRegistry = Map.<String, Class<?>>of(
                 "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
         var action = new AddNodeAction(spec, nodeTypeRegistry, mapper);
 
-        var engineSpec = new io.casehub.ops.api.deployment.CaseHubApplicationSpec("engine", "Engine", "Engine service", "img:latest", Map.of());
+        var engineSpec = new io.casehub.ops.api.deployment.CaseHubApplicationSpec("engine", null, "casehubio/casehub-runtime:latest", null, null, null, 1);
         var engineNode = new io.casehub.desiredstate.api.DesiredNode(
                 NodeId.of("engine"), engineSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var graph = factory.of(List.of(engineNode), List.of());
@@ -110,10 +107,8 @@ class AddNodeActionTest {
     void applyResolvesNestedConfigMap() {
         var template = new NodeTemplate(
                 "specialist-${catalog.name}", "casehub_application",
-                Map.of("name", (Object) "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test",
-                       "image", "img:latest",
+                Map.of("applicationId", (Object) "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest",
                        "config", Map.of(
                                "llm.role", "${catalog.role}",
                                "llm.domain", "${catalog.domain}",

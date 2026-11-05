@@ -17,10 +17,10 @@ class BootstrapDomainRegistrarTest {
         var registrar = new BootstrapDomainRegistrar(engine, "local-dev");
         registrar.onStartup();
 
-        assertThat(engine.registrationCount()).isEqualTo(2);
+        assertThat(engine.registrationCount()).isEqualTo(1);
         engine.compose();
         assertThat(engine.topologicalOrder()).containsExactly(
-                DomainId.of("deployment"), DomainId.of("claudony"));
+                DomainId.of("deployment"));
     }
 
     @Test
@@ -29,10 +29,10 @@ class BootstrapDomainRegistrarTest {
         var registrar = new BootstrapDomainRegistrar(engine, "local-distributed");
         registrar.onStartup();
 
-        assertThat(engine.registrationCount()).isEqualTo(3);
+        assertThat(engine.registrationCount()).isEqualTo(2);
         engine.compose();
         assertThat(engine.topologicalOrder()).containsExactly(
-                DomainId.of("infra"), DomainId.of("claudony"), DomainId.of("deployment"));
+                DomainId.of("infra"), DomainId.of("deployment"));
     }
 
     @Test
@@ -41,9 +41,9 @@ class BootstrapDomainRegistrarTest {
         var registrar = new BootstrapDomainRegistrar(engine, "enterprise");
         registrar.onStartup();
 
-        assertThat(engine.registrationCount()).isEqualTo(3);
+        assertThat(engine.registrationCount()).isEqualTo(2);
         engine.compose();
         assertThat(engine.topologicalOrder()).containsExactly(
-                DomainId.of("infra"), DomainId.of("claudony"), DomainId.of("deployment"));
+                DomainId.of("infra"), DomainId.of("deployment"));
     }
 }
