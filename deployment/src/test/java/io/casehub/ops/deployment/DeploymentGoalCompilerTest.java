@@ -341,7 +341,7 @@ class DeploymentGoalCompilerTest {
 
     @Test
     void compilesPoolNode() {
-        var pool = new PoolNodeSpec("code-reviewer", "claudony", 2, 8,
+        var pool = new PoolNodeSpec("platform", "code-reviewer", "claudony", 2, 8,
                                     "~/workspace/reviews", WorkingDirPolicy.SHARED_READ,
                                     new PoolScalingSpec("target-tracking", 0.7, "30s", null),
                                     EvictionStrategy.MEMORY_WEIGHTED);
@@ -360,8 +360,8 @@ class DeploymentGoalCompilerTest {
                                            compiler.compile(goals, factory)).graph();
 
         assertThat(graph.nodes()).hasSize(1);
-        DesiredNode node = graph.nodes().get(NodeId.of("code-reviewer-pool"));
-        assertThat(node.id()).isEqualTo(NodeId.of("code-reviewer-pool"));
+        DesiredNode node = graph.nodes().get(NodeId.of("platform:code-reviewer-pool"));
+        assertThat(node.id()).isEqualTo(NodeId.of("platform:code-reviewer-pool"));
         assertThat(node.type().value()).isEqualTo("pool");
         assertThat(node.spec()).isInstanceOf(PoolNodeSpec.class);
     }
@@ -369,7 +369,7 @@ class DeploymentGoalCompilerTest {
     @Test
     void poolDependsOnAgent() {
         var agent = testAgent("code-reviewer");
-        var pool = new PoolNodeSpec("code-reviewer", "claudony", 2, 8,
+        var pool = new PoolNodeSpec("platform", "code-reviewer", "claudony", 2, 8,
                                     null, null, null, null);
         var goals = new DeploymentGoals(
                 List.of(new GoalEntry<>(agent, List.of())),
@@ -388,7 +388,7 @@ class DeploymentGoalCompilerTest {
         assertThat(graph.nodes()).hasSize(2);
         assertThat(graph.dependencies()).hasSize(1);
         var dep = graph.dependencies().iterator().next();
-        assertThat(dep.from()).isEqualTo(NodeId.of("code-reviewer-pool"));
+        assertThat(dep.from()).isEqualTo(NodeId.of("platform:code-reviewer-pool"));
         assertThat(dep.to()).isEqualTo(NodeId.of("code-reviewer"));
     }
 

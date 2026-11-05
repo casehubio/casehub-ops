@@ -5,6 +5,7 @@ import io.casehub.desiredstate.api.NodeType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PoolNodeSpec(
+        String applicationId,
         String agentId,
         String backend,
         int minActive,
@@ -16,20 +17,19 @@ public record PoolNodeSpec(
 ) implements DeploymentNodeSpec {
 
     public PoolNodeSpec {
-        if (agentId == null || agentId.isBlank())
-            throw new IllegalArgumentException("agentId is required");
-        if (backend == null || backend.isBlank())
-            throw new IllegalArgumentException("backend is required");
-        if (maxActive < 1)
-            throw new IllegalArgumentException("maxActive must be >= 1");
-        if (maxActive < minActive)
-            throw new IllegalArgumentException("maxActive must be >= minActive");
-        if (eviction == null) eviction = EvictionStrategy.MEMORY_WEIGHTED;
+        if (applicationId == null || applicationId.isBlank()) {
+            throw new IllegalArgumentException("applicationId is required");
+        }
+        if (agentId == null || agentId.isBlank()) {throw new IllegalArgumentException("agentId is required");}
+        if (backend == null || backend.isBlank()) {throw new IllegalArgumentException("backend is required");}
+        if (maxActive < 1) {throw new IllegalArgumentException("maxActive must be >= 1");}
+        if (maxActive < minActive) {throw new IllegalArgumentException("maxActive must be >= minActive");}
+        if (eviction == null) {eviction = EvictionStrategy.MEMORY_WEIGHTED;}
     }
 
     @Override
     public String nodeId() {
-        return agentId + "-pool";
+        return applicationId + ":" + agentId + "-pool";
     }
 
     @Override

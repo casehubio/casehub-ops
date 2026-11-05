@@ -4,7 +4,8 @@ import io.casehub.desiredstate.api.NodeSpec;
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.NodeDriftChecker;
 import io.casehub.ops.api.deployment.PoolNodeSpec;
-import io.casehub.ops.deployment.handler.PoolProvisionHandler;
+import io.casehub.ops.api.deployment.PoolInfo;
+import io.casehub.ops.api.deployment.PoolOperations;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -16,10 +17,10 @@ public class PoolDriftChecker implements NodeDriftChecker {
 
     private static final Logger LOG = Logger.getLogger(PoolDriftChecker.class);
 
-    private final PoolProvisionHandler.PoolOperations ops;
+    private final PoolOperations ops;
 
     @Inject
-    public PoolDriftChecker(PoolProvisionHandler.PoolOperations ops) {
+    public PoolDriftChecker(PoolOperations ops) {
         this.ops = ops;
     }
 
@@ -34,7 +35,7 @@ public class PoolDriftChecker implements NodeDriftChecker {
             return NodeStatus.UNKNOWN;
         }
 
-        var actual = ops.getPool(poolSpec.agentId());
+        var actual = ops.getPool(poolSpec.applicationId(), poolSpec.agentId());
         if (actual.isEmpty()) {
             return NodeStatus.ABSENT;
         }
@@ -48,7 +49,7 @@ public class PoolDriftChecker implements NodeDriftChecker {
         return NodeStatus.PRESENT;
     }
 
-    private boolean capacityDrifted(PoolNodeSpec spec, PoolProvisionHandler.PoolInfo actual) {
+    private boolean capacityDrifted(PoolNodeSpec spec, PoolInfo actual) {
         if (spec.minActive() != actual.minActive()) {
             LOG.debugf("pool %s: minActive drifted [%d → %d]",
                     spec.agentId(), spec.minActive(), actual.minActive());
@@ -62,7 +63,7 @@ public class PoolDriftChecker implements NodeDriftChecker {
         return false;
     }
 
-    private boolean scalingDrifted(PoolNodeSpec spec, PoolProvisionHandler.PoolInfo actual) {
+    private boolean scalingDrifted(PoolNodeSpec spec, PoolInfo actual) {
         var desiredType = spec.scaling() != null ? spec.scaling().type() : "none";
         if (!Objects.equals(desiredType, actual.scalingType())) {
             LOG.debugf("pool %s: scalingType drifted [%s → %s]",
@@ -78,7 +79,7 @@ public class PoolDriftChecker implements NodeDriftChecker {
         return false;
     }
 
-    private boolean evictionDrifted(PoolNodeSpec spec, PoolProvisionHandler.PoolInfo actual) {
+    private boolean evictionDrifted(PoolNodeSpec spec, PoolInfo actual) {
         var desiredEviction = spec.eviction() != null ? spec.eviction().name() : "MEMORY_WEIGHTED";
         if (!Objects.equals(desiredEviction, actual.eviction())) {
             LOG.debugf("pool %s: eviction drifted [%s → %s]",
