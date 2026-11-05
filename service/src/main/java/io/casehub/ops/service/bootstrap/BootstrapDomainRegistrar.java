@@ -13,12 +13,12 @@ import java.util.Set;
 public class BootstrapDomainRegistrar {
 
     private final CrossDomainCompositionEngine engine;
-    private final String deploymentProfile;
+    private final String                       deploymentProfile;
 
     public BootstrapDomainRegistrar(
             CrossDomainCompositionEngine engine,
             String deploymentProfile) {
-        this.engine = engine;
+        this.engine            = engine;
         this.deploymentProfile = deploymentProfile;
     }
 
@@ -30,43 +30,30 @@ public class BootstrapDomainRegistrar {
         }
 
         registerDeploymentDomain(infraProvides);
-        registerClaudonyDomain();
     }
 
     private Set<NodeType> registerInfraDomain() {
         var factory = new DefaultDesiredStateGraphFactory();
         Set<NodeType> provides = Set.of(
-            NodeType.of("container:database"),
-            NodeType.of("network"),
-            NodeType.of("volume"));
+                NodeType.of("container:database"),
+                NodeType.of("network"),
+                NodeType.of("volume"));
 
         var emptyGraph = factory.of(List.of(), List.of());
         engine.registerDomain(DomainRegistration.builder(DomainId.of("infra"),
-            CompilationResult.single(emptyGraph))
-            .provides(provides)
-            .build());
+                                                         CompilationResult.single(emptyGraph))
+                                                .provides(provides)
+                                                .build());
         return provides;
     }
 
     private void registerDeploymentDomain(Set<NodeType> infraRequires) {
-        var factory = new DefaultDesiredStateGraphFactory();
-        var emptyGraph = factory.of(List.of(), List.of());
-        engine.registerDomain(DomainRegistration.builder(DomainId.of("deployment"),
-            CompilationResult.single(emptyGraph))
-            .provides(Set.of(NodeType.of("casehub_application")))
-            .requires(infraRequires)
-            .build());
-    }
-
-    private void registerClaudonyDomain() {
         var factory    = new DefaultDesiredStateGraphFactory();
         var emptyGraph = factory.of(List.of(), List.of());
-        engine.registerDomain(DomainRegistration.builder(DomainId.of("claudony"),
+        engine.registerDomain(DomainRegistration.builder(DomainId.of("deployment"),
                                                          CompilationResult.single(emptyGraph))
-                                                .provides(Set.of(
-                                                        io.casehub.ops.api.claudony.ClaudonyNodeTypes.APP,
-                                                        io.casehub.ops.api.claudony.ClaudonyNodeTypes.POOL))
+                                                .provides(Set.of(NodeType.of("casehub_application"), NodeType.of("pool")))
+                                                .requires(infraRequires)
                                                 .build());
     }
-
 }

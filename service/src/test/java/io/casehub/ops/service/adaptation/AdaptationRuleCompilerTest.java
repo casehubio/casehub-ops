@@ -3,7 +3,7 @@ package io.casehub.ops.service.adaptation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
-import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
+import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.LlmEvaluatedTrigger;
 import io.casehub.ops.api.deployment.PatternTrigger;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class AdaptationRuleCompilerTest {
                                         "type", "add_node",
                                         "template", Map.of(
                                                 "nodeId", "specialist-${catalog.name}",
-                                                "nodeType", "claudony_app",
+                                                "nodeType", "casehub_application",
                                                 "spec", Map.of(
                                                         "name", "specialist-${catalog.name}",
                                                         "displayName", "${catalog.name}",
@@ -46,7 +46,7 @@ class AdaptationRuleCompilerTest {
                 Map.class);
 
         var nodeTypeRegistry = Map.<String, Class<?>>of(
-                "claudony_app", ClaudonyAppNodeSpec.class);
+                "casehub_application", CaseHubApplicationSpec.class);
 
         List<AdaptationRule> rules = compiler.compile(
                 rawYaml, nodeTypeRegistry, new DefaultDesiredStateGraphFactory());

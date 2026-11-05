@@ -11,6 +11,7 @@ import io.casehub.ops.api.deployment.CaseTypeNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentGoals;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
 import io.casehub.ops.api.deployment.GoalEntry;
+import io.casehub.ops.api.deployment.PoolNodeSpec;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -44,7 +45,7 @@ public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
         compileEntries(goals.trust(), nodes, dependencies);
         compileEntries(goals.endpoints(), nodes, dependencies);
         compileEntries(goals.detections(), nodes, dependencies);
-        compileEntries(goals.pools(), nodes, dependencies);
+        compilePoolEntries(goals.pools(), nodes, dependencies);
         compileEntries(goals.applications(), nodes, dependencies);
 
         return CompilationResult.single(factory.of(nodes, dependencies));
@@ -77,4 +78,19 @@ public class DeploymentGoalCompiler implements GoalCompiler<DeploymentGoals> {
             }
         }
     }
+
+    private void compilePoolEntries(List<GoalEntry<PoolNodeSpec>> entries,
+                                    List<DesiredNode> nodes, List<Dependency> deps) {
+        for (var entry : entries) {
+            var spec   = entry.spec();
+            var poolId = NodeId.of(spec.nodeId());
+            var appId  = NodeId.of(spec.applicationId());
+            nodes.add(new DesiredNode(poolId, spec, io.casehub.desiredstate.api.HumanGating.NONE));
+            deps.add(new Dependency(poolId, appId));
+            for (String dep : entry.dependsOn()) {
+                deps.add(new Dependency(poolId, NodeId.of(dep)));
+            }
+        }
+    }
+
 }

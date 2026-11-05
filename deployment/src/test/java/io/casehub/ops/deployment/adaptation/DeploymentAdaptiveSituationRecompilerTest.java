@@ -258,20 +258,18 @@ class DeploymentAdaptiveSituationRecompilerTest {
                 "deployer", "specialist-catalog", 0.5,
                 null, java.time.Duration.ofSeconds(30));
         var template = new io.casehub.ops.api.deployment.NodeTemplate(
-                "specialist-${catalog.name}", "claudony_app",
-                Map.of("name", "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test specialist",
-                       "image", "casehubio/my-llm-app:latest"));
+                "specialist-${catalog.name}", "casehub_application",
+                Map.of("applicationId", "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
                 template, List.of("engine"));
         var ruleSpec = new AdaptationRuleSpec("deploy-specialist", trigger, List.of(addNodeAction));
 
         var crossDomainRegistry = Map.<String, Class<?>>of(
-                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+                "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
 
-        var engineSpec = new io.casehub.ops.api.claudony.ClaudonyAppNodeSpec(
-                "engine", "Engine", "Engine service", "casehubio/engine:latest", Map.of());
+        var engineSpec = new io.casehub.ops.api.deployment.CaseHubApplicationSpec(
+                "engine", null, "casehubio/casehub-runtime:latest", null, null, null, 1);
         var engineNode = new io.casehub.desiredstate.api.DesiredNode(
                 NodeId.of("engine"), engineSpec, io.casehub.desiredstate.api.HumanGating.NONE);
         var llmBaseGraph = graphFactory.of(List.of(engineNode), List.of());
@@ -306,16 +304,15 @@ class DeploymentAdaptiveSituationRecompilerTest {
                 "deployer", "catalog", 0.5,
                 null, java.time.Duration.ofSeconds(30));
         var template = new io.casehub.ops.api.deployment.NodeTemplate(
-                "specialist-${catalog.name}", "claudony_app",
-                Map.of("name", "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test", "image", "img:latest"));
+                "specialist-${catalog.name}", "casehub_application",
+                Map.of("applicationId", "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
                 template, List.of());
         var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
 
         var crossDomainRegistry = Map.<String, Class<?>>of(
-                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+                "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
         var llmBaseGraph = graphFactory.of(List.of(), List.of());
 
         var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));
@@ -348,16 +345,15 @@ class DeploymentAdaptiveSituationRecompilerTest {
                 "deployer", "catalog", 0.5,
                 null, java.time.Duration.ofSeconds(30));
         var template = new io.casehub.ops.api.deployment.NodeTemplate(
-                "specialist-${catalog.name}", "claudony_app",
-                Map.of("name", "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test", "image", "img:latest"));
+                "specialist-${catalog.name}", "casehub_application",
+                Map.of("applicationId", "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
                 template, List.of());
         var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
 
         var crossDomainRegistry = Map.<String, Class<?>>of(
-                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+                "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
         var llmBaseGraph = graphFactory.of(List.of(), List.of());
 
         var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));
@@ -392,16 +388,15 @@ class DeploymentAdaptiveSituationRecompilerTest {
                 "deployer", "catalog", 0.5,
                 null, java.time.Duration.ofSeconds(30));
         var template = new io.casehub.ops.api.deployment.NodeTemplate(
-                "specialist-${catalog.name}", "claudony_app",
-                Map.of("name", "specialist-${catalog.name}",
-                       "displayName", "${catalog.name}",
-                       "description", "test", "image", "img:latest"));
+                "specialist-${catalog.name}", "casehub_application",
+                Map.of("applicationId", "specialist-${catalog.name}",
+                       "image", "casehubio/casehub-runtime:latest"));
         var addNodeAction = new io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec(
                 template, List.of());
         var ruleSpec = new AdaptationRuleSpec("deploy", trigger, List.of(addNodeAction));
 
         var crossDomainRegistry = Map.<String, Class<?>>of(
-                "claudony_app", io.casehub.ops.api.claudony.ClaudonyAppNodeSpec.class);
+                "casehub_application", io.casehub.ops.api.deployment.CaseHubApplicationSpec.class);
         var llmBaseGraph = graphFactory.of(List.of(), List.of());
 
         var catalogEntries = List.of(Map.of("name", "spec-a"), Map.of("name", "spec-b"));

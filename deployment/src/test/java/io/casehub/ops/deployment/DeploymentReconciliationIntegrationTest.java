@@ -98,12 +98,13 @@ class DeploymentReconciliationIntegrationTest {
                 new TrustPolicyProvisionHandler(trustProvider),
                 new EndpointProvisionHandler(endpointRegistry),
                 new DetectionProvisionHandler(situationRegistrar),
-                new io.casehub.ops.deployment.handler.PoolProvisionHandler(new io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolOperations() {
-                    @Override public java.util.Optional<io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolInfo> getPool(String name) { return java.util.Optional.empty(); }
-                    @Override public void createPool(io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolCreateRequest request) {}
-                    @Override public void updatePool(String name, io.casehub.ops.deployment.handler.PoolProvisionHandler.PoolUpdateRequest request) {}
-                    @Override public void destroyPool(String name) {}
-                }),
+                new io.casehub.ops.deployment.handler.PoolProvisionHandler(java.util.List.of(new io.casehub.ops.api.deployment.PoolOperations() {
+                    @Override public String backendId() { return "noop"; }
+                    @Override public java.util.Optional<io.casehub.ops.api.deployment.PoolInfo> getPool(String applicationId, String poolId) { return java.util.Optional.empty(); }
+                    @Override public io.casehub.ops.api.deployment.PoolInfo createPool(io.casehub.ops.api.deployment.PoolCreateRequest request) { return null; }
+                    @Override public io.casehub.ops.api.deployment.PoolInfo updatePool(String applicationId, String poolId, io.casehub.ops.api.deployment.PoolUpdateRequest request) { return null; }
+                    @Override public void destroyPool(String applicationId, String poolId) {}
+                })),
                 new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore(), null),
                 specHashStore,
                 (node, action, tenancyId) -> new io.casehub.ops.api.approval.ApprovalDecision.AutoApproved(),

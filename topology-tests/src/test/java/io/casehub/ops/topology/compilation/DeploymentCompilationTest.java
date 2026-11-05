@@ -3,9 +3,6 @@ package io.casehub.ops.topology.compilation;
 import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeType;
-import io.casehub.ops.api.claudony.ClaudonyAppNodeSpec;
-import io.casehub.ops.api.claudony.ClaudonyNodeSpec;
-import io.casehub.ops.api.claudony.ClaudonyPoolNodeSpec;
 import io.casehub.ops.api.deployment.CaseHubApplicationSpec;
 import io.casehub.ops.api.deployment.DeploymentApplicationNodeSpec;
 import io.casehub.ops.api.deployment.DeploymentNodeSpec;
@@ -22,6 +19,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
 
     private static final Map<String, String> DEPLOYMENT_REGISTRY =
             buildTypeRegistryFrom(InfraNodeSpec.class, DeploymentNodeSpec.class);
+
 
     @Test
     void helloLlm_hasOneNode() throws IOException {
@@ -542,27 +540,25 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 // ── Level 10: Pool Deployment ──────────────────────────────────────
 
-    private static final Map<String, String> CLAUDONY_REGISTRY =
-            buildTypeRegistryFrom(ClaudonyNodeSpec.class);
-
     @Test
-    void poolDeployment_hasFiveNodes() throws IOException {
+    void poolDeployment_hasThreeNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(5);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(3);
     }
 
     @Test
     void poolDeployment_containsPoolNode() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         var poolNode = graph.nodes().values().stream()
-                            .filter(n -> n.spec() instanceof ClaudonyPoolNodeSpec)
+                            .filter(n -> n.spec() instanceof io.casehub.ops.api.deployment.PoolNodeSpec)
                             .findFirst();
-        assertThat(poolNode).as("graph must contain a claudony_pool node").isPresent();
-        var poolSpec = (ClaudonyPoolNodeSpec) poolNode.get().spec();
-        assertThat(poolSpec.appName()).isEqualTo("support-app");
+        assertThat(poolNode).as("graph must contain a pool node").isPresent();
+        var poolSpec = (io.casehub.ops.api.deployment.PoolNodeSpec) poolNode.get().spec();
+        assertThat(poolSpec.applicationId()).isEqualTo("support-app");
         assertThat(poolSpec.agentId()).isEqualTo("support-agent");
+        assertThat(poolSpec.backend()).isEqualTo("claudony");
         assertThat(poolSpec.minActive()).isEqualTo(3);
         assertThat(poolSpec.maxActive()).isEqualTo(8);
     }
@@ -570,7 +566,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void poolDeployment_poolDependsOnSupportApp() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         var poolNodeId = graph.nodes().keySet().stream()
                               .filter(id -> id.value().contains("support-pool"))
                               .findFirst();
@@ -581,33 +577,43 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void poolDeployment_supportAppDependsOnEngine() throws IOException {
+    void poolDeployment_supportAppDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("support-app")))
-                .contains(NodeId.of("engine"));
+                .contains(NodeId.of("platform"));
+    }
+
+    @Test
+    void poolDeployment_allAppsUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/10-pool-deployment/10-pool-deployment.yaml", DEPLOYMENT_REGISTRY);
+        var platform = extractAppSpec(graph, "platform");
+        var supportApp = extractAppSpec(graph, "support-app");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(supportApp.image()).isEqualTo("casehubio/casehub-runtime:latest");
     }
 
 
 // ── Level 14: Fault Recovery ──────────────────────────────────────
 
     @Test
-    void faultRecovery_hasFiveNodes() throws IOException {
+    void faultRecovery_hasThreeNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(5);
+                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(3);
     }
 
     @Test
     void faultRecovery_containsPoolNode() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", DEPLOYMENT_REGISTRY);
         var poolNode = graph.nodes().values().stream()
-                            .filter(n -> n.spec() instanceof ClaudonyPoolNodeSpec)
+                            .filter(n -> n.spec() instanceof io.casehub.ops.api.deployment.PoolNodeSpec)
                             .findFirst();
-        assertThat(poolNode).as("graph must contain a claudony_pool node").isPresent();
-        var poolSpec = (ClaudonyPoolNodeSpec) poolNode.get().spec();
-        assertThat(poolSpec.appName()).isEqualTo("support-app");
+        assertThat(poolNode).as("graph must contain a pool node").isPresent();
+        var poolSpec = (io.casehub.ops.api.deployment.PoolNodeSpec) poolNode.get().spec();
+        assertThat(poolSpec.applicationId()).isEqualTo("support-app");
         assertThat(poolSpec.agentId()).isEqualTo("support-agent");
         assertThat(poolSpec.minActive()).isEqualTo(3);
         assertThat(poolSpec.maxActive()).isEqualTo(8);
@@ -616,7 +622,7 @@ class DeploymentCompilationTest extends TopologyTestBase {
     @Test
     void faultRecovery_poolDependsOnSupportApp() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", DEPLOYMENT_REGISTRY);
         var poolNodeId = graph.nodes().keySet().stream()
                               .filter(id -> id.value().contains("support-pool"))
                               .findFirst();
@@ -627,69 +633,73 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void faultRecovery_supportAppDependsOnEngine() throws IOException {
+    void faultRecovery_supportAppDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
-                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", CLAUDONY_REGISTRY);
+                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("support-app")))
-                .contains(NodeId.of("engine"));
+                .contains(NodeId.of("platform"));
+    }
+
+    @Test
+    void faultRecovery_allAppsUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/14-fault-recovery/14-fault-recovery.yaml", DEPLOYMENT_REGISTRY);
+        var platform = extractAppSpec(graph, "platform");
+        var supportApp = extractAppSpec(graph, "support-app");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(supportApp.image()).isEqualTo("casehubio/casehub-runtime:latest");
     }
 
 
 // ── Level 12: Ad-hoc LLM Deployer ──────────────────────────────────
 
     @Test
-    void adhocLlmDeployer_hasFourNodes() throws IOException {
+    void adhocLlmDeployer_hasTwoNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(2);
     }
 
     @Test
-    void adhocLlmDeployer_allNodesAreClaudonyApp() throws IOException {
+    void adhocLlmDeployer_allNodesAreCasehubApplication() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         graph.nodes().values().forEach(node ->
-                                               assertThat(node.type()).isEqualTo(NodeType.of("claudony_app")));
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
     }
 
     @Test
-    void adhocLlmDeployer_deployerDependsOnEngine() throws IOException {
+    void adhocLlmDeployer_deployerDependsOnPlatform() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("deployer")))
-                .contains(NodeId.of("engine"));
+                .contains(NodeId.of("platform"));
     }
 
     @Test
     void adhocLlmDeployer_deployerHasLlmConfig() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
+                DEPLOYMENT_REGISTRY);
         var deployerNode = graph.nodes().get(NodeId.of("deployer"));
         assertThat(deployerNode).isNotNull();
-        assertThat(deployerNode.spec()).isInstanceOf(ClaudonyAppNodeSpec.class);
-        var spec = (ClaudonyAppNodeSpec) deployerNode.spec();
+        var spec = extractAppSpec(graph, "deployer");
         assertThat(spec.config()).containsEntry("llm.role", "deployer");
         assertThat(spec.config()).containsEntry("deployer.specialist-catalog", "specialist-catalog");
     }
 
     @Test
-    void adhocLlmDeployer_jsonRoundTrip() throws Exception {
+    void adhocLlmDeployer_allAppsUseUniversalImage() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
-        assertThat(graph.nodes().keySet().stream().map(NodeId::value).toList())
-                .containsExactlyInAnyOrder("manifest", "eidos", "engine", "deployer");
-        // Re-compile and verify identical structure
-        DesiredStateGraph graph2 = compileSingleGraph(
-                "topologies/deployment/12-adhoc-llm-deployer/12-adhoc-llm-deployer.yaml",
-                CLAUDONY_REGISTRY);
-        assertThat(graph2.nodes().keySet()).isEqualTo(graph.nodes().keySet());
-        assertThat(graph2.dependencies()).isEqualTo(graph.dependencies());
+                DEPLOYMENT_REGISTRY);
+        var platform = extractAppSpec(graph, "platform");
+        var deployer = extractAppSpec(graph, "deployer");
+        assertThat(platform.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        assertThat(deployer.image()).isEqualTo("casehubio/casehub-runtime:latest");
     }
 // ── Level 15: Governed Interaction ────────────────────────────────────
 

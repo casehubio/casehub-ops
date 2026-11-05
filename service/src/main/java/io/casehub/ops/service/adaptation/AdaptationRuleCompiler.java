@@ -33,4 +33,23 @@ public class AdaptationRuleCompiler {
         return AdaptationRule.fromSpecs(
                 specs, null, mapper, factory, null, nodeTypeRegistry);
     }
+
+    public List<AdaptationRule> compile(
+            Map<String, Object> rawYaml,
+            Map<String, Class<?>> nodeTypeRegistry,
+            DesiredStateGraphFactory factory,
+            Map<String, io.casehub.desiredstate.api.NodeSpecFactory> nodeSpecFactories) {
+
+        Object adaptationsObj = rawYaml.get("adaptations");
+        if (adaptationsObj == null) {
+            return List.of();
+        }
+
+        List<AdaptationRuleSpec> specs = mapper.convertValue(
+                adaptationsObj, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+
+        return AdaptationRule.fromSpecs(
+                specs, null, mapper, factory, null, nodeTypeRegistry, nodeSpecFactories);
+    }
+
 }

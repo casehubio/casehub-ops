@@ -16,40 +16,24 @@ data:
       escalation-specialist,escalation,incident-response,coordinator,kb-escalation
 
 nodes:
-  manifest:
-    type: claudony_app
+  platform:
+    type: casehub_application
     spec:
-      name: manifest
-      displayName: Manifest
-      description: Manifest service
-      image: casehubio/manifest:latest
-
-  eidos:
-    type: claudony_app
-    dependsOn: [manifest]
-    spec:
-      name: eidos
-      displayName: Eidos
-      description: Identity service
-      image: casehubio/eidos:latest
-
-  engine:
-    type: claudony_app
-    dependsOn: [eidos]
-    spec:
-      name: engine
-      displayName: Engine
-      description: Engine service
-      image: casehubio/engine:latest
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: platform
 
   deployer:
-    type: claudony_app
-    dependsOn: [engine]
+    type: casehub_application
+    dependsOn: [platform]
     spec:
-      name: deployer
-      displayName: Deployer LLM
-      description: Autonomous deployer — monitors RAS situations, deploys specialist instances
-      image: casehubio/my-llm-app:latest
+      applicationId: deployer
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
       config:
         llm.agent-id: deployer
         llm.name: Deployer
@@ -57,5 +41,4 @@ nodes:
         llm.capability: deployment-decision
         llm.archetype: orchestrator
         llm.domain: fleet-management
-        llm.identity-source: eidos
         deployer.specialist-catalog: specialist-catalog

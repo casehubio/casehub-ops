@@ -2,10 +2,13 @@ package io.casehub.ops.deployment.drift;
 
 import io.casehub.desiredstate.api.NodeStatus;
 import io.casehub.ops.api.deployment.EvictionStrategy;
+import io.casehub.ops.api.deployment.PoolCreateRequest;
+import io.casehub.ops.api.deployment.PoolInfo;
 import io.casehub.ops.api.deployment.PoolNodeSpec;
+import io.casehub.ops.api.deployment.PoolOperations;
 import io.casehub.ops.api.deployment.PoolScalingSpec;
+import io.casehub.ops.api.deployment.PoolUpdateRequest;
 import io.casehub.ops.api.deployment.WorkingDirPolicy;
-import io.casehub.ops.deployment.handler.PoolProvisionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +26,7 @@ class PoolDriftCheckerTest {
     @BeforeEach
     void setUp() {
         ops = new StubPoolOperations();
-        checker = new PoolDriftChecker(ops);
+        checker = new PoolDriftChecker(java.util.List.of(ops));
     }
 
     @Test
@@ -33,8 +36,8 @@ class PoolDriftCheckerTest {
 
     @Test
     void poolPresent() {
-        ops.pools.put("code-reviewer", new PoolProvisionHandler.PoolInfo(
-                "code-reviewer", "ACTIVE", 2, 8,
+        ops.pools.put("code-reviewer", new PoolInfo(
+                "platform", "code-reviewer", "ACTIVE", 2, 8,
                 "target-tracking", 0.7, "30s", null, "MEMORY_WEIGHTED"));
 
         var spec = testPool("code-reviewer");
@@ -49,8 +52,8 @@ class PoolDriftCheckerTest {
 
     @Test
     void poolDrifted_capacityMismatch() {
-        ops.pools.put("code-reviewer", new PoolProvisionHandler.PoolInfo(
-                "code-reviewer", "ACTIVE", 1, 4,
+        ops.pools.put("code-reviewer", new PoolInfo(
+                "platform", "code-reviewer", "ACTIVE", 1, 4,
                 "target-tracking", 0.7, "30s", null, "MEMORY_WEIGHTED"));
 
         var spec = testPool("code-reviewer");
@@ -59,8 +62,8 @@ class PoolDriftCheckerTest {
 
     @Test
     void poolDrifted_scalingTypeMismatch() {
-        ops.pools.put("code-reviewer", new PoolProvisionHandler.PoolInfo(
-                "code-reviewer", "ACTIVE", 2, 8,
+        ops.pools.put("code-reviewer", new PoolInfo(
+                "platform", "code-reviewer", "ACTIVE", 2, 8,
                 "none", null, null, null, "MEMORY_WEIGHTED"));
 
         var spec = testPool("code-reviewer");
@@ -69,8 +72,8 @@ class PoolDriftCheckerTest {
 
     @Test
     void poolDrifted_targetFillRatioMismatch() {
-        ops.pools.put("code-reviewer", new PoolProvisionHandler.PoolInfo(
-                "code-reviewer", "ACTIVE", 2, 8,
+        ops.pools.put("code-reviewer", new PoolInfo(
+                "platform", "code-reviewer", "ACTIVE", 2, 8,
                 "target-tracking", 0.5, "30s", null, "MEMORY_WEIGHTED"));
 
         var spec = testPool("code-reviewer");
@@ -79,8 +82,8 @@ class PoolDriftCheckerTest {
 
     @Test
     void poolDrifted_evictionMismatch() {
-        ops.pools.put("code-reviewer", new PoolProvisionHandler.PoolInfo(
-                "code-reviewer", "ACTIVE", 2, 8,
+        ops.pools.put("code-reviewer", new PoolInfo(
+                "platform", "code-reviewer", "ACTIVE", 2, 8,
                 "target-tracking", 0.7, "30s", null, "LRU"));
 
         var spec = testPool("code-reviewer");
@@ -99,36 +102,43 @@ class PoolDriftCheckerTest {
     }
 
     static PoolNodeSpec testPool(String agentId) {
-        return new PoolNodeSpec(agentId, "claudony", 2, 8,
-                "~/workspace/reviews", WorkingDirPolicy.SHARED_READ,
-                new PoolScalingSpec("target-tracking", 0.7, "30s", null),
-                EvictionStrategy.MEMORY_WEIGHTED);
+        return new PoolNodeSpec("platform", agentId, "claudony", 2, 8,
+                                "~/workspace/reviews", WorkingDirPolicy.SHARED_READ,
+                                new PoolScalingSpec("target-tracking", 0.7, "30s", null),
+                                EvictionStrategy.MEMORY_WEIGHTED);
     }
 
-    static class StubPoolOperations implements PoolProvisionHandler.PoolOperations {
-        final ConcurrentHashMap<String, PoolProvisionHandler.PoolInfo> pools = new ConcurrentHashMap<>();
+    static class StubPoolOperations implements PoolOperations {
+        final ConcurrentHashMap<String, PoolInfo> pools = new ConcurrentHashMap<>();
 
         @Override
-        public Optional<PoolProvisionHandler.PoolInfo> getPool(String name) {
-            return Optional.ofNullable(pools.get(name));
+        public String backendId() {return "claudony";}
+
+        @Override
+        public Optional<PoolInfo> getPool(String applicationId, String poolId) {
+            return Optional.ofNullable(pools.get(poolId));
         }
 
         @Override
-        public void createPool(PoolProvisionHandler.PoolCreateRequest request) {
-            pools.put(request.agentId(), new PoolProvisionHandler.PoolInfo(
-                    request.agentId(), "ACTIVE",
+        public PoolInfo createPool(PoolCreateRequest request) {
+            var info = new PoolInfo(
+                    request.applicationId(), request.agentId(), "ACTIVE",
                     request.minActive(), request.maxActive(),
                     request.scalingType(), request.targetFillRatio(),
                     request.cooldown(), request.scaleInCooldown(),
-                    request.eviction()));
+                    request.eviction());
+            pools.put(request.agentId(), info);
+            return info;
         }
 
         @Override
-        public void updatePool(String name, PoolProvisionHandler.PoolUpdateRequest request) {}
+        public PoolInfo updatePool(String applicationId, String poolId, PoolUpdateRequest request) {
+            return pools.get(poolId);
+        }
 
         @Override
-        public void destroyPool(String name) {
-            pools.remove(name);
+        public void destroyPool(String applicationId, String poolId) {
+            pools.remove(poolId);
         }
     }
 }

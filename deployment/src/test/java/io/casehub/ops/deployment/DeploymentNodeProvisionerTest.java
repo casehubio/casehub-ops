@@ -18,6 +18,10 @@ import io.casehub.eidos.api.AgentMatch;
 import io.casehub.eidos.api.AgentQuery;
 import io.casehub.eidos.api.AgentRegistry;
 import io.casehub.ops.api.SpecHashStore;
+import io.casehub.ops.api.deployment.PoolCreateRequest;
+import io.casehub.ops.api.deployment.PoolInfo;
+import io.casehub.ops.api.deployment.PoolOperations;
+import io.casehub.ops.api.deployment.PoolUpdateRequest;
 import io.casehub.ops.api.approval.InMemoryPlanStore;
 import io.casehub.ops.api.deployment.AgentNodeSpec;
 import io.casehub.ops.api.deployment.ChannelNodeSpec;
@@ -89,7 +93,7 @@ class DeploymentNodeProvisionerTest {
                     @Override public void deregister(String id) {}
                     @Override public boolean exists(String id) { return false; }
                 }),
-                new PoolProvisionHandler(new NoOpPoolOperations()),
+                new PoolProvisionHandler(java.util.List.of(new NoOpPoolOperations())),
                 new CaseHubAppProvisionHandler(new PrebuiltImagePipeline(), new StubDeploymentTarget(), new InstanceIdStore(), null),
                 specHashStore,
                 new DeploymentApprovalEvaluator(),
@@ -381,17 +385,20 @@ class DeploymentNodeProvisionerTest {
         }
     }
 
-    static class NoOpPoolOperations implements PoolProvisionHandler.PoolOperations {
+    static class NoOpPoolOperations implements PoolOperations {
         @Override
-        public Optional<PoolProvisionHandler.PoolInfo> getPool(String name)                 {return Optional.empty();}
+        public String backendId()                                                                  {return "noop";}
 
         @Override
-        public void createPool(PoolProvisionHandler.PoolCreateRequest request)              {}
+        public Optional<PoolInfo> getPool(String applicationId, String poolId)                     {return Optional.empty();}
 
         @Override
-        public void updatePool(String name, PoolProvisionHandler.PoolUpdateRequest request) {}
+        public PoolInfo createPool(PoolCreateRequest request)                                      {return new PoolInfo(request.applicationId(), request.agentId(), "ACTIVE", request.minActive(), request.maxActive(), null, null, null, null, null);}
 
         @Override
-        public void destroyPool(String name)                                                {}
+        public PoolInfo updatePool(String applicationId, String poolId, PoolUpdateRequest request) {return null;}
+
+        @Override
+        public void destroyPool(String applicationId, String poolId)                               {}
     }
 }

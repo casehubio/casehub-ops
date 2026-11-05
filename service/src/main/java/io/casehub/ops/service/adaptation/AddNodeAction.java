@@ -7,6 +7,7 @@ import io.casehub.desiredstate.api.DesiredStateGraph;
 import io.casehub.desiredstate.api.HumanGating;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeSpec;
+import io.casehub.desiredstate.api.NodeSpecFactory;
 import io.casehub.ops.api.deployment.AdaptationActionSpec.AddNodeActionSpec;
 import io.casehub.ras.api.ActiveSituation;
 
@@ -16,36 +17,52 @@ import java.util.Objects;
 
 final class AddNodeAction {
 
-    private final AddNodeActionSpec spec;
-    private final Map<String, Class<?>> nodeTypeRegistry;
-    private final ObjectMapper mapper;
+    private final AddNodeActionSpec            spec;
+    private final Map<String, Class<?>>        nodeTypeRegistry;
+    private final Map<String, NodeSpecFactory> nodeSpecFactories;
+    private final ObjectMapper                 mapper;
 
     AddNodeAction(AddNodeActionSpec spec,
                   Map<String, Class<?>> nodeTypeRegistry,
                   ObjectMapper mapper) {
-        this.spec = Objects.requireNonNull(spec, "spec");
-        this.nodeTypeRegistry = Objects.requireNonNull(nodeTypeRegistry, "nodeTypeRegistry");
-        this.mapper = Objects.requireNonNull(mapper, "mapper");
+        this(spec, nodeTypeRegistry, null, mapper);
+    }
+
+    AddNodeAction(AddNodeActionSpec spec,
+                  Map<String, Class<?>> nodeTypeRegistry,
+                  Map<String, NodeSpecFactory> nodeSpecFactories,
+                  ObjectMapper mapper) {
+        this.spec              = Objects.requireNonNull(spec, "spec");
+        this.nodeTypeRegistry  = Objects.requireNonNull(nodeTypeRegistry, "nodeTypeRegistry");
+        this.nodeSpecFactories = nodeSpecFactories;
+        this.mapper            = Objects.requireNonNull(mapper, "mapper");
     }
 
     DesiredStateGraph apply(DesiredStateGraph graph,
                             Map<String, String> catalogEntry,
                             ActiveSituation situation) {
-        Map<String, String> variables = buildVariables(catalogEntry, situation);
-        String resolvedNodeId = resolvePlaceholders(spec.template().nodeId(), variables);
+        Map<String, String> variables      = buildVariables(catalogEntry, situation);
+        String              resolvedNodeId = resolvePlaceholders(spec.template().nodeId(), variables);
 
         Map<String, Object> resolvedSpec = resolveSpecMap(spec.template().spec(), variables);
 
-        Class<?> specClass = nodeTypeRegistry.get(spec.template().nodeType());
-        if (specClass == null) {
-            throw new IllegalStateException(
-                    "Unknown nodeType: " + spec.template().nodeType());
+        NodeSpec nodeSpec;
+        NodeSpecFactory factory = nodeSpecFactories != null
+                                  ? nodeSpecFactories.get(spec.template().nodeType()) : null;
+        if (factory != null) {
+            nodeSpec = factory.create(resolvedSpec);
+        } else {
+            Class<?> specClass = nodeTypeRegistry.get(spec.template().nodeType());
+            if (specClass == null) {
+                throw new IllegalStateException(
+                        "Unknown nodeType: " + spec.template().nodeType());
+            }
+            nodeSpec = (NodeSpec) mapper.convertValue(resolvedSpec, specClass);
         }
 
         try {
-            NodeSpec nodeSpec = (NodeSpec) mapper.convertValue(resolvedSpec, specClass);
-            NodeId nodeId = NodeId.of(resolvedNodeId);
-            DesiredNode node = new DesiredNode(nodeId, nodeSpec, HumanGating.NONE);
+            NodeId      nodeId = NodeId.of(resolvedNodeId);
+            DesiredNode node   = new DesiredNode(nodeId, nodeSpec, HumanGating.NONE);
 
             DesiredStateGraph result = graph.withNode(node);
             for (String dep : spec.dependsOn()) {
@@ -111,7 +128,7 @@ final class AddNodeAction {
                 resolved.put(entry.getKey(), resolvePlaceholders(s, vars));
             } else if (value instanceof Map<?, ?> m) {
                 resolved.put(entry.getKey(),
-                        resolveSpecMap((Map<String, Object>) m, vars));
+                             resolveSpecMap((Map<String, Object>) m, vars));
             } else {
                 resolved.put(entry.getKey(), value);
             }
