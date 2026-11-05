@@ -8,28 +8,54 @@ desiredState:
   name: governed-interaction
 
 nodes:
-  coordinator:
-    type: agent
+  platform:
+    type: casehub_application
     spec:
-      agentId: coordinator
-      name: Design Coordinator
-      slot: worker
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: platform
+
+  coordinator:
+    type: casehub_application
+    dependsOn: [platform]
+    spec:
+      applicationId: coordinator
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: coordinator
+        llm.capability: deep
+        llm.role: coordinator
 
   reviewer-1:
-    type: agent
+    type: casehub_application
     dependsOn: [coordinator]
     spec:
-      agentId: reviewer-1
-      name: Reviewer Alpha
-      slot: worker
+      applicationId: reviewer-1
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: reviewer
+        llm.capability: deep
+        llm.role: reviewer
 
   reviewer-2:
-    type: agent
+    type: casehub_application
     dependsOn: [coordinator]
     spec:
-      agentId: reviewer-2
-      name: Reviewer Beta
-      slot: worker
+      applicationId: reviewer-2
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: reviewer
+        llm.capability: deep
+        llm.role: reviewer
 
   design-review:
     type: channel

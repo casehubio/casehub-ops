@@ -704,11 +704,23 @@ class DeploymentCompilationTest extends TopologyTestBase {
 // ── Level 15: Governed Interaction ────────────────────────────────────
 
     @Test
-    void governedInteraction_hasFourNodes() throws IOException {
+    void governedInteraction_hasFiveNodes() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
                 DEPLOYMENT_REGISTRY);
-        assertThat(graph.nodes()).hasSize(4);
+        assertThat(graph.nodes()).hasSize(5);
+    }
+
+    @Test
+    void governedInteraction_allAppsUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        for (var nodeId : List.of("platform", "coordinator", "reviewer-1", "reviewer-2")) {
+            var spec = extractAppSpec(graph, nodeId);
+            assertThat(spec.image()).as("image for %s", nodeId)
+                    .isEqualTo("casehubio/casehub-runtime:latest");
+        }
     }
 
     @Test
@@ -726,12 +738,21 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
     @Test
-    void governedInteraction_channelDependsOnAgents() throws IOException {
+    void governedInteraction_channelDependsOnApps() throws IOException {
         DesiredStateGraph graph = compileSingleGraph(
                 "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
                 DEPLOYMENT_REGISTRY);
         assertThat(graph.dependenciesOf(NodeId.of("design-review")))
                 .containsExactlyInAnyOrder(NodeId.of("coordinator"), NodeId.of("reviewer-1"), NodeId.of("reviewer-2"));
+    }
+
+    @Test
+    void governedInteraction_coordinatorDependsOnPlatform() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/15-governed-interaction/15-governed-interaction.yaml",
+                DEPLOYMENT_REGISTRY);
+        assertThat(graph.dependenciesOf(NodeId.of("coordinator")))
+                .contains(NodeId.of("platform"));
     }
 
 
