@@ -16,41 +16,26 @@ data:
       researcher,researcher,thorough,scholar,curious,knowledge-discovery
 
 nodes:
-  manifest:
+  platform:
     type: casehub_application
     spec:
-      applicationId: manifest
-      image: casehubio/manifest:latest
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
-
-  eidos:
-    type: casehub_application
-    dependsOn: [manifest]
-    spec:
-      applicationId: eidos
-      image: casehubio/eidos:latest
-      deploymentTarget: claudony
-      replicas: 1
-
-  engine:
-    type: casehub_application
-    dependsOn: [eidos]
-    spec:
-      applicationId: engine
-      image: casehubio/engine:latest
-      deploymentTarget: claudony
-      replicas: 1
+      config:
+        role: platform
+        llm.capability: fast
 
   my-llm:
     type: casehub_application
-    dependsOn: [engine]
+    dependsOn: [platform]
     forEach:
       as: llm
       in: llm-fleet
     spec:
       applicationId: my-llm-${each.llm.name}
-      image: casehubio/my-llm-app:latest
+      image: casehubio/casehub-runtime:latest
       deploymentTarget: claudony
       replicas: 1
       config:
@@ -61,4 +46,3 @@ nodes:
         llm.archetype: ${each.llm.archetype}
         llm.adjective: ${each.llm.adjective}
         llm.domain: ${each.llm.domain}
-        llm.identity-source: eidos

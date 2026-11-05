@@ -312,6 +312,59 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
 
+// ── Level 07: Topology Mutations ─────────────────────────────────────
+
+    @Test
+    void topologyMutations_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void topologyMutations_allNodesUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node -> {
+            var spec = extractAppSpec(node);
+            assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        });
+    }
+
+    @Test
+    void topologyMutations_researcherReplacesAssistant() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes().keySet().stream()
+                        .map(NodeId::value)
+                        .filter(id -> id.startsWith("my-llm."))
+                        .toList())
+                .containsExactlyInAnyOrder("my-llm.analyst", "my-llm.coder", "my-llm.researcher");
+    }
+
+    @Test
+    void topologyMutations_researcherConfig() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+
+        var researcher = extractAppSpec(graph, "my-llm.researcher");
+        assertThat(researcher.config()).containsEntry("llm.capability", "thorough");
+        assertThat(researcher.config()).containsEntry("llm.role", "researcher");
+        assertThat(researcher.config()).containsEntry("llm.domain", "knowledge-discovery");
+    }
+
+    @Test
+    void topologyMutations_allLlmNodesDependOnPlatform() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/07-topology-mutations/07-topology-mutations.yaml", DEPLOYMENT_REGISTRY);
+        for (String llmId : List.of("my-llm.analyst", "my-llm.coder", "my-llm.researcher")) {
+            assertThat(graph.dependenciesOf(NodeId.of(llmId)))
+                    .as("dependencies of %s", llmId)
+                    .contains(NodeId.of("platform"));
+        }
+    }
+
+
 // ── UC04: Multi-Specialist Desk ─────────────────────────────────────
 
     @Test
