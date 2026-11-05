@@ -16,43 +16,28 @@ data:
       assistant,assistant,balanced,coordinator,versatile,general
 
 nodes:
-  manifest:
-    type: claudony_app
+  platform:
+    type: casehub_application
     spec:
-      name: manifest
-      displayName: Manifest
-      description: Manifest service
-      image: casehubio/manifest:latest
-
-  eidos:
-    type: claudony_app
-    dependsOn: [manifest]
-    spec:
-      name: eidos
-      displayName: Eidos
-      description: Identity service
-      image: casehubio/eidos:latest
-
-  engine:
-    type: claudony_app
-    dependsOn: [eidos]
-    spec:
-      name: engine
-      displayName: Engine
-      description: Engine service
-      image: casehubio/engine:latest
+      applicationId: platform
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
+      config:
+        role: platform
+        llm.capability: fast
 
   my-llm:
-    type: claudony_app
-    dependsOn: [engine]
+    type: casehub_application
+    dependsOn: [platform]
     forEach:
       as: llm
       in: llm-fleet
     spec:
-      name: my-llm-${each.llm.name}
-      displayName: LLM ${each.llm.name}
-      description: LLM agent ${each.llm.role}
-      image: casehubio/my-llm-app:latest
+      applicationId: my-llm-${each.llm.name}
+      image: casehubio/casehub-runtime:latest
+      deploymentTarget: claudony
+      replicas: 1
       config:
         llm.agent-id: my-llm-${each.llm.name}
         llm.name: LLM ${each.llm.name}
@@ -61,4 +46,3 @@ nodes:
         llm.archetype: ${each.llm.archetype}
         llm.adjective: ${each.llm.adjective}
         llm.domain: ${each.llm.domain}
-        llm.identity-source: eidos

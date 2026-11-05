@@ -365,6 +365,52 @@ class DeploymentCompilationTest extends TopologyTestBase {
     }
 
 
+// ── Level 08: Fleet Observability ────────────────────────────────────
+
+    @Test
+    void fleetObservability_hasFourNodes() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+        assertThat(graph.nodes()).hasSize(4);
+    }
+
+    @Test
+    void fleetObservability_allNodesUseUniversalImage() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node -> {
+            var spec = extractAppSpec(node);
+            assertThat(spec.image()).isEqualTo("casehubio/casehub-runtime:latest");
+        });
+    }
+
+    @Test
+    void fleetObservability_allNodesAreCasehubApplication() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+        graph.nodes().values().forEach(node ->
+                assertThat(node.type()).isEqualTo(NodeType.of("casehub_application")));
+    }
+
+    @Test
+    void fleetObservability_configMatchesFleet() throws IOException {
+        DesiredStateGraph graph = compileSingleGraph(
+                "topologies/deployment/08-fleet-observability/08-fleet-observability.yaml", DEPLOYMENT_REGISTRY);
+
+        var analyst = extractAppSpec(graph, "my-llm.analyst");
+        assertThat(analyst.config()).containsEntry("llm.capability", "deep");
+        assertThat(analyst.config()).containsEntry("llm.role", "analyst");
+
+        var coder = extractAppSpec(graph, "my-llm.coder");
+        assertThat(coder.config()).containsEntry("llm.capability", "fast");
+        assertThat(coder.config()).containsEntry("llm.role", "developer");
+
+        var assistant = extractAppSpec(graph, "my-llm.assistant");
+        assertThat(assistant.config()).containsEntry("llm.capability", "balanced");
+        assertThat(assistant.config()).containsEntry("llm.role", "assistant");
+    }
+
+
 // ── UC04: Multi-Specialist Desk ─────────────────────────────────────
 
     @Test
