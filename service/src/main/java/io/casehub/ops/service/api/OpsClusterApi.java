@@ -49,11 +49,12 @@ public class OpsClusterApi {
 
     @PlatformMutation("Delete a cluster")
     @RestPath("/{id}/delete")
-    public void deleteCluster(@PathParam UUID id) {
+    public ClusterReferenceEntity deleteCluster(@PathParam UUID id) {
         var cluster = clusterService.findById(id);
         if (cluster != null) {
             clusterService.delete(id, cluster.tenancyId);
         }
+        return cluster;
     }
 
     @PlatformMutation("Test cluster connectivity")

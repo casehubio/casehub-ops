@@ -27,10 +27,11 @@ public class OpsDeploymentApi {
 
     @PlatformMutation("Deploy an application")
     @RestPath("/{applicationId}/deploy")
-    public void deploy(@PathParam UUID applicationId) {
+    public DeploymentRecordEntity deploy(@PathParam UUID applicationId) {
         var app = em.find(ApplicationEntity.class, applicationId);
         if (app == null) { throw new IllegalArgumentException("Application not found: " + applicationId); }
         lifecycleService.deploy(applicationId, app.tenancyId);
+        return getCurrentDeployment(applicationId);
     }
 
     @PlatformQuery("List deployments for an application")
@@ -52,7 +53,7 @@ public class OpsDeploymentApi {
 
     @PlatformMutation("Rollback an application to previous deployment")
     @RestPath("/{applicationId}/rollback")
-    public void rollback(@PathParam UUID applicationId) {
+    public DeploymentRecordEntity rollback(@PathParam UUID applicationId) {
         var app = em.find(ApplicationEntity.class, applicationId);
         if (app == null) { throw new IllegalArgumentException("Application not found: " + applicationId); }
 
@@ -64,5 +65,6 @@ public class OpsDeploymentApi {
                 .orElseThrow(() -> new IllegalStateException("No successful deployment to rollback to"));
 
         lifecycleService.rollbackToDeployment(applicationId, lastSuccess.id, app.tenancyId);
+        return getCurrentDeployment(applicationId);
     }
 }

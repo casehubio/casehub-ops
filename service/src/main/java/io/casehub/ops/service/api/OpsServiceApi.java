@@ -37,7 +37,7 @@ public class OpsServiceApi {
 
     @PlatformMutation("Scale a service")
     @RestPath("/{applicationId}/{serviceId}/scale")
-    public void scaleService(@PathParam UUID applicationId, @PathParam String serviceId,
+    public ServiceStatus scaleService(@PathParam UUID applicationId, @PathParam String serviceId,
                               ScaleServiceRequest request) {
         var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
         if (app == null) { throw new IllegalArgumentException("Application not found: " + applicationId); }
@@ -46,11 +46,12 @@ public class OpsServiceApi {
         if (response.getStatus() >= 400) {
             throw new IllegalStateException("Scale operation rejected (HTTP " + response.getStatus() + ")");
         }
+        return getServiceStatus(applicationId, serviceId);
     }
 
     @PlatformMutation("Upgrade a service image")
     @RestPath("/{applicationId}/{serviceId}/upgrade")
-    public void upgradeService(@PathParam UUID applicationId, @PathParam String serviceId,
+    public ServiceStatus upgradeService(@PathParam UUID applicationId, @PathParam String serviceId,
                                 UpgradeServiceRequest request) {
         var app = ApplicationEntity.<ApplicationEntity>findById(applicationId);
         if (app == null) { throw new IllegalArgumentException("Application not found: " + applicationId); }
@@ -66,6 +67,7 @@ public class OpsServiceApi {
                 "newImage", newImage,
                 "applicationId", applicationId.toString(),
                 "tenancyId", app.tenancyId));
+        return getServiceStatus(applicationId, serviceId);
     }
 
     public record ServiceStatus(String serviceId, String serviceName, ManagedServiceCategory category,

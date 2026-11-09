@@ -57,10 +57,11 @@ public class OpsApplicationApi {
 
     @PlatformMutation("Delete an application")
     @RestPath("/{id}/delete")
-    public void deleteApplication(@PathParam UUID id) {
+    public ApplicationEntity deleteApplication(@PathParam UUID id) {
         var app = em.find(ApplicationEntity.class, id);
         if (app != null) {
             lifecycleService.decommission(id, app.tenancyId);
         }
+        return app;
     }
 }

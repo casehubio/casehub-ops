@@ -59,32 +59,36 @@ public class OpsApprovalApi {
 
     @PlatformMutation("Approve a pending item")
     @RestPath("/{id}/approve")
-    public void approve(@PathParam UUID id, String actorId) {
+    public ApprovalView approve(@PathParam UUID id, Optional<String> actorId) {
         var item = workItemService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Approval not found: " + id));
+        String actor = actorId.orElse(principal.actorId());
         RiskClassification risk = resolveRisk(item);
-        var authResult = authorizer.authorize(risk, actorId, principal.roles());
+        var authResult = authorizer.authorize(risk, actor, principal.roles());
         if (authResult instanceof ApprovalAuthorizer.AuthorizationResult.Denied denied) {
             throw new SecurityException(denied.reason());
         }
-        workItemService.completeFromSystem(id, actorId, "approve");
+        workItemService.completeFromSystem(id, actor, "approve");
         if (item.payload() != null) {
             planStore.retrieve(item.payload()).ifPresent(plan ->
                     eventSource.emitDrift(plan.nodeId()));
         }
+        return workItemService.findById(id).map(this::toView).orElse(null);
     }
 
     @PlatformMutation("Reject a pending item")
     @RestPath("/{id}/reject")
-    public void reject(@PathParam UUID id, String actorId, String reason) {
+    public ApprovalView reject(@PathParam UUID id, Optional<String> actorId, Optional<String> reason) {
         var item = workItemService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Approval not found: " + id));
+        String actor = actorId.orElse(principal.actorId());
         RiskClassification risk = resolveRisk(item);
-        var authResult = authorizer.authorize(risk, actorId, principal.roles());
+        var authResult = authorizer.authorize(risk, actor, principal.roles());
         if (authResult instanceof ApprovalAuthorizer.AuthorizationResult.Denied denied) {
             throw new SecurityException(denied.reason());
         }
-        workItemService.rejectFromSystem(id, actorId, reason);
+        workItemService.rejectFromSystem(id, actor, reason.orElse(null));
+        return workItemService.findById(id).map(this::toView).orElse(null);
     }
 
     private RiskClassification resolveRisk(WorkItem item) {
