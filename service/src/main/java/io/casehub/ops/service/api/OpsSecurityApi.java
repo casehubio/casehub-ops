@@ -28,9 +28,11 @@ public class OpsSecurityApi {
 
     @PlatformMutation("Trigger CVE scan for an application")
     @RestPath("/{applicationId}/cves/scan")
-    public void scanCves(@PathParam UUID applicationId) {
-        // CVE scanning is triggered externally; this endpoint acknowledges the request
+    public ScanAcknowledgement scanCves(@PathParam UUID applicationId) {
+        return new ScanAcknowledgement(applicationId, "CVE scan requested");
     }
+
+    public record ScanAcknowledgement(UUID applicationId, String message) {}
 
     @PlatformQuery("Get security posture for an application")
     @RestPath("/{applicationId}/posture")
