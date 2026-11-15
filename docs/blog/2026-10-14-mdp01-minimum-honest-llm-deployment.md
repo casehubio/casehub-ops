@@ -2,7 +2,7 @@
 layout: post
 title: "The Minimum Honest LLM Deployment"
 date: 2026-10-14
-entry_type: article
+entry_type: note
 subtype: diary
 projects: [casehubio/casehub-ops]
 tags: [deployment, claudony, desiredstate, llm, yaml, reconciliation]
