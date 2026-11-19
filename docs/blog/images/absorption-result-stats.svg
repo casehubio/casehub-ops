@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 280" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="gRed" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ef5350"/>
+      <stop offset="100%" stop-color="#e53935"/>
+    </linearGradient>
+    <linearGradient id="gGreen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#66bb6a"/>
+      <stop offset="100%" stop-color="#43a047"/>
+    </linearGradient>
+    <linearGradient id="gBlue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#42a5f5"/>
+      <stop offset="100%" stop-color="#1e88e5"/>
+    </linearGradient>
+  </defs>
+
+  <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="600" fill="#333">Absorption by the numbers</text>
+
+  <!-- Removed -->
+  <text x="40" y="65" font-size="12" font-weight="600" fill="#c62828">Removed</text>
+  <rect x="40" y="75" width="280" height="28" rx="4" fill="url(#gRed)" opacity="0.9"/>
+  <text x="50" y="94" font-size="12" fill="#fff" font-weight="500">7 production classes</text>
+  <text x="230" y="94" font-size="11" fill="#ffcdd2">SPI quad + support</text>
+
+  <rect x="40" y="108" width="240" height="28" rx="4" fill="url(#gRed)" opacity="0.85"/>
+  <text x="50" y="127" font-size="12" fill="#fff" font-weight="500">7 API types</text>
+  <text x="160" y="127" font-size="11" fill="#ffcdd2">sealed hierarchy + goals</text>
+
+  <rect x="40" y="141" width="360" height="28" rx="4" fill="url(#gRed)" opacity="0.8"/>
+  <text x="50" y="160" font-size="12" fill="#fff" font-weight="500">20 old test files</text>
+  <text x="200" y="160" font-size="11" fill="#ffcdd2">pre-DimensionTest integration tests</text>
+
+  <rect x="40" y="174" width="200" height="28" rx="4" fill="url(#gRed)" opacity="0.75"/>
+  <text x="50" y="193" font-size="12" fill="#fff" font-weight="500">5,600+ lines deleted</text>
+
+  <!-- Added -->
+  <text x="430" y="65" font-size="12" font-weight="600" fill="#2e7d32">Added / Enhanced</text>
+  <rect x="430" y="75" width="220" height="28" rx="4" fill="url(#gGreen)" opacity="0.9"/>
+  <text x="440" y="94" font-size="12" fill="#fff" font-weight="500">ClaudonyPoolOperations</text>
+
+  <rect x="430" y="108" width="220" height="28" rx="4" fill="url(#gGreen)" opacity="0.85"/>
+  <text x="440" y="127" font-size="12" fill="#fff" font-weight="500">3 new dimensions</text>
+
+  <rect x="430" y="141" width="220" height="28" rx="4" fill="url(#gGreen)" opacity="0.8"/>
+  <text x="440" y="160" font-size="12" fill="#fff" font-weight="500">3 topology YAMLs rewritten</text>
+
+  <rect x="430" y="174" width="220" height="28" rx="4" fill="url(#gBlue)" opacity="0.9"/>
+  <text x="440" y="193" font-size="12" fill="#fff" font-weight="500">PoolOperations → top-level SPI</text>
+
+  <rect x="430" y="207" width="220" height="28" rx="4" fill="url(#gBlue)" opacity="0.85"/>
+  <text x="440" y="226" font-size="12" fill="#fff" font-weight="500">PoolNodeSpec + applicationId</text>
+
+  <!-- Net -->
+  <rect x="40" y="240" width="610" height="30" rx="6" fill="#f5f5f5" stroke="#bbb" stroke-width="1"/>
+  <text x="340" y="260" text-anchor="middle" font-size="13" font-weight="600" fill="#333">Net: one domain, one pool abstraction, any backend</text>
+</svg>

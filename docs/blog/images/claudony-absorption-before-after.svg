@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 360" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="gBefore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="gAfter" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- BEFORE -->
+  <text x="190" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#e65100">Before</text>
+
+  <!-- Deployment domain box -->
+  <rect x="20" y="35" width="340" height="140" rx="8" fill="url(#gBefore)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="40" y="58" font-size="12" font-weight="600" fill="#e65100">Deployment Domain</text>
+  <rect x="35" y="68" width="140" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="105" y="85" text-anchor="middle" font-size="10" fill="#bf360c">casehub_application</text>
+  <rect x="35" y="98" width="140" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="105" y="115" text-anchor="middle" font-size="10" fill="#bf360c">pool (stub — no impl)</text>
+  <rect x="195" y="68" width="150" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="270" y="85" text-anchor="middle" font-size="10" fill="#bf360c">DeploymentFaultPolicy</text>
+  <rect x="195" y="98" width="150" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="270" y="115" text-anchor="middle" font-size="10" fill="#bf360c">ClaudonyDeployTarget</text>
+  <text x="40" y="160" font-size="10" fill="#888">Levels 01–09: casehub_application + deploymentTarget: claudony</text>
+
+  <!-- Claudony domain box -->
+  <rect x="20" y="190" width="340" height="140" rx="8" fill="url(#gBefore)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="40" y="213" font-size="12" font-weight="600" fill="#e65100">Claudony Domain (standalone)</text>
+  <rect x="35" y="223" width="120" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="95" y="240" text-anchor="middle" font-size="10" fill="#bf360c">claudony_app</text>
+  <rect x="165" y="223" width="120" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="225" y="240" text-anchor="middle" font-size="10" fill="#bf360c">claudony_pool</text>
+  <rect x="35" y="255" width="120" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="95" y="272" text-anchor="middle" font-size="10" fill="#bf360c">GoalCompiler</text>
+  <rect x="165" y="255" width="120" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="225" y="272" text-anchor="middle" font-size="10" fill="#bf360c">FaultPolicy</text>
+  <rect x="295" y="255" width="55" height="24" rx="4" fill="#fff" stroke="#bf360c" stroke-width="1"/>
+  <text x="322" y="272" text-anchor="middle" font-size="10" fill="#bf360c">+4 more</text>
+  <text x="40" y="315" font-size="10" fill="#888">Levels 10, 12, 14: claudony_app/claudony_pool directly</text>
+
+  <!-- Arrow -->
+  <line x1="385" y1="180" x2="415" y2="180" stroke="#666" stroke-width="2"/>
+  <polygon points="413,175 423,180 413,185" fill="#666"/>
+
+  <!-- AFTER -->
+  <text x="600" y="24" text-anchor="middle" font-size="15" font-weight="700" fill="#2e7d32">After</text>
+
+  <!-- Unified deployment domain -->
+  <rect x="430" y="35" width="330" height="200" rx="8" fill="url(#gAfter)" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="450" y="58" font-size="12" font-weight="600" fill="#2e7d32">Deployment Domain (unified)</text>
+  <rect x="445" y="68" width="140" height="24" rx="4" fill="#fff" stroke="#1b5e20" stroke-width="1"/>
+  <text x="515" y="85" text-anchor="middle" font-size="10" fill="#1b5e20">casehub_application</text>
+  <rect x="595" y="68" width="150" height="24" rx="4" fill="#fff" stroke="#1b5e20" stroke-width="1"/>
+  <text x="670" y="85" text-anchor="middle" font-size="10" fill="#1b5e20">pool (+ PoolOperations)</text>
+  <rect x="445" y="100" width="140" height="24" rx="4" fill="#fff" stroke="#1b5e20" stroke-width="1"/>
+  <text x="515" y="117" text-anchor="middle" font-size="10" fill="#1b5e20">DeploymentFaultPolicy</text>
+  <rect x="595" y="100" width="150" height="24" rx="4" fill="#fff" stroke="#1b5e20" stroke-width="1"/>
+  <text x="670" y="117" text-anchor="middle" font-size="10" fill="#1b5e20">DeploymentGoalCompiler</text>
+  <text x="450" y="150" font-size="10" fill="#555">All levels use the same types:</text>
+  <text x="450" y="165" font-size="10" fill="#555">casehub_application + pool + deploymentTarget: claudony</text>
+
+  <!-- Thin claudony module -->
+  <rect x="430" y="250" width="330" height="80" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+  <text x="450" y="273" font-size="12" font-weight="600" fill="#7b1fa2">Claudony Module (thin SPI provider)</text>
+  <rect x="445" y="283" width="140" height="24" rx="4" fill="#fff" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="515" y="300" text-anchor="middle" font-size="10" fill="#7b1fa2">ClaudonyDeployTarget</text>
+  <rect x="595" y="283" width="150" height="24" rx="4" fill="#fff" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="670" y="300" text-anchor="middle" font-size="10" fill="#7b1fa2">ClaudonyPoolOperations</text>
+
+  <!-- Connection arrow -->
+  <line x1="595" y1="195" x2="595" y2="248" stroke="#7b1fa2" stroke-width="1" stroke-dasharray="4,3"/>
+  <polygon points="590,246 595,256 600,246" fill="#7b1fa2"/>
+  <text x="605" y="228" font-size="9" fill="#7b1fa2">implements PoolOperations</text>
+</svg>
