@@ -68,7 +68,7 @@ public record AgentNodeSpec(
                 dispositionVocabulary, styleVocabulary, axisVocabularies, slot,
                 null, null, List.of(), null,
                 capabilities, disposition, jurisdiction, dataHandlingPolicy,
-                tenancyId, briefing, null, List.of(), List.of(), List.of(), null, Map.of());
+                tenancyId, briefing, null, List.of(), List.of(), List.of(), null, Map.of(), null);
     }
 
     public AgentNodeSpec withAgentId(String newId) {
