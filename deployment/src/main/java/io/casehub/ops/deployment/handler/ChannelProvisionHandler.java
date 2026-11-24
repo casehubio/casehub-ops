@@ -1,24 +1,23 @@
 package io.casehub.ops.deployment.handler;
 
+import io.casehub.desiredstate.api.DeprovisionContext;
+import io.casehub.desiredstate.api.DeprovisionResult;
+import io.casehub.desiredstate.api.ProvisionContext;
+import io.casehub.desiredstate.api.ProvisionResult;
+import io.casehub.ops.api.deployment.ChannelNodeSpec;
+import io.casehub.qhorus.api.channel.Channel;
+import io.casehub.qhorus.api.channel.ChannelCreateRequest;
+import io.casehub.qhorus.api.message.MessageType;
+import io.casehub.qhorus.runtime.channel.ChannelService;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
-import io.casehub.desiredstate.api.DeprovisionContext;
-import io.casehub.desiredstate.api.DeprovisionResult;
-import io.casehub.desiredstate.api.ProvisionContext;
-import io.casehub.desiredstate.api.ProvisionResult;
-import io.casehub.ops.api.deployment.ChannelNodeSpec;
-import io.casehub.qhorus.api.message.MessageType;
-import io.casehub.qhorus.api.channel.Channel;
-import io.casehub.qhorus.api.channel.ChannelCreateRequest;
-import io.casehub.qhorus.runtime.channel.ChannelService;
 
 @ApplicationScoped
 public class ChannelProvisionHandler {
@@ -66,26 +65,24 @@ public class ChannelProvisionHandler {
         }
 
         var request = ChannelCreateRequest.builder(spec.name())
-                .description(spec.description())
-                .semantic(spec.semantic())
-                .barrierContributors(toList(spec.barrierContributors()))
-                .allowedWriters(toList(spec.allowedWriters()))
-                .adminInstances(toList(spec.adminInstances()))
-                .rateLimitPerChannel(spec.rateLimitPerChannel())
-                .rateLimitPerInstance(spec.rateLimitPerInstance())
-                .allowedTypes(spec.allowedTypes())
-                .deniedTypes(spec.deniedTypes())
-                .protocols(spec.protocols())
-                .protocolParticipants(spec.protocolParticipants())
-                .inboundConnectorId(spec.inboundConnectorId())
-                .externalKey(spec.externalKey())
-                .outboundConnectorId(spec.outboundConnectorId())
-                .outboundDestination(spec.outboundDestination())
-                .build();
-        Channel created = ops.create(request);
-        if (spec.policyOverrides() != null) {
-            ops.setPolicyOverrides(created.id(), spec.policyOverrides());
-        }
+                                          .description(spec.description())
+                                          .semantic(spec.semantic())
+                                          .barrierContributors(toList(spec.barrierContributors()))
+                                          .allowedWriters(toList(spec.allowedWriters()))
+                                          .adminInstances(toList(spec.adminInstances()))
+                                          .rateLimitPerChannel(spec.rateLimitPerChannel())
+                                          .rateLimitPerInstance(spec.rateLimitPerInstance())
+                                          .allowedTypes(spec.allowedTypes())
+                                          .deniedTypes(spec.deniedTypes())
+                                          .protocols(spec.protocols())
+                                          .protocolParticipants(spec.protocolParticipants())
+                                          .policyOverrides(spec.policyOverrides())
+                                          .inboundConnectorId(spec.inboundConnectorId())
+                                          .externalKey(spec.externalKey())
+                                          .outboundConnectorId(spec.outboundConnectorId())
+                                          .outboundDestination(spec.outboundDestination())
+                                          .build();
+        ops.create(request);
         return new ProvisionResult.Success();
     }
 

@@ -223,19 +223,20 @@ class ChannelProvisionHandlerTest {
         @Override
         public Channel create(ChannelCreateRequest req) {
             Channel ch = Channel.builder(req.name())
-                    .id(UUID.randomUUID())
-                    .description(req.description())
-                    .semantic(req.semantic())
-                    .barrierContributors(req.barrierContributors())
-                    .allowedWriters(req.allowedWriters())
-                    .adminInstances(req.adminInstances())
-                    .rateLimitPerChannel(req.rateLimitPerChannel())
-                    .rateLimitPerInstance(req.rateLimitPerInstance())
-                    .allowedTypes(req.allowedTypes())
-                    .deniedTypes(req.deniedTypes())
-                    .protocols(req.protocols())
-                    .protocolParticipants(req.protocolParticipants())
-                    .build();
+                                .id(UUID.randomUUID())
+                                .description(req.description())
+                                .semantic(req.semantic())
+                                .barrierContributors(req.barrierContributors())
+                                .allowedWriters(req.allowedWriters())
+                                .adminInstances(req.adminInstances())
+                                .rateLimitPerChannel(req.rateLimitPerChannel())
+                                .rateLimitPerInstance(req.rateLimitPerInstance())
+                                .allowedTypes(req.allowedTypes())
+                                .deniedTypes(req.deniedTypes())
+                                .protocols(req.protocols())
+                                .protocolParticipants(req.protocolParticipants())
+                                .policyOverrides(req.policyOverrides())
+                                .build();
             channels.put(ch.name(), ch);
             return ch;
         }
